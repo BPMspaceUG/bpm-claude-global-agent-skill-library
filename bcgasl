@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-SYNC_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync"
+TARBALL_URL="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/archive/main.tar.gz"
 
 show_help() {
   echo "bcgasl - Claude Global Agents & Skills Library"
@@ -20,15 +20,23 @@ show_help() {
   echo "  bcgasl --help  Show this help"
 }
 
+run_sync() {
+  # Download tarball and extract sync script (bypasses CDN cache)
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "$TMP_DIR"' EXIT
+  curl -fsSL "$TARBALL_URL" | tar -xz -C "$TMP_DIR"
+  bash "$TMP_DIR/bpm-claude-global-agent-skill-library-main/sync" "$@"
+}
+
 case "${1:-}" in
   -h|--help)
     show_help
     ;;
   --n8n)
-    curl -fsSL "$SYNC_URL" | bash -s -- --n8n
+    run_sync --n8n
     ;;
   "")
-    curl -fsSL "$SYNC_URL" | bash
+    run_sync
     ;;
   *)
     echo "Unknown option: $1"
