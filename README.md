@@ -24,12 +24,15 @@ curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-
 ### Install cgasl command (for repeated use)
 
 ```bash
+# Interactive (asks user/global)
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
-```
 
-Choose:
-- `[1]` User → `~/.local/bin/cgasl`
-- `[2]` Global → `/usr/local/bin/cgasl` (requires sudo)
+# User install (~/.local/bin/cgasl)
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --user
+
+# Global install (/usr/local/bin/cgasl, requires sudo)
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global
+```
 
 Then use:
 ```bash
