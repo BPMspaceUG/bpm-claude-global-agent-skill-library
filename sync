@@ -47,9 +47,11 @@ EXTRACTED_DIR="$TMP_DIR/bpm-claude-global-agent-skill-library-main"
 echo ""
 NEW_FILES=()
 MODIFIED_FILES=()
+LOCAL_ONLY=()
 UNCHANGED=0
 
 for dir in agents skills runbooks templates; do
+  # Check for new/modified from repo
   if [ -d "$EXTRACTED_DIR/$dir" ]; then
     for file in "$EXTRACTED_DIR/$dir"/*; do
       [ -f "$file" ] || continue
@@ -65,6 +67,19 @@ for dir in agents skills runbooks templates; do
       fi
     done
   fi
+
+  # Check for local-only files (exist locally but not in repo)
+  if [ -d "$TARGET_DIR/$dir" ]; then
+    for file in "$TARGET_DIR/$dir"/*; do
+      [ -f "$file" ] || continue
+      filename=$(basename "$file")
+      repo_file="$EXTRACTED_DIR/$dir/$filename"
+
+      if [ ! -f "$repo_file" ]; then
+        LOCAL_ONLY+=("$dir/$filename")
+      fi
+    done
+  fi
 done
 
 # Show results
@@ -76,6 +91,11 @@ fi
 if [ ${#MODIFIED_FILES[@]} -gt 0 ]; then
   echo "📝 Modified:"
   for f in "${MODIFIED_FILES[@]}"; do echo "   ~ $f"; done
+fi
+
+if [ ${#LOCAL_ONLY[@]} -gt 0 ]; then
+  echo "📁 Local only (not in repo):"
+  for f in "${LOCAL_ONLY[@]}"; do echo "   ? $f"; done
 fi
 
 if [ ${#NEW_FILES[@]} -eq 0 ] && [ ${#MODIFIED_FILES[@]} -eq 0 ]; then
@@ -110,9 +130,12 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
   N8N_MOD=()
   N8N_UNCH=0
 
+  # Get list of n8n files from repo
+  N8N_REPO_FILES=()
   for file in "$N8N_SRC"/*; do
     [ -f "$file" ] || continue
     filename=$(basename "$file")
+    N8N_REPO_FILES+=("$filename")
     target_file="$TARGET_DIR/skills/$filename"
 
     if [ ! -f "$target_file" ]; then
