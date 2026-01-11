@@ -6,35 +6,60 @@
 
 set -euo pipefail
 
-ALIAS_LINES='
-# Claude Global Agents & Skills Library
+ALIAS_LINES='# Claude Global Agents & Skills Library
 alias cgasl="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash"
 alias cgasl-n8n="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n"'
 
-# Detect shell config file
-if [ -n "${ZSH_VERSION:-}" ] || [ -f "$HOME/.zshrc" ]; then
-  RC_FILE="$HOME/.zshrc"
-elif [ -f "$HOME/.bashrc" ]; then
-  RC_FILE="$HOME/.bashrc"
-else
-  echo "Could not detect shell config file."
-  echo "Add these aliases manually:"
-  echo "$ALIAS_LINES"
-  exit 1
-fi
+GLOBAL_FILE="/etc/profile.d/cgasl.sh"
 
-# Check if already installed
-if grep -q "alias cgasl=" "$RC_FILE" 2>/dev/null; then
-  echo "Aliases already installed in $RC_FILE"
-  exit 0
-fi
-
-# Add aliases
-echo "$ALIAS_LINES" >> "$RC_FILE"
-echo "Aliases added to $RC_FILE"
+echo "Claude Global Agents & Skills Library - Alias Setup"
 echo ""
-echo "Run: source $RC_FILE"
+echo "  [1] User install   - ~/.bashrc or ~/.zshrc (current user only)"
+echo "  [2] Global install - /etc/profile.d/cgasl.sh (all users, requires sudo)"
+echo ""
+
+# Read choice from /dev/tty for pipe compatibility
+read -p "Choose [1/2]: " -n 1 -r </dev/tty 2>/dev/null || REPLY="1"
+echo ""
+
+if [[ $REPLY == "2" ]]; then
+  # Global install
+  if [ -f "$GLOBAL_FILE" ]; then
+    echo "Already installed globally in $GLOBAL_FILE"
+    exit 0
+  fi
+
+  echo "Installing globally (requires sudo)..."
+  echo "$ALIAS_LINES" | sudo tee "$GLOBAL_FILE" > /dev/null
+  sudo chmod 644 "$GLOBAL_FILE"
+  echo ""
+  echo "Aliases installed to $GLOBAL_FILE"
+  echo "Log out and back in, or run: source $GLOBAL_FILE"
+else
+  # User install
+  if [ -n "${ZSH_VERSION:-}" ] || [ -f "$HOME/.zshrc" ]; then
+    RC_FILE="$HOME/.zshrc"
+  elif [ -f "$HOME/.bashrc" ]; then
+    RC_FILE="$HOME/.bashrc"
+  else
+    echo "Could not detect shell config file."
+    echo "Add these aliases manually:"
+    echo "$ALIAS_LINES"
+    exit 1
+  fi
+
+  if grep -q "alias cgasl=" "$RC_FILE" 2>/dev/null; then
+    echo "Aliases already installed in $RC_FILE"
+    exit 0
+  fi
+
+  echo "$ALIAS_LINES" >> "$RC_FILE"
+  echo ""
+  echo "Aliases added to $RC_FILE"
+  echo "Run: source $RC_FILE"
+fi
+
 echo ""
 echo "Then use:"
-echo "  cgasl      - Install/update agents & skills"
-echo "  cgasl-n8n  - Install/update with n8n skills"
+echo "  cgasl      - Install/update agents & skills (user)"
+echo "  cgasl-n8n  - Install/update with n8n skills (user)"
