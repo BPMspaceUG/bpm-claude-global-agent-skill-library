@@ -73,6 +73,10 @@ for dir in agents skills runbooks templates; do
     for file in "$TARGET_DIR/$dir"/*; do
       [ -f "$file" ] || continue
       filename=$(basename "$file")
+
+      # Skip .zip files (artifacts)
+      [[ "$filename" == *.zip ]] && continue
+
       repo_file="$EXTRACTED_DIR/$dir/$filename"
 
       if [ ! -f "$repo_file" ]; then
@@ -164,4 +168,11 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
     cp -r "$N8N_SRC/." "$TARGET_DIR/skills/"
     echo "✅ n8n updated: ${#N8N_NEW[@]} new, ${#N8N_MOD[@]} modified, $N8N_UNCH unchanged"
   fi
+fi
+
+# Cleanup: remove .zip artifacts from skills directory
+ZIP_COUNT=$(find "$TARGET_DIR/skills" -name "*.zip" 2>/dev/null | wc -l)
+if [ "$ZIP_COUNT" -gt 0 ]; then
+  rm -f "$TARGET_DIR/skills"/*.zip
+  echo "🧹 Cleaned up $ZIP_COUNT .zip artifact(s)"
 fi
