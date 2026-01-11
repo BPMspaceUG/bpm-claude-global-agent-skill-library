@@ -122,38 +122,49 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
   curl -fsSL "$N8N_TARBALL" | tar -xz -C "$TMP_DIR"
   N8N_DIR="$TMP_DIR/n8n-skills-main"
 
-  # Determine source directory
-  if [ -d "$N8N_DIR/dist" ]; then
+  # Determine source directory (prefer skills/ over dist/ to get raw .md files)
+  if [ -d "$N8N_DIR/skills" ]; then
+    N8N_SRC="$N8N_DIR/skills"
+  elif [ -d "$N8N_DIR/dist" ]; then
     N8N_SRC="$N8N_DIR/dist"
   else
-    N8N_SRC="$N8N_DIR/skills"
+    echo "⚠️  n8n-skills: no skills or dist directory found"
+    N8N_SRC=""
   fi
 
-  # Compare n8n skills
+  # Compare n8n skills (directories)
   N8N_NEW=()
   N8N_MOD=()
   N8N_UNCH=0
 
-  # Get list of n8n files from repo (skip .zip files)
-  N8N_REPO_FILES=()
-  for file in "$N8N_SRC"/*; do
-    [ -f "$file" ] || continue
-    filename=$(basename "$file")
+  if [ -n "$N8N_SRC" ]; then
+    for item in "$N8N_SRC"/*; do
+      [ -e "$item" ] || continue
+      itemname=$(basename "$item")
 
-    # Skip .zip files
-    [[ "$filename" == *.zip ]] && continue
+      # Skip .zip files
+      [[ "$itemname" == *.zip ]] && continue
 
-    N8N_REPO_FILES+=("$filename")
-    target_file="$TARGET_DIR/skills/$filename"
+      target_item="$TARGET_DIR/skills/$itemname"
 
-    if [ ! -f "$target_file" ]; then
-      N8N_NEW+=("$filename")
-    elif ! diff -q "$file" "$target_file" > /dev/null 2>&1; then
-      N8N_MOD+=("$filename")
-    else
-      ((N8N_UNCH++)) || true
-    fi
-  done
+      if [ ! -e "$target_item" ]; then
+        N8N_NEW+=("$itemname")
+      elif [ -d "$item" ]; then
+        # Compare directories by checking if any file differs
+        if ! diff -rq "$item" "$target_item" > /dev/null 2>&1; then
+          N8N_MOD+=("$itemname")
+        else
+          ((N8N_UNCH++)) || true
+        fi
+      elif [ -f "$item" ]; then
+        if ! diff -q "$item" "$target_item" > /dev/null 2>&1; then
+          N8N_MOD+=("$itemname")
+        else
+          ((N8N_UNCH++)) || true
+        fi
+      fi
+    done
+  fi
 
   # Show n8n results
   if [ ${#N8N_NEW[@]} -gt 0 ]; then
@@ -167,13 +178,13 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
   fi
 
   if [ ${#N8N_NEW[@]} -eq 0 ] && [ ${#N8N_MOD[@]} -eq 0 ]; then
-    echo "✅ n8n skills already up to date ($N8N_UNCH files)"
+    echo "✅ n8n skills already up to date ($N8N_UNCH items)"
   else
-    # Copy only non-zip files
-    for file in "$N8N_SRC"/*; do
-      [ -f "$file" ] || continue
-      [[ "$(basename "$file")" == *.zip ]] && continue
-      cp "$file" "$TARGET_DIR/skills/"
+    # Copy all items (files and directories, excluding .zip)
+    for item in "$N8N_SRC"/*; do
+      [ -e "$item" ] || continue
+      [[ "$(basename "$item")" == *.zip ]] && continue
+      cp -r "$item" "$TARGET_DIR/skills/"
     done
     echo "✅ n8n updated: ${#N8N_NEW[@]} new, ${#N8N_MOD[@]} modified, $N8N_UNCH unchanged"
   fi
