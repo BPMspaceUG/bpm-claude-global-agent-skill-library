@@ -11,32 +11,33 @@ This repository contains a collection of **agents**, **skills**, **runbooks** an
 
 ## Installation
 
-### Install cgasl command
+### One-time usage
+
+```bash
+# Without n8n skills
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
+
+# With n8n skills
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n
+```
+
+### Install cgasl command (for repeated use)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
 ```
 
 Choose:
-- `[1]` User install → `~/.local/bin/cgasl`
-- `[2]` Global install → `/usr/local/bin/cgasl` (requires sudo)
+- `[1]` User → `~/.local/bin/cgasl`
+- `[2]` Global → `/usr/local/bin/cgasl` (requires sudo)
 
-### Usage
-
+Then use:
 ```bash
 cgasl         # Install/update agents & skills
 cgasl --n8n   # Install/update with n8n skills
-cgasl --help  # Show help
 ```
 
-### Manual (one-liner)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n
-```
-
-The sync script detects Claude config location (`~/.config/claude` or `~/.claude`) and copies the `agents/`, `skills/`, `runbooks/` and `templates/` directories. Use `--n8n` to also install [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills).
+The sync copies `agents/`, `skills/`, `runbooks/` and `templates/` to `~/.config/claude` or `~/.claude`. Use `--n8n` to also install [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills).
 
 ## Usage
 
