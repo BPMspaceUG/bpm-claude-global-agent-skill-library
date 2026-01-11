@@ -1,0 +1,21 @@
+# System and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Secrets and environment
+.env
+.env.*
+*.key
+*.pem
+*.p12
+
+# Claude local state (do not commit)
+.claude.json
+claude.json
+settings.json
+
+# Build and temp directories
+tmp/
+dist/

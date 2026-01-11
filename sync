@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# Global Claude Agents & Skills installation script
+#
+# This script copies the contents of the `agents/`, `skills/`, `runbooks/` and
+# `templates/` directories into the user's global Claude configuration
+# directory. It supports an optional `--n8n` flag to also install the
+# external n8n skills pack. The script may be invoked via
+# `curl -fsSL <repo>/sync | bash`.
+
+set -euo pipefail
+
+# Determine the target directory for Claude configuration
+if [ -d "$HOME/.config/claude" ]; then
+  TARGET_DIR="$HOME/.config/claude"
+else
+  TARGET_DIR="$HOME/.claude"
+fi
+
+# Parse arguments
+INSTALL_N8N=0
+for arg in "$@"; do
+  case "$arg" in
+    --n8n|--with-n8n)
+      INSTALL_N8N=1
+      ;;
+    *)
+      ;;
+  esac
+done
+
+# Ensure target subdirectories exist
+mkdir -p "$TARGET_DIR"/{agents,skills,runbooks,templates}
+
+# Copy contents from the repository into the global Claude directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo "Installing global Claude agents and skills into $TARGET_DIR..."
+cp -r "$SCRIPT_DIR/agents/." "$TARGET_DIR/agents/"
+cp -r "$SCRIPT_DIR/skills/." "$TARGET_DIR/skills/"
+cp -r "$SCRIPT_DIR/runbooks/." "$TARGET_DIR/runbooks/"
+cp -r "$SCRIPT_DIR/templates/." "$TARGET_DIR/templates/"
+
+# Optionally install the n8n skills pack
+if [ "$INSTALL_N8N" -eq 1 ]; then
+  echo "Installing n8n-skills pack..."
+  TMP_DIR="$(mktemp -d)"
+  git clone --depth=1 https://github.com/czlonkowski/n8n-skills "$TMP_DIR"
+  if [ -d "$TMP_DIR/dist" ]; then
+    cp -r "$TMP_DIR/dist/." "$TARGET_DIR/skills/"
+  else
+    cp -r "$TMP_DIR/skills/." "$TARGET_DIR/skills/"
+  fi
+  rm -rf "$TMP_DIR"
+fi
+
+echo "Installation complete."
