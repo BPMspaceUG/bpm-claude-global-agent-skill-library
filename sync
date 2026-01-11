@@ -134,11 +134,15 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
   N8N_MOD=()
   N8N_UNCH=0
 
-  # Get list of n8n files from repo
+  # Get list of n8n files from repo (skip .zip files)
   N8N_REPO_FILES=()
   for file in "$N8N_SRC"/*; do
     [ -f "$file" ] || continue
     filename=$(basename "$file")
+
+    # Skip .zip files
+    [[ "$filename" == *.zip ]] && continue
+
     N8N_REPO_FILES+=("$filename")
     target_file="$TARGET_DIR/skills/$filename"
 
@@ -165,7 +169,12 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
   if [ ${#N8N_NEW[@]} -eq 0 ] && [ ${#N8N_MOD[@]} -eq 0 ]; then
     echo "✅ n8n skills already up to date ($N8N_UNCH files)"
   else
-    cp -r "$N8N_SRC/." "$TARGET_DIR/skills/"
+    # Copy only non-zip files
+    for file in "$N8N_SRC"/*; do
+      [ -f "$file" ] || continue
+      [[ "$(basename "$file")" == *.zip ]] && continue
+      cp "$file" "$TARGET_DIR/skills/"
+    done
     echo "✅ n8n updated: ${#N8N_NEW[@]} new, ${#N8N_MOD[@]} modified, $N8N_UNCH unchanged"
   fi
 fi
