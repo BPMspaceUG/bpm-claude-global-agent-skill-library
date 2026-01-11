@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 #
-# cgasl - Claude Global Agents & Skills Library
+# bcgasl - Claude Global Agents & Skills Library
 #
 # Usage:
-#   cgasl         Install/update agents & skills
-#   cgasl --n8n   Install/update with n8n skills
-#   cgasl --help  Show this help
+#   bcgasl         Install/update agents & skills
+#   bcgasl --n8n   Install/update with n8n skills
+#   bcgasl --help  Show this help
 
 set -euo pipefail
 
 SYNC_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync"
 
 show_help() {
-  echo "cgasl - Claude Global Agents & Skills Library"
+  echo "bcgasl - Claude Global Agents & Skills Library"
   echo ""
   echo "Usage:"
-  echo "  cgasl         Install/update agents & skills"
-  echo "  cgasl --n8n   Install/update with n8n skills"
-  echo "  cgasl --help  Show this help"
+  echo "  bcgasl         Install/update agents & skills"
+  echo "  bcgasl --n8n   Install/update with n8n skills"
+  echo "  bcgasl --help  Show this help"
 }
 
 case "${1:-}" in

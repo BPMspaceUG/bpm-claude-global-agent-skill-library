@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is a global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), and collaboration templates. These resources are installed globally on development machines and referenced across multiple projects.
+This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), and collaboration templates. These resources are installed globally on development machines and referenced across multiple projects.
 
 ## Architecture
 
@@ -40,12 +40,12 @@ All agents follow these conventions:
 ## Installation
 
 ```bash
-# Install cgasl command (choose user or global)
+# Install bcgasl command (choose user or global)
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
 
 # Then use
-cgasl         # Install/update agents & skills
-cgasl --n8n   # With n8n skills
+bcgasl         # Install/update agents & skills
+bcgasl --n8n   # With n8n skills
 ```
 
 The sync copies to `~/.config/claude` or `~/.claude`.

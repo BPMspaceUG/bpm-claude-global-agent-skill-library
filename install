@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Install cgasl command for Claude Global Agents & Skills Library
+# Install bcgasl command for BPMspace Claude Global Agents & Skills Library
 #
 # Usage:
 #   curl -fsSL .../install | bash              # Interactive
@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-CGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/cgasl"
+BCGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/bcgasl"
 USER_BIN="$HOME/.local/bin"
 GLOBAL_BIN="/usr/local/bin"
 
@@ -24,10 +24,10 @@ done
 
 # Interactive if no argument
 if [ -z "$CHOICE" ]; then
-  echo "Claude Global Agents & Skills Library - Install"
+  echo "BPMspace Claude Global Agents & Skills Library - Install"
   echo ""
-  echo "  [1] User install   - ~/.local/bin/cgasl (current user only)"
-  echo "  [2] Global install - /usr/local/bin/cgasl (all users, requires sudo)"
+  echo "  [1] User install   - ~/.local/bin/bcgasl (current user only)"
+  echo "  [2] Global install - /usr/local/bin/bcgasl (all users, requires sudo)"
   echo ""
   read -p "Choose [1/2]: " -n 1 -r </dev/tty 2>/dev/null || CHOICE="1"
   CHOICE="${REPLY:-1}"
@@ -37,17 +37,17 @@ fi
 if [[ $CHOICE == "2" ]]; then
   # Global install
   echo "Installing globally (requires sudo)..."
-  sudo curl -fsSL "$CGASL_URL" -o "$GLOBAL_BIN/cgasl"
-  sudo chmod +x "$GLOBAL_BIN/cgasl"
+  sudo curl -fsSL "$BCGASL_URL" -o "$GLOBAL_BIN/bcgasl"
+  sudo chmod +x "$GLOBAL_BIN/bcgasl"
   echo ""
-  echo "Installed to $GLOBAL_BIN/cgasl"
+  echo "Installed to $GLOBAL_BIN/bcgasl"
 else
   # User install
   mkdir -p "$USER_BIN"
-  curl -fsSL "$CGASL_URL" -o "$USER_BIN/cgasl"
-  chmod +x "$USER_BIN/cgasl"
+  curl -fsSL "$BCGASL_URL" -o "$USER_BIN/bcgasl"
+  chmod +x "$USER_BIN/bcgasl"
   echo ""
-  echo "Installed to $USER_BIN/cgasl"
+  echo "Installed to $USER_BIN/bcgasl"
 
   # Check if ~/.local/bin is in PATH
   if [[ ":$PATH:" != *":$USER_BIN:"* ]]; then
@@ -60,6 +60,6 @@ fi
 
 echo ""
 echo "Usage:"
-echo "  cgasl         - Install/update agents & skills"
-echo "  cgasl --n8n   - Install/update with n8n skills"
-echo "  cgasl --help  - Show help"
+echo "  bcgasl         - Install/update agents & skills"
+echo "  bcgasl --n8n   - Install/update with n8n skills"
+echo "  bcgasl --help  - Show help"

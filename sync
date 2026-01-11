@@ -39,7 +39,7 @@ mkdir -p "$TARGET_DIR"/{agents,skills,runbooks,templates}
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-echo "Downloading Claude Global Agents & Skills Library..."
+echo "Downloading BPMspace Claude Global Agents & Skills Library..."
 curl -fsSL "$REPO_TARBALL" | tar -xz -C "$TMP_DIR"
 EXTRACTED_DIR="$TMP_DIR/bpm-claude-global-agent-skill-library-main"
 
