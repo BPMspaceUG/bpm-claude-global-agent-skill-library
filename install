@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
 #
-# Install aliases for Claude Global Agents & Skills Library
+# Install cgasl command for Claude Global Agents & Skills Library
 #
 # Usage: curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
 
 set -euo pipefail
 
-ALIAS_LINES='# Claude Global Agents & Skills Library
-alias cgasl="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash"
-alias cgasl-n8n="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n"'
+CGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/cgasl"
+USER_BIN="$HOME/.local/bin"
+GLOBAL_BIN="/usr/local/bin"
 
-GLOBAL_FILE="/etc/profile.d/cgasl.sh"
-
-echo "Claude Global Agents & Skills Library - Alias Setup"
+echo "Claude Global Agents & Skills Library - Install"
 echo ""
-echo "  [1] User install   - ~/.bashrc or ~/.zshrc (current user only)"
-echo "  [2] Global install - /etc/profile.d/cgasl.sh (all users, requires sudo)"
+echo "  [1] User install   - ~/.local/bin/cgasl (current user only)"
+echo "  [2] Global install - /usr/local/bin/cgasl (all users, requires sudo)"
 echo ""
 
 # Read choice from /dev/tty for pipe compatibility
@@ -24,42 +22,30 @@ echo ""
 
 if [[ $REPLY == "2" ]]; then
   # Global install
-  if [ -f "$GLOBAL_FILE" ]; then
-    echo "Already installed globally in $GLOBAL_FILE"
-    exit 0
-  fi
-
   echo "Installing globally (requires sudo)..."
-  echo "$ALIAS_LINES" | sudo tee "$GLOBAL_FILE" > /dev/null
-  sudo chmod 644 "$GLOBAL_FILE"
+  sudo curl -fsSL "$CGASL_URL" -o "$GLOBAL_BIN/cgasl"
+  sudo chmod +x "$GLOBAL_BIN/cgasl"
   echo ""
-  echo "Aliases installed to $GLOBAL_FILE"
-  echo "Log out and back in, or run: source $GLOBAL_FILE"
+  echo "Installed to $GLOBAL_BIN/cgasl"
 else
   # User install
-  if [ -n "${ZSH_VERSION:-}" ] || [ -f "$HOME/.zshrc" ]; then
-    RC_FILE="$HOME/.zshrc"
-  elif [ -f "$HOME/.bashrc" ]; then
-    RC_FILE="$HOME/.bashrc"
-  else
-    echo "Could not detect shell config file."
-    echo "Add these aliases manually:"
-    echo "$ALIAS_LINES"
-    exit 1
-  fi
-
-  if grep -q "alias cgasl=" "$RC_FILE" 2>/dev/null; then
-    echo "Aliases already installed in $RC_FILE"
-    exit 0
-  fi
-
-  echo "$ALIAS_LINES" >> "$RC_FILE"
+  mkdir -p "$USER_BIN"
+  curl -fsSL "$CGASL_URL" -o "$USER_BIN/cgasl"
+  chmod +x "$USER_BIN/cgasl"
   echo ""
-  echo "Aliases added to $RC_FILE"
-  echo "Run: source $RC_FILE"
+  echo "Installed to $USER_BIN/cgasl"
+
+  # Check if ~/.local/bin is in PATH
+  if [[ ":$PATH:" != *":$USER_BIN:"* ]]; then
+    echo ""
+    echo "NOTE: Add ~/.local/bin to your PATH:"
+    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+    echo "  source ~/.bashrc"
+  fi
 fi
 
 echo ""
-echo "Then use:"
-echo "  cgasl      - Install/update agents & skills (user)"
-echo "  cgasl-n8n  - Install/update with n8n skills (user)"
+echo "Usage:"
+echo "  cgasl         - Install/update agents & skills"
+echo "  cgasl --n8n   - Install/update with n8n skills"
+echo "  cgasl --help  - Show help"

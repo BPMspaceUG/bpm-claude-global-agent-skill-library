@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#
+# cgasl - Claude Global Agents & Skills Library
+#
+# Usage:
+#   cgasl         Install/update agents & skills
+#   cgasl --n8n   Install/update with n8n skills
+#   cgasl --help  Show this help
+
+set -euo pipefail
+
+SYNC_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync"
+
+show_help() {
+  echo "cgasl - Claude Global Agents & Skills Library"
+  echo ""
+  echo "Usage:"
+  echo "  cgasl         Install/update agents & skills"
+  echo "  cgasl --n8n   Install/update with n8n skills"
+  echo "  cgasl --help  Show this help"
+}
+
+case "${1:-}" in
+  -h|--help)
+    show_help
+    ;;
+  --n8n)
+    curl -fsSL "$SYNC_URL" | bash -s -- --n8n
+    ;;
+  "")
+    curl -fsSL "$SYNC_URL" | bash
+    ;;
+  *)
+    echo "Unknown option: $1"
+    show_help
+    exit 1
+    ;;
+esac

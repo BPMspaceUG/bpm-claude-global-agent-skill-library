@@ -40,17 +40,15 @@ All agents follow these conventions:
 ## Installation
 
 ```bash
-# Quick: Install aliases, then use them
+# Install cgasl command (choose user or global)
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
-source ~/.bashrc  # or ~/.zshrc
-cgasl             # Install/update agents & skills
-cgasl-n8n         # Install/update with n8n skills
 
-# Or manual one-liner
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
+# Then use
+cgasl         # Install/update agents & skills
+cgasl --n8n   # With n8n skills
 ```
 
-The sync script detects Claude config location (`~/.config/claude` or `~/.claude`) and copies the directories there.
+The sync copies to `~/.config/claude` or `~/.claude`.
 
 ## Usage Examples
 
