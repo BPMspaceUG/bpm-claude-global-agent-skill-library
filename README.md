@@ -15,10 +15,10 @@ To install these agents and skills into your global Claude configuration, run th
 
 ```bash
 # install the library
-curl -fsSL https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/sync | bash
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
 
 # install the library with optional n8n skills
-curl -fsSL https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/sync --n8n | bash
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n
 ```
 
 The script will detect whether Claude stores its configuration in `~/.config/claude` or `~/.claude` and copy the `agents/`, `skills/`, `runbooks/` and `templates/` directories into the appropriate place. Use the `--n8n` flag to download and install the [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills) pack as well.
