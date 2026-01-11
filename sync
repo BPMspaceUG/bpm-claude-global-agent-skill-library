@@ -63,9 +63,13 @@ fi
 
 echo "Installation complete."
 
-# Ask about aliases
+# Ask about aliases (read from /dev/tty for pipe compatibility)
 echo ""
-read -p "Add shell aliases (cgasl, cgasl-n8n)? [y/N] " -n 1 -r
+if [ -t 0 ]; then
+  read -p "Add shell aliases (cgasl, cgasl-n8n)? [y/N] " -n 1 -r
+else
+  read -p "Add shell aliases (cgasl, cgasl-n8n)? [y/N] " -n 1 -r </dev/tty 2>/dev/null || REPLY=""
+fi
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   ALIAS_LINES='
