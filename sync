@@ -62,30 +62,3 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
 fi
 
 echo "Installation complete."
-
-# Ask about aliases (read from /dev/tty for pipe compatibility)
-echo ""
-if [ -t 0 ]; then
-  read -p "Add shell aliases (cgasl, cgasl-n8n)? [y/N] " -n 1 -r
-else
-  read -p "Add shell aliases (cgasl, cgasl-n8n)? [y/N] " -n 1 -r </dev/tty 2>/dev/null || REPLY=""
-fi
-echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  ALIAS_LINES='
-# Claude Global Agents & Skills Library
-alias cgasl="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash"
-alias cgasl-n8n="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n"'
-
-  # Detect shell and add to appropriate rc file
-  if [ -f "$HOME/.zshrc" ]; then
-    echo "$ALIAS_LINES" >> "$HOME/.zshrc"
-    echo "Aliases added to ~/.zshrc - run 'source ~/.zshrc' or restart shell"
-  elif [ -f "$HOME/.bashrc" ]; then
-    echo "$ALIAS_LINES" >> "$HOME/.bashrc"
-    echo "Aliases added to ~/.bashrc - run 'source ~/.bashrc' or restart shell"
-  else
-    echo "Could not detect shell config. Add manually:"
-    echo "$ALIAS_LINES"
-  fi
-fi

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# Install aliases for Claude Global Agents & Skills Library
+#
+# Usage: curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
+
+set -euo pipefail
+
+ALIAS_LINES='
+# Claude Global Agents & Skills Library
+alias cgasl="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash"
+alias cgasl-n8n="curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n"'
+
+# Detect shell config file
+if [ -n "${ZSH_VERSION:-}" ] || [ -f "$HOME/.zshrc" ]; then
+  RC_FILE="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+  RC_FILE="$HOME/.bashrc"
+else
+  echo "Could not detect shell config file."
+  echo "Add these aliases manually:"
+  echo "$ALIAS_LINES"
+  exit 1
+fi
+
+# Check if already installed
+if grep -q "alias cgasl=" "$RC_FILE" 2>/dev/null; then
+  echo "Aliases already installed in $RC_FILE"
+  exit 0
+fi
+
+# Add aliases
+echo "$ALIAS_LINES" >> "$RC_FILE"
+echo "Aliases added to $RC_FILE"
+echo ""
+echo "Run: source $RC_FILE"
+echo ""
+echo "Then use:"
+echo "  cgasl      - Install/update agents & skills"
+echo "  cgasl-n8n  - Install/update with n8n skills"

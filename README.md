@@ -11,13 +11,25 @@ This repository contains a collection of **agents**, **skills**, **runbooks** an
 
 ## Installation
 
-To install these agents and skills into your global Claude configuration, run the following script from this repository:
+### Quick Install (with aliases)
 
 ```bash
-# install the library
+# Install shell aliases (cgasl, cgasl-n8n)
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
+source ~/.bashrc  # or ~/.zshrc
+
+# Then use aliases to install/update
+cgasl           # Install agents & skills
+cgasl-n8n       # Install with n8n skills
+```
+
+### Manual Install
+
+```bash
+# Install the library
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
 
-# install the library with optional n8n skills
+# Install with optional n8n skills
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n
 ```
 
