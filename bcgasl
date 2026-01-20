@@ -3,11 +3,17 @@
 # bcgasl - Claude Global Agents & Skills Library
 #
 # Usage:
-#   bcgasl            Install/update agents & skills
-#   bcgasl --n8n      Install/update with n8n skills
-#   bcgasl --dry-run  Show what would change without applying
-#   bcgasl --version  Show version
-#   bcgasl --help     Show this help
+#   bcgasl                   Install/update agents & skills
+#   bcgasl --n8n             Install/update with n8n skills
+#   bcgasl --dry-run         Show what would change without applying
+#   bcgasl --only-agents     Install only agents
+#   bcgasl --only-skills     Install only skills
+#   bcgasl --only-runbooks   Install only runbooks
+#   bcgasl --only-templates  Install only templates
+#   bcgasl --backup          Create backup before updating
+#   bcgasl --uninstall       Remove all installed files
+#   bcgasl --version         Show version
+#   bcgasl --help            Show this help
 
 set -euo pipefail
 
@@ -18,11 +24,17 @@ show_help() {
   echo "bcgasl - Claude Global Agents & Skills Library"
   echo ""
   echo "Usage:"
-  echo "  bcgasl            Install/update agents & skills"
-  echo "  bcgasl --n8n      Install/update with n8n skills"
-  echo "  bcgasl --dry-run  Show what would change without applying"
-  echo "  bcgasl --version  Show version"
-  echo "  bcgasl --help     Show this help"
+  echo "  bcgasl                   Install/update agents & skills"
+  echo "  bcgasl --n8n             Install/update with n8n skills"
+  echo "  bcgasl --dry-run         Show what would change without applying"
+  echo "  bcgasl --only-agents     Install only agents"
+  echo "  bcgasl --only-skills     Install only skills"
+  echo "  bcgasl --only-runbooks   Install only runbooks"
+  echo "  bcgasl --only-templates  Install only templates"
+  echo "  bcgasl --backup          Create backup before updating"
+  echo "  bcgasl --uninstall       Remove all installed files"
+  echo "  bcgasl --version         Show version"
+  echo "  bcgasl --help            Show this help"
 }
 
 show_version() {
@@ -49,7 +61,7 @@ for arg in "$@"; do
       show_version
       exit 0
       ;;
-    --n8n|--dry-run)
+    --n8n|--dry-run|--backup|--uninstall|--only-agents|--only-skills|--only-runbooks|--only-templates)
       FLAGS+=("$arg")
       ;;
     *)

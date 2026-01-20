@@ -23,6 +23,13 @@ fi
 # Parse arguments
 INSTALL_N8N=0
 DRY_RUN=0
+BACKUP=0
+UNINSTALL=0
+ONLY_AGENTS=0
+ONLY_SKILLS=0
+ONLY_RUNBOOKS=0
+ONLY_TEMPLATES=0
+
 for arg in "$@"; do
   case "$arg" in
     --n8n|--with-n8n)
@@ -31,13 +38,66 @@ for arg in "$@"; do
     --dry-run)
       DRY_RUN=1
       ;;
+    --backup)
+      BACKUP=1
+      ;;
+    --uninstall)
+      UNINSTALL=1
+      ;;
+    --only-agents)
+      ONLY_AGENTS=1
+      ;;
+    --only-skills)
+      ONLY_SKILLS=1
+      ;;
+    --only-runbooks)
+      ONLY_RUNBOOKS=1
+      ;;
+    --only-templates)
+      ONLY_TEMPLATES=1
+      ;;
     *)
       ;;
   esac
 done
 
+# Determine which directories to process
+if [ "$ONLY_AGENTS" -eq 1 ] || [ "$ONLY_SKILLS" -eq 1 ] || [ "$ONLY_RUNBOOKS" -eq 1 ] || [ "$ONLY_TEMPLATES" -eq 1 ]; then
+  DIRS=()
+  [ "$ONLY_AGENTS" -eq 1 ] && DIRS+=("agents")
+  [ "$ONLY_SKILLS" -eq 1 ] && DIRS+=("skills")
+  [ "$ONLY_RUNBOOKS" -eq 1 ] && DIRS+=("runbooks")
+  [ "$ONLY_TEMPLATES" -eq 1 ] && DIRS+=("templates")
+else
+  DIRS=(agents skills runbooks templates)
+fi
+
+# Handle uninstall
+if [ "$UNINSTALL" -eq 1 ]; then
+  echo "Uninstalling bcgasl from $TARGET_DIR..."
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$TARGET_DIR/$dir" ]; then
+      if [ "$DRY_RUN" -eq 1 ]; then
+        echo "   Would remove: $TARGET_DIR/$dir/"
+      else
+        rm -rf "${TARGET_DIR:?}/${dir:?}"
+        echo "   Removed: $TARGET_DIR/$dir/"
+      fi
+    fi
+  done
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo ""
+    echo "DRY RUN - No changes made"
+  else
+    echo "✅ Uninstalled successfully"
+  fi
+  exit 0
+fi
+
 # Ensure target subdirectories exist
-mkdir -p "$TARGET_DIR"/{agents,skills,runbooks,templates}
+for dir in "${DIRS[@]}"; do
+  mkdir -p "$TARGET_DIR/$dir"
+done
 
 # Download and extract repo tarball
 TMP_DIR="$(mktemp -d)"
@@ -49,12 +109,29 @@ EXTRACTED_DIR="$TMP_DIR/bpm-claude-global-agent-skill-library-main"
 
 # Compare and show changes
 echo ""
+# Create backup if requested
+if [ "$BACKUP" -eq 1 ]; then
+  BACKUP_DIR="$TARGET_DIR/backup-$(date +%Y-%m-%d-%H%M%S)"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "Would create backup at: $BACKUP_DIR"
+  else
+    mkdir -p "$BACKUP_DIR"
+    for dir in "${DIRS[@]}"; do
+      if [ -d "$TARGET_DIR/$dir" ] && [ "$(ls -A "$TARGET_DIR/$dir" 2>/dev/null)" ]; then
+        cp -r "$TARGET_DIR/$dir" "$BACKUP_DIR/"
+      fi
+    done
+    echo "📦 Backup created: $BACKUP_DIR"
+  fi
+  echo ""
+fi
+
 NEW_FILES=()
 MODIFIED_FILES=()
 LOCAL_ONLY=()
 UNCHANGED=0
 
-for dir in agents skills runbooks templates; do
+for dir in "${DIRS[@]}"; do
   # Check for new/modified from repo
   if [ -d "$EXTRACTED_DIR/$dir" ]; then
     for file in "$EXTRACTED_DIR/$dir"/*; do
@@ -119,15 +196,26 @@ else
   # Actually copy the files
   echo ""
   echo "Installing into $TARGET_DIR..."
-  cp -r "$EXTRACTED_DIR/agents/." "$TARGET_DIR/agents/"
-  cp -r "$EXTRACTED_DIR/skills/." "$TARGET_DIR/skills/"
-  cp -r "$EXTRACTED_DIR/runbooks/." "$TARGET_DIR/runbooks/"
-  cp -r "$EXTRACTED_DIR/templates/." "$TARGET_DIR/templates/"
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$EXTRACTED_DIR/$dir" ]; then
+      cp -r "$EXTRACTED_DIR/$dir/." "$TARGET_DIR/$dir/"
+    fi
+  done
   echo "✅ Updated: ${#NEW_FILES[@]} new, ${#MODIFIED_FILES[@]} modified, $UNCHANGED unchanged"
 fi
 
-# Optionally install the n8n skills pack
-if [ "$INSTALL_N8N" -eq 1 ]; then
+# Optionally install the n8n skills pack (only if skills directory is being installed)
+SKILLS_SELECTED=0
+for d in "${DIRS[@]}"; do
+  [ "$d" = "skills" ] && SKILLS_SELECTED=1
+done
+
+if [ "$INSTALL_N8N" -eq 1 ] && [ "$SKILLS_SELECTED" -eq 0 ]; then
+  echo ""
+  echo "⚠️  --n8n flag ignored: skills directory not selected for installation"
+fi
+
+if [ "$INSTALL_N8N" -eq 1 ] && [ "$SKILLS_SELECTED" -eq 1 ]; then
   echo ""
   echo "Downloading n8n-skills pack..."
   curl -fsSL "$N8N_TARBALL" | tar -xz -C "$TMP_DIR"
@@ -203,8 +291,8 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
   fi
 fi
 
-# Cleanup: remove .zip artifacts from skills directory (skip in dry-run)
-if [ "$DRY_RUN" -eq 0 ]; then
+# Cleanup: remove .zip artifacts from skills directory (skip in dry-run, only if skills are processed)
+if [ "$DRY_RUN" -eq 0 ] && [ "$SKILLS_SELECTED" -eq 1 ]; then
   ZIP_COUNT=$(find "$TARGET_DIR/skills" -name "*.zip" 2>/dev/null | wc -l)
   if [ "$ZIP_COUNT" -gt 0 ]; then
     rm -f "$TARGET_DIR/skills"/*.zip
