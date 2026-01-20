@@ -25,9 +25,9 @@ BCGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent
 # shellcheck disable=SC2034
 CHECKSUMS_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/checksums.sha256"
 
-# Expected checksum for current version tarball (will be updated in next release)
+# Expected checksum for current version tarball
 # shellcheck disable=SC2034
-REPO_TARBALL_CHECKSUM="PLACEHOLDER_WILL_BE_UPDATED_IN_NEXT_RELEASE"
+REPO_TARBALL_CHECKSUM="babc86aa3d8e8fdf65006371b54f61166abe72144d818ba6263e803c3e7e9546"
 
 # Extracted directory name for the tarball
 # shellcheck disable=SC2034

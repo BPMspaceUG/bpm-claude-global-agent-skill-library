@@ -20,7 +20,7 @@ set -euo pipefail
 
 VERSION="1.0.1"
 TARBALL_URL="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/archive/refs/tags/v${VERSION}.tar.gz"
-TARBALL_CHECKSUM="PLACEHOLDER_WILL_BE_UPDATED_IN_NEXT_RELEASE"
+TARBALL_CHECKSUM="babc86aa3d8e8fdf65006371b54f61166abe72144d818ba6263e803c3e7e9546"
 EXTRACTED_DIR_NAME="bpm-claude-global-agent-skill-library-${VERSION}"
 
 show_help() {
