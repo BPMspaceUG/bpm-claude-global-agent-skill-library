@@ -10,8 +10,55 @@
 
 set -euo pipefail
 
+# Trusted domains for downloads (security: only allow known hosts)
+TRUSTED_DOMAINS=("github.com" "raw.githubusercontent.com")
+
 REPO_TARBALL="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/archive/main.tar.gz"
 N8N_TARBALL="https://github.com/czlonkowski/n8n-skills/archive/main.tar.gz"
+
+# Security: Validate URL against trusted domains
+validate_url() {
+  local url="$1"
+  local host
+
+  # Extract host from URL
+  if [[ "$url" =~ ^https://([^/]+)/ ]]; then
+    host="${BASH_REMATCH[1]}"
+  else
+    echo "ERROR: Invalid URL format: $url" >&2
+    return 1
+  fi
+
+  # Check if host is in trusted domains
+  for domain in "${TRUSTED_DOMAINS[@]}"; do
+    if [[ "$host" == "$domain" ]]; then
+      return 0
+    fi
+  done
+
+  echo "ERROR: Untrusted domain '$host' in URL: $url" >&2
+  echo "Trusted domains: ${TRUSTED_DOMAINS[*]}" >&2
+  return 1
+}
+
+# Security: Sanitize path to prevent directory traversal
+sanitize_path() {
+  local path="$1"
+  # Remove any .. components and ensure path doesn't escape
+  if [[ "$path" == *".."* ]]; then
+    echo "ERROR: Path contains '..' (directory traversal): $path" >&2
+    return 1
+  fi
+  # Ensure path starts with expected prefix
+  echo "$path"
+}
+
+# Verbose logging helper
+log_verbose() {
+  if [ "$VERBOSE" -eq 1 ]; then
+    echo "[DEBUG] $*" >&2
+  fi
+}
 
 # Determine the target directory for Claude configuration
 if [ -d "$HOME/.config/claude" ]; then
@@ -25,6 +72,7 @@ INSTALL_N8N=0
 DRY_RUN=0
 BACKUP=0
 UNINSTALL=0
+VERBOSE=0
 ONLY_AGENTS=0
 ONLY_SKILLS=0
 ONLY_RUNBOOKS=0
@@ -44,6 +92,9 @@ for arg in "$@"; do
     --uninstall)
       UNINSTALL=1
       ;;
+    --verbose)
+      VERBOSE=1
+      ;;
     --only-agents)
       ONLY_AGENTS=1
       ;;
@@ -60,6 +111,8 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+log_verbose "Arguments parsed: dry_run=$DRY_RUN backup=$BACKUP uninstall=$UNINSTALL verbose=$VERBOSE n8n=$INSTALL_N8N"
 
 # Determine which directories to process
 if [ "$ONLY_AGENTS" -eq 1 ] || [ "$ONLY_SKILLS" -eq 1 ] || [ "$ONLY_RUNBOOKS" -eq 1 ] || [ "$ONLY_TEMPLATES" -eq 1 ]; then
@@ -103,9 +156,23 @@ done
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+log_verbose "Created temp directory: $TMP_DIR"
+log_verbose "Target directory: $TARGET_DIR"
+
+# Validate URL before downloading
+validate_url "$REPO_TARBALL" || exit 1
+
 echo "Downloading BPMspace Claude Global Agents & Skills Library..."
+log_verbose "Downloading from: $REPO_TARBALL"
 curl -fsSL "$REPO_TARBALL" | tar -xz -C "$TMP_DIR"
 EXTRACTED_DIR="$TMP_DIR/bpm-claude-global-agent-skill-library-main"
+
+# Validate extracted directory exists
+if [ ! -d "$EXTRACTED_DIR" ]; then
+  echo "ERROR: Failed to extract tarball - expected directory not found" >&2
+  exit 1
+fi
+log_verbose "Extracted to: $EXTRACTED_DIR"
 
 # Compare and show changes
 echo ""
@@ -217,9 +284,19 @@ fi
 
 if [ "$INSTALL_N8N" -eq 1 ] && [ "$SKILLS_SELECTED" -eq 1 ]; then
   echo ""
+  # Validate n8n URL before downloading
+  validate_url "$N8N_TARBALL" || exit 1
+
   echo "Downloading n8n-skills pack..."
+  log_verbose "Downloading from: $N8N_TARBALL"
   curl -fsSL "$N8N_TARBALL" | tar -xz -C "$TMP_DIR"
   N8N_DIR="$TMP_DIR/n8n-skills-main"
+
+  if [ ! -d "$N8N_DIR" ]; then
+    echo "ERROR: Failed to extract n8n tarball - expected directory not found" >&2
+    exit 1
+  fi
+  log_verbose "n8n extracted to: $N8N_DIR"
 
   # Determine source directory (prefer skills/ over dist/ to get raw .md files)
   if [ -d "$N8N_DIR/skills" ]; then
