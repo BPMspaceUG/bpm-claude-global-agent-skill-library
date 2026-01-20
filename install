@@ -10,7 +10,44 @@
 
 set -euo pipefail
 
-BCGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/bcgasl"
+# Source shared library if available (may not exist during piped install)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/lib.sh" ]]; then
+  # shellcheck source=lib.sh
+  source "$SCRIPT_DIR/lib.sh"
+  BCGASL_URL="${BCGASL_URL:-}"
+else
+  # Fallback for piped install (lib.sh not available)
+  BCGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/bcgasl"
+  TRUSTED_DOMAINS=("github.com" "raw.githubusercontent.com")
+
+  validate_url() {
+    local url="$1"
+    local host
+    if [[ -z "$url" ]]; then
+      echo "ERROR: Empty URL provided" >&2
+      return 1
+    fi
+    if [[ ! "$url" =~ ^https:// ]]; then
+      echo "ERROR: URL must use HTTPS: $url" >&2
+      return 1
+    fi
+    if [[ "$url" =~ ^https://([^/]+)/ ]]; then
+      host="${BASH_REMATCH[1]}"
+    else
+      echo "ERROR: Invalid URL format: $url" >&2
+      return 1
+    fi
+    for domain in "${TRUSTED_DOMAINS[@]}"; do
+      if [[ "$host" == "$domain" ]]; then
+        return 0
+      fi
+    done
+    echo "ERROR: Untrusted domain '$host' in URL: $url" >&2
+    return 1
+  }
+fi
+
 USER_BIN="$HOME/.local/bin"
 GLOBAL_BIN="/usr/local/bin"
 
@@ -27,6 +64,9 @@ done
 
 # Install to user directory
 install_user() {
+  # Validate URL before downloading
+  validate_url "$BCGASL_URL" || exit 1
+
   mkdir -p "$USER_BIN"
   curl -fsSL "$BCGASL_URL" -o "$USER_BIN/bcgasl"
   chmod +x "$USER_BIN/bcgasl"
@@ -41,6 +81,9 @@ install_user() {
 
 # Install to global directory
 install_global() {
+  # Validate URL before downloading
+  validate_url "$BCGASL_URL" || exit 1
+
   echo "Installing globally (requires sudo)..."
   sudo curl -fsSL "$BCGASL_URL" -o "$GLOBAL_BIN/bcgasl"
   sudo chmod +x "$GLOBAL_BIN/bcgasl"

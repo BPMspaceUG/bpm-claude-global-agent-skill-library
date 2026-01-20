@@ -10,62 +10,21 @@
 
 set -euo pipefail
 
-# Trusted domains for downloads (security: only allow known hosts)
-TRUSTED_DOMAINS=("github.com" "raw.githubusercontent.com")
+# Source shared library (handle both local and extracted contexts)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/lib.sh" ]]; then
+  # shellcheck source=lib.sh
+  source "$SCRIPT_DIR/lib.sh"
+else
+  echo "ERROR: lib.sh not found in $SCRIPT_DIR" >&2
+  exit 1
+fi
 
-REPO_TARBALL="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/archive/main.tar.gz"
-N8N_TARBALL="https://github.com/czlonkowski/n8n-skills/archive/main.tar.gz"
-
-# Security: Validate URL against trusted domains
-validate_url() {
-  local url="$1"
-  local host
-
-  # Extract host from URL
-  if [[ "$url" =~ ^https://([^/]+)/ ]]; then
-    host="${BASH_REMATCH[1]}"
-  else
-    echo "ERROR: Invalid URL format: $url" >&2
-    return 1
-  fi
-
-  # Check if host is in trusted domains
-  for domain in "${TRUSTED_DOMAINS[@]}"; do
-    if [[ "$host" == "$domain" ]]; then
-      return 0
-    fi
-  done
-
-  echo "ERROR: Untrusted domain '$host' in URL: $url" >&2
-  echo "Trusted domains: ${TRUSTED_DOMAINS[*]}" >&2
-  return 1
-}
-
-# Security: Sanitize path to prevent directory traversal
-sanitize_path() {
-  local path="$1"
-  # Remove any .. components and ensure path doesn't escape
-  if [[ "$path" == *".."* ]]; then
-    echo "ERROR: Path contains '..' (directory traversal): $path" >&2
-    return 1
-  fi
-  # Ensure path starts with expected prefix
-  echo "$path"
-}
-
-# Verbose logging helper
-log_verbose() {
-  if [ "$VERBOSE" -eq 1 ]; then
-    echo "[DEBUG] $*" >&2
-  fi
-}
+# Ensure required commands are available
+require_commands curl tar diff || exit 1
 
 # Determine the target directory for Claude configuration
-if [ -d "$HOME/.config/claude" ]; then
-  TARGET_DIR="$HOME/.config/claude"
-else
-  TARGET_DIR="$HOME/.claude"
-fi
+TARGET_DIR="$(get_target_dir)"
 
 # Parse arguments
 INSTALL_N8N=0
