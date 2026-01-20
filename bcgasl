@@ -3,21 +3,30 @@
 # bcgasl - Claude Global Agents & Skills Library
 #
 # Usage:
-#   bcgasl         Install/update agents & skills
-#   bcgasl --n8n   Install/update with n8n skills
-#   bcgasl --help  Show this help
+#   bcgasl            Install/update agents & skills
+#   bcgasl --n8n      Install/update with n8n skills
+#   bcgasl --dry-run  Show what would change without applying
+#   bcgasl --version  Show version
+#   bcgasl --help     Show this help
 
 set -euo pipefail
 
+VERSION="1.0.0"
 TARBALL_URL="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/archive/main.tar.gz"
 
 show_help() {
   echo "bcgasl - Claude Global Agents & Skills Library"
   echo ""
   echo "Usage:"
-  echo "  bcgasl         Install/update agents & skills"
-  echo "  bcgasl --n8n   Install/update with n8n skills"
-  echo "  bcgasl --help  Show this help"
+  echo "  bcgasl            Install/update agents & skills"
+  echo "  bcgasl --n8n      Install/update with n8n skills"
+  echo "  bcgasl --dry-run  Show what would change without applying"
+  echo "  bcgasl --version  Show version"
+  echo "  bcgasl --help     Show this help"
+}
+
+show_version() {
+  echo "bcgasl v$VERSION"
 }
 
 run_sync() {
@@ -28,19 +37,27 @@ run_sync() {
   bash "$TMP_DIR/bpm-claude-global-agent-skill-library-main/sync" "$@"
 }
 
-case "${1:-}" in
-  -h|--help)
-    show_help
-    ;;
-  --n8n)
-    run_sync --n8n
-    ;;
-  "")
-    run_sync
-    ;;
-  *)
-    echo "Unknown option: $1"
-    show_help
-    exit 1
-    ;;
-esac
+# Collect flags to pass to sync
+FLAGS=()
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    -v|--version)
+      show_version
+      exit 0
+      ;;
+    --n8n|--dry-run)
+      FLAGS+=("$arg")
+      ;;
+    *)
+      echo "Unknown option: $arg"
+      show_help
+      exit 1
+      ;;
+  esac
+done
+
+run_sync "${FLAGS[@]+"${FLAGS[@]}"}"

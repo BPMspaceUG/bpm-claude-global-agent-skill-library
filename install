@@ -6,6 +6,7 @@
 #   curl -fsSL .../install | bash              # Interactive
 #   curl -fsSL .../install | bash -s -- --user   # User install
 #   curl -fsSL .../install | bash -s -- --global # Global install (sudo)
+#   curl -fsSL .../install | bash -s -- --all    # Both user and global
 
 set -euo pipefail
 
@@ -15,15 +16,46 @@ GLOBAL_BIN="/usr/local/bin"
 
 # Parse arguments
 CHOICE=""
+INSTALL_ALL=0
 for arg in "$@"; do
   case "$arg" in
     --user) CHOICE="1" ;;
     --global) CHOICE="2" ;;
+    --all) INSTALL_ALL=1 ;;
   esac
 done
 
+# Install to user directory
+install_user() {
+  mkdir -p "$USER_BIN"
+  curl -fsSL "$BCGASL_URL" -o "$USER_BIN/bcgasl"
+  chmod +x "$USER_BIN/bcgasl"
+  echo "Installed to $USER_BIN/bcgasl"
+
+  # Check if ~/.local/bin is in PATH
+  if [[ ":$PATH:" != *":$USER_BIN:"* ]]; then
+    echo "NOTE: Add ~/.local/bin to your PATH:"
+    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+  fi
+}
+
+# Install to global directory
+install_global() {
+  echo "Installing globally (requires sudo)..."
+  sudo curl -fsSL "$BCGASL_URL" -o "$GLOBAL_BIN/bcgasl"
+  sudo chmod +x "$GLOBAL_BIN/bcgasl"
+  echo "Installed to $GLOBAL_BIN/bcgasl"
+}
+
+# Handle --all flag
+if [ "$INSTALL_ALL" -eq 1 ]; then
+  echo "BPMspace Claude Global Agents & Skills Library - Install (all)"
+  echo ""
+  install_user
+  echo ""
+  install_global
 # Interactive if no argument
-if [ -z "$CHOICE" ]; then
+elif [ -z "$CHOICE" ]; then
   echo "BPMspace Claude Global Agents & Skills Library - Install"
   echo ""
   echo "  [1] User install   - ~/.local/bin/bcgasl (current user only)"
@@ -32,30 +64,15 @@ if [ -z "$CHOICE" ]; then
   read -p "Choose [1/2]: " -n 1 -r </dev/tty 2>/dev/null || CHOICE="1"
   CHOICE="${REPLY:-1}"
   echo ""
-fi
-
-if [[ $CHOICE == "2" ]]; then
-  # Global install
-  echo "Installing globally (requires sudo)..."
-  sudo curl -fsSL "$BCGASL_URL" -o "$GLOBAL_BIN/bcgasl"
-  sudo chmod +x "$GLOBAL_BIN/bcgasl"
-  echo ""
-  echo "Installed to $GLOBAL_BIN/bcgasl"
-else
-  # User install
-  mkdir -p "$USER_BIN"
-  curl -fsSL "$BCGASL_URL" -o "$USER_BIN/bcgasl"
-  chmod +x "$USER_BIN/bcgasl"
-  echo ""
-  echo "Installed to $USER_BIN/bcgasl"
-
-  # Check if ~/.local/bin is in PATH
-  if [[ ":$PATH:" != *":$USER_BIN:"* ]]; then
-    echo ""
-    echo "NOTE: Add ~/.local/bin to your PATH:"
-    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
-    echo "  source ~/.bashrc"
+  if [[ $CHOICE == "2" ]]; then
+    install_global
+  else
+    install_user
   fi
+elif [[ $CHOICE == "2" ]]; then
+  install_global
+else
+  install_user
 fi
 
 echo ""

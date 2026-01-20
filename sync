@@ -22,10 +22,14 @@ fi
 
 # Parse arguments
 INSTALL_N8N=0
+DRY_RUN=0
 for arg in "$@"; do
   case "$arg" in
     --n8n|--with-n8n)
       INSTALL_N8N=1
+      ;;
+    --dry-run)
+      DRY_RUN=1
       ;;
     *)
       ;;
@@ -102,8 +106,15 @@ if [ ${#LOCAL_ONLY[@]} -gt 0 ]; then
   for f in "${LOCAL_ONLY[@]}"; do echo "   ? $f"; done
 fi
 
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo ""
+  echo "DRY RUN - No changes will be made"
+fi
+
 if [ ${#NEW_FILES[@]} -eq 0 ] && [ ${#MODIFIED_FILES[@]} -eq 0 ]; then
   echo "✅ Already up to date ($UNCHANGED files)"
+elif [ "$DRY_RUN" -eq 1 ]; then
+  echo "Would update: ${#NEW_FILES[@]} new, ${#MODIFIED_FILES[@]} modified, $UNCHANGED unchanged"
 else
   # Actually copy the files
   echo ""
@@ -179,6 +190,8 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
 
   if [ ${#N8N_NEW[@]} -eq 0 ] && [ ${#N8N_MOD[@]} -eq 0 ]; then
     echo "✅ n8n skills already up to date ($N8N_UNCH items)"
+  elif [ "$DRY_RUN" -eq 1 ]; then
+    echo "Would update n8n: ${#N8N_NEW[@]} new, ${#N8N_MOD[@]} modified, $N8N_UNCH unchanged"
   else
     # Copy all items (files and directories, excluding .zip)
     for item in "$N8N_SRC"/*; do
@@ -190,9 +203,11 @@ if [ "$INSTALL_N8N" -eq 1 ]; then
   fi
 fi
 
-# Cleanup: remove .zip artifacts from skills directory
-ZIP_COUNT=$(find "$TARGET_DIR/skills" -name "*.zip" 2>/dev/null | wc -l)
-if [ "$ZIP_COUNT" -gt 0 ]; then
-  rm -f "$TARGET_DIR/skills"/*.zip
-  echo "🧹 Cleaned up $ZIP_COUNT .zip artifact(s)"
+# Cleanup: remove .zip artifacts from skills directory (skip in dry-run)
+if [ "$DRY_RUN" -eq 0 ]; then
+  ZIP_COUNT=$(find "$TARGET_DIR/skills" -name "*.zip" 2>/dev/null | wc -l)
+  if [ "$ZIP_COUNT" -gt 0 ]; then
+    rm -f "$TARGET_DIR/skills"/*.zip
+    echo "🧹 Cleaned up $ZIP_COUNT .zip artifact(s)"
+  fi
 fi

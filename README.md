@@ -40,6 +40,11 @@ Global install (`/usr/local/bin/bcgasl`, requires sudo):
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global
 ```
 
+Both user and global install:
+```bash
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --all
+```
+
 ### Usage
 
 Install/update agents & skills:
@@ -50,6 +55,16 @@ bcgasl
 With n8n skills:
 ```bash
 bcgasl --n8n
+```
+
+Preview changes without applying:
+```bash
+bcgasl --dry-run
+```
+
+Show version:
+```bash
+bcgasl --version
 ```
 
 The sync copies `agents/`, `skills/`, `runbooks/` and `templates/` to `~/.config/claude` or `~/.claude`. Use `--n8n` to also install [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills).
