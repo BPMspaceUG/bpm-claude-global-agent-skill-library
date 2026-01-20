@@ -111,27 +111,12 @@ for dir in "${DIRS[@]}"; do
   mkdir -p "$TARGET_DIR/$dir"
 done
 
-# Download and extract repo tarball
-TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+# Use the extracted directory from the current location (we're running from extracted tarball)
+# The sync script is called from bcgasl which already extracted the versioned tarball
+EXTRACTED_DIR="$SCRIPT_DIR"
 
-log_verbose "Created temp directory: $TMP_DIR"
+log_verbose "Using extracted directory: $EXTRACTED_DIR"
 log_verbose "Target directory: $TARGET_DIR"
-
-# Validate URL before downloading
-validate_url "$REPO_TARBALL" || exit 1
-
-echo "Downloading BPMspace Claude Global Agents & Skills Library..."
-log_verbose "Downloading from: $REPO_TARBALL"
-curl -fsSL "$REPO_TARBALL" | tar -xz -C "$TMP_DIR"
-EXTRACTED_DIR="$TMP_DIR/bpm-claude-global-agent-skill-library-main"
-
-# Validate extracted directory exists
-if [ ! -d "$EXTRACTED_DIR" ]; then
-  echo "ERROR: Failed to extract tarball - expected directory not found" >&2
-  exit 1
-fi
-log_verbose "Extracted to: $EXTRACTED_DIR"
 
 # Compare and show changes
 echo ""
@@ -248,8 +233,13 @@ if [ "$INSTALL_N8N" -eq 1 ] && [ "$SKILLS_SELECTED" -eq 1 ]; then
 
   echo "Downloading n8n-skills pack..."
   log_verbose "Downloading from: $N8N_TARBALL"
-  curl -fsSL "$N8N_TARBALL" | tar -xz -C "$TMP_DIR"
-  N8N_DIR="$TMP_DIR/n8n-skills-main"
+  
+  # Create temp directory for n8n download
+  N8N_TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "$N8N_TMP_DIR"' EXIT
+  
+  curl -fsSL "$N8N_TARBALL" | tar -xz -C "$N8N_TMP_DIR"
+  N8N_DIR="$N8N_TMP_DIR/n8n-skills-main"
 
   if [ ! -d "$N8N_DIR" ]; then
     echo "ERROR: Failed to extract n8n tarball - expected directory not found" >&2

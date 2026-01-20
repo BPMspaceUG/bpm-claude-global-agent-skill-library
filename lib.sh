@@ -7,20 +7,31 @@
 #
 # Requires: VERBOSE variable to be set (0 or 1) before calling log_verbose
 
+# Current version
+BCGASL_VERSION="1.0.0"
+
 # Trusted domains for downloads (security: only allow known hosts)
 TRUSTED_DOMAINS=("github.com" "raw.githubusercontent.com")
 
 # Repository URLs (exported for use by sourcing scripts)
 # shellcheck disable=SC2034
-REPO_TARBALL="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/archive/main.tar.gz"
+REPO_TARBALL="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/archive/refs/tags/v${BCGASL_VERSION}.tar.gz"
 # shellcheck disable=SC2034
 N8N_TARBALL="https://github.com/czlonkowski/n8n-skills/archive/main.tar.gz"
 # shellcheck disable=SC2034
-BCGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/bcgasl"
+BCGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/v${BCGASL_VERSION}/bcgasl"
 
-# Checksums file URL (optional - if exists, will be used for verification)
+# Checksums file URL
 # shellcheck disable=SC2034
 CHECKSUMS_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/checksums.sha256"
+
+# Expected checksum for current version tarball
+# shellcheck disable=SC2034
+REPO_TARBALL_CHECKSUM="PLACEHOLDER_CHECKSUM_WILL_BE_UPDATED_AFTER_RELEASE"
+
+# Extracted directory name for the tarball
+# shellcheck disable=SC2034
+EXTRACTED_DIR_NAME="bpm-claude-global-agent-skill-library-${BCGASL_VERSION}"
 
 # Security: Validate URL against trusted domains
 # Usage: validate_url "https://example.com/file"
