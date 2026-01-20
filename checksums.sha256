@@ -1,12 +1,6 @@
-# SHA256 checksums for bcgasl scripts
+# SHA256 checksums for bcgasl releases
 # Generated: 2026-01-20
 # To verify: sha256sum -c checksums.sha256
 #
-# Note: These checksums are for the script files themselves.
-# GitHub tarballs are generated dynamically and cannot have fixed checksums.
-# The bcgasl script verifies the integrity of individual files after extraction.
-
-d24e131c27d212884526572f44eb6d54a7e313444ee85193f91ca13ba33add52  bcgasl
-f799e535b17c0a1832b006f0145783676a92915a96e7f7a9261d353288ad4533  lib.sh
-5e659ece4480199c5b4d52bea5ff6c037e93ed72427d007e4955b10fd852364d  sync
-c848e15257e9436b74e7e84df94b4e8f10794d13737e90530bba30cf73e035a5  install
+# Release tarball checksums (versioned releases)
+bfd04abdd7766ae1748398e22084f58c64c3547714724cbbad815d1aa9013624  v1.0.0.tar.gz

@@ -8,7 +8,7 @@
 # Requires: VERBOSE variable to be set (0 or 1) before calling log_verbose
 
 # Current version
-BCGASL_VERSION="1.0.0"
+BCGASL_VERSION="1.0.1"
 
 # Trusted domains for downloads (security: only allow known hosts)
 TRUSTED_DOMAINS=("github.com" "raw.githubusercontent.com")
@@ -25,9 +25,9 @@ BCGASL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent
 # shellcheck disable=SC2034
 CHECKSUMS_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/checksums.sha256"
 
-# Expected checksum for current version tarball
+# Expected checksum for current version tarball (will be updated in next release)
 # shellcheck disable=SC2034
-REPO_TARBALL_CHECKSUM="PLACEHOLDER_CHECKSUM_WILL_BE_UPDATED_AFTER_RELEASE"
+REPO_TARBALL_CHECKSUM="PLACEHOLDER_WILL_BE_UPDATED_IN_NEXT_RELEASE"
 
 # Extracted directory name for the tarball
 # shellcheck disable=SC2034
