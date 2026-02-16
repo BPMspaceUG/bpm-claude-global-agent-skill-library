@@ -19,9 +19,34 @@ All custom items follow the `my-` naming convention and live under `my/`:
 | Commands | `my/commands/my-<name>.md` | Flat .md file |
 | Runbooks | `my/runbooks/my-<name>.md` | Flat .md file |
 
-## Installation
+## Quick Start (neue Maschine)
 
-### One-time usage
+Komplettes Setup in 3 Schritten:
+
+```bash
+# 1. Repo klonen
+git clone git@github.com:BPMspaceUG/bpm-claude-global-agent-skill-library.git ~/bpm-claude-global-agent-skill-library
+
+# 2. CLI-Tools installieren (bcgasl + my-library-pull + my-library-push)
+cd ~/bpm-claude-global-agent-skill-library
+./install --global --with-my-library
+
+# 3. Alle my-Items nach ~/.claude/ installieren
+my-library-pull
+```
+
+Danach stehen alle Skills, Agents, Commands und Runbooks in Claude Code zur Verfügung.
+
+### Ohne Repo-Klon (curl|bash)
+
+Nur `bcgasl` + my-library-Tools installieren (Repo wird beim ersten `my-library-pull` automatisch geklont):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global --with-my-library
+my-library-pull
+```
+
+### Nur Standard-Skills (ohne my-library)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
@@ -32,33 +57,21 @@ With n8n skills:
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash -s -- --n8n
 ```
 
-### Install bcgasl command (for repeated use)
+## Updates
 
-Interactive:
+### Repo bereits geklont
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
+cd ~/bpm-claude-global-agent-skill-library && git pull
+my-library-pull                  # Aktualisiert alle my-Items lokal
 ```
 
-With my-library tools:
-```bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global --with-my-library
-```
+### Oder via bcgasl
 
-### Usage
-
-Install/update agents & skills:
 ```bash
-bcgasl
-```
-
-With n8n skills:
-```bash
-bcgasl --n8n
-```
-
-Preview changes:
-```bash
-bcgasl --dry-run
+bcgasl                           # Standard-Items aktualisieren
+bcgasl --n8n                     # Mit n8n-Skills
+bcgasl --dry-run                 # Vorschau ohne Änderungen
 ```
 
 ## my-library: Push/Pull Sync
@@ -71,6 +84,10 @@ Synchronise custom `my-` items between machines via this Git repository.
 my-library-pull                  # Pull all my-items
 my-library-pull --dry-run        # Preview what would change
 my-library-pull --only-skills    # Pull only skills
+my-library-pull --only-agents    # Pull only agents
+my-library-pull --only-commands  # Pull only commands
+my-library-pull --only-runbooks  # Pull only runbooks
+my-library-pull --verbose        # Detailed output
 ```
 
 ### Push (local → repo)
@@ -80,13 +97,19 @@ my-library-push                          # Push all my-items
 my-library-push --dry-run                # Preview what would change
 my-library-push --message "custom msg"   # Custom commit message
 my-library-push --only-skills            # Push only skills
+my-library-push --verbose                # Detailed output
 ```
 
-### Workflow
+### Typischer Workflow
 
-1. Create or modify a custom item locally (`~/.claude/skills/my-foo/`, etc.)
-2. `my-library-push` — syncs to repo (includes commit + push)
-3. On another machine: `my-library-pull` — downloads and installs
+```bash
+# Auf Maschine A: neues Item erstellen und pushen
+# (z.B. neuen Skill in ~/.claude/skills/my-foo/ anlegen)
+my-library-push
+
+# Auf Maschine B: Items synchronisieren
+my-library-pull
+```
 
 ## Usage in Prompts
 
