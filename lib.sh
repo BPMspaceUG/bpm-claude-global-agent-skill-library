@@ -268,8 +268,15 @@ get_loaded_checksum() {
 
 # Determine the target directory for Claude configuration
 # Usage: target=$(get_target_dir)
+# Checks which directory Claude Code actively uses (by settings.json presence)
 get_target_dir() {
-  if [[ -d "$HOME/.config/claude" ]]; then
+  if [[ -f "$HOME/.claude/settings.json" ]]; then
+    echo "$HOME/.claude"
+  elif [[ -f "$HOME/.config/claude/settings.json" ]]; then
+    echo "$HOME/.config/claude"
+  elif [[ -d "$HOME/.claude" ]]; then
+    echo "$HOME/.claude"
+  elif [[ -d "$HOME/.config/claude" ]]; then
     echo "$HOME/.config/claude"
   else
     echo "$HOME/.claude"

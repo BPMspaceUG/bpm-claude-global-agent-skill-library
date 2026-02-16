@@ -28,11 +28,19 @@ ONLY_RUNBOOKS=0
 # Categories to sync
 CATEGORIES=(skills agents commands runbooks)
 
-# Determine target directory
+# Determine target directory (check which one Claude Code actually uses)
 get_target_dir() {
-  if [[ -d "$HOME/.config/claude" ]]; then
+  # Prefer the directory that has settings.json (= actively used by Claude Code)
+  if [[ -f "$HOME/.claude/settings.json" ]]; then
+    echo "$HOME/.claude"
+  elif [[ -f "$HOME/.config/claude/settings.json" ]]; then
+    echo "$HOME/.config/claude"
+  elif [[ -d "$HOME/.claude" ]]; then
+    echo "$HOME/.claude"
+  elif [[ -d "$HOME/.config/claude" ]]; then
     echo "$HOME/.config/claude"
   else
+    # Default: ~/.claude (current Claude Code convention)
     echo "$HOME/.claude"
   fi
 }
