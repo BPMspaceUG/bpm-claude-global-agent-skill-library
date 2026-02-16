@@ -83,6 +83,7 @@ Synchronise custom `my-` items between machines via this Git repository.
 ```bash
 my-library-pull                  # Pull all my-items
 my-library-pull --dry-run        # Preview what would change
+my-library-pull --force          # Overwrite conflicts (repo wins)
 my-library-pull --only-skills    # Pull only skills
 my-library-pull --only-agents    # Pull only agents
 my-library-pull --only-commands  # Pull only commands
@@ -95,10 +96,30 @@ my-library-pull --verbose        # Detailed output
 ```bash
 my-library-push                          # Push all my-items
 my-library-push --dry-run                # Preview what would change
+my-library-push --force                  # Overwrite conflicts (local wins)
 my-library-push --message "custom msg"   # Custom commit message
 my-library-push --only-skills            # Push only skills
 my-library-push --verbose                # Detailed output
 ```
+
+### Conflict Detection
+
+Both scripts track a SHA256 baseline per item in `~/.claude/.my-library-sync`. When an item has changed on **both** sides (locally and in the repo) since the last sync, it is flagged as a conflict and **skipped**:
+
+```
+  X skills/my-foo (CONFLICT: changed locally AND in repo)
+
+CONFLICTS: 1 item(s) changed on both sides.
+  Review manually, then re-run. Or use --force to let repo win.
+```
+
+| Scenario | Pull | Push |
+|----------|------|------|
+| Only repo changed | Updates local | — |
+| Only local changed | — | Updates repo |
+| Both changed | **CONFLICT** (skipped) | **CONFLICT** (skipped) |
+| Both changed + `--force` | Repo wins | Local wins |
+| No baseline (first sync) | Updates local | Updates repo |
 
 ### Typischer Workflow
 
