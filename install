@@ -7,6 +7,7 @@
 #   curl -fsSL .../install | bash -s -- --user   # User install
 #   curl -fsSL .../install | bash -s -- --global # Global install (sudo)
 #   curl -fsSL .../install | bash -s -- --all    # Both user and global
+#   curl -fsSL .../install | bash -s -- --with-my-library  # Also install my-library-pull/push
 
 set -euo pipefail
 
@@ -54,11 +55,13 @@ GLOBAL_BIN="/usr/local/bin"
 # Parse arguments
 CHOICE=""
 INSTALL_ALL=0
+INSTALL_MY_LIBRARY=0
 for arg in "$@"; do
   case "$arg" in
     --user) CHOICE="1" ;;
     --global) CHOICE="2" ;;
     --all) INSTALL_ALL=1 ;;
+    --with-my-library) INSTALL_MY_LIBRARY=1 ;;
   esac
 done
 
@@ -118,8 +121,35 @@ else
   install_user
 fi
 
+# Install my-library-pull and my-library-push if requested
+if [ "$INSTALL_MY_LIBRARY" -eq 1 ]; then
+  echo ""
+  echo "Installing my-library tools..."
+
+  # Determine source: local repo or download
+  if [[ -f "$SCRIPT_DIR/my-library-pull" ]] && [[ -f "$SCRIPT_DIR/my-library-push" ]]; then
+    sudo cp "$SCRIPT_DIR/my-library-pull" "$GLOBAL_BIN/my-library-pull"
+    sudo cp "$SCRIPT_DIR/my-library-push" "$GLOBAL_BIN/my-library-push"
+  else
+    MY_PULL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/my-library-pull"
+    MY_PUSH_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/my-library-push"
+    validate_url "$MY_PULL_URL" || exit 1
+    validate_url "$MY_PUSH_URL" || exit 1
+    sudo curl -fsSL "$MY_PULL_URL" -o "$GLOBAL_BIN/my-library-pull"
+    sudo curl -fsSL "$MY_PUSH_URL" -o "$GLOBAL_BIN/my-library-push"
+  fi
+
+  sudo chown root:root "$GLOBAL_BIN/my-library-pull" "$GLOBAL_BIN/my-library-push"
+  sudo chmod +x "$GLOBAL_BIN/my-library-pull" "$GLOBAL_BIN/my-library-push"
+  echo "Installed my-library-pull and my-library-push to $GLOBAL_BIN/"
+fi
+
 echo ""
 echo "Usage:"
-echo "  bcgasl         - Install/update agents & skills"
-echo "  bcgasl --n8n   - Install/update with n8n skills"
-echo "  bcgasl --help  - Show help"
+echo "  bcgasl                - Install/update agents & skills"
+echo "  bcgasl --n8n          - Install/update with n8n skills"
+echo "  bcgasl --help         - Show help"
+if [ "$INSTALL_MY_LIBRARY" -eq 1 ]; then
+  echo "  my-library-pull       - Pull my-items from repo to local"
+  echo "  my-library-push       - Push my-items from local to repo"
+fi

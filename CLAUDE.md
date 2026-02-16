@@ -4,34 +4,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), and collaboration templates. These resources are installed globally on development machines and referenced across multiple projects.
+This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `my-` prefix and are versioned under `my/`.
 
 ## Architecture
 
 ### Directory Structure
 
-- `agents/` - Role definitions with responsibilities, inputs, outputs, and guardrails
-- `skills/` - Standardized playbooks for common tasks with checklists and success criteria
-- `runbooks/` - Detailed operational guides for recurring processes
-- `templates/` - Issue and PR templates
+```
+bpm-claude-global-agent-skill-library/
+├── my/                  # All my-prefixed custom items
+│   ├── skills/          # Directories (my-<name>/SKILL.md)
+│   ├── agents/          # Flat files (my-<name>.md)
+│   ├── commands/        # Flat files (my-<name>.md)
+│   └── runbooks/        # Flat files (my-<name>.md)
+├── runbooks/            # Standard operational guides
+├── templates/           # Issue and PR templates
+├── my-library-pull      # Pull my-items from repo to local
+├── my-library-push      # Push my-items from local to repo
+├── bcgasl               # Main install/update command
+├── install              # Installer script
+├── sync                 # Sync script
+└── lib.sh               # Shared library functions
+```
+
+### The `my-` Convention
+
+All custom/user-created items use the `my-` prefix:
+- `my-` = user-created or user-modified
+- Original/installed items keep their original name
+- Two versions can coexist: original for reference, custom for use
 
 ### Agent Hierarchy
 
-The **Orchestrator (A01)** coordinates all work:
+The **Orchestrator** (`my-orchestrator-planner`) coordinates all work:
 - Discovers MCP server availability and publishes an **MCP Availability Handoff**
 - Decomposes goals into tasks with acceptance criteria
 - Assigns work to implementer agents
 
-Implementer agents rely on the Orchestrator's plan and MCP handoff:
-- **A02 Backend/Automation** - Bash scripts and PHP (Flight MVC)
-- **A03 Workflow/Integration** - n8n workflows and REST APIs
-- **A04 Data** - MariaDB migrations and Redis keyspace
-- **A05 Security** - AppSec reviews, TLS/HTTP headers
-- **A06 QA** - Test harness development and execution
+Implementer agents:
+- **my-backend-bash-php** - Bash scripts and PHP (Flight MVC)
+- **my-workflow-n8n-api** - n8n workflows and REST APIs
+- **my-data-mariadb-redis** - MariaDB migrations and Redis keyspace
+- **my-security-reviewer** - AppSec reviews, TLS/HTTP headers
+- **my-qa-tester** - Test harness development and execution
 
 ### Key Patterns
 
-All agents follow these conventions:
 - Never probe MCP servers independently; rely on Orchestrator's handoff
 - Never hardcode secrets; use `.env` files
 - Scripts must be idempotent
@@ -40,21 +58,28 @@ All agents follow these conventions:
 ## Installation
 
 ```bash
-# Install bcgasl command (choose user or global)
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
+# Install bcgasl + my-library tools
+curl -fsSL .../install | bash -s -- --global --with-my-library
 
 # Then use
-bcgasl         # Install/update agents & skills
-bcgasl --n8n   # With n8n skills
+bcgasl                # Install/update agents & skills
+my-library-pull       # Pull my-items from repo
+my-library-push       # Push my-items to repo
 ```
 
-The sync copies to `~/.config/claude` or `~/.claude`.
+## my-library Workflow
 
-## Usage Examples
+```bash
+# Pull latest from repo
+my-library-pull
 
-Reference agents and skills in prompts:
-- *"Use the Bash secure script standard to implement the installer."*
-- *"As the Orchestrator, check the available MCP servers and provide an MCP Availability Handoff."*
+# After creating/modifying items locally
+my-library-push
+
+# Preview without changes
+my-library-pull --dry-run
+my-library-push --dry-run
+```
 
 ## Technology Stack
 

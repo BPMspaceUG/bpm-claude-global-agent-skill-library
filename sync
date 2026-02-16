@@ -82,6 +82,7 @@ if [ "$ONLY_AGENTS" -eq 1 ] || [ "$ONLY_SKILLS" -eq 1 ] || [ "$ONLY_RUNBOOKS" -e
   [ "$ONLY_TEMPLATES" -eq 1 ] && DIRS+=("templates")
 else
   DIRS=(agents skills runbooks templates)
+MY_DIRS=(skills agents commands runbooks)
 fi
 
 # Handle uninstall
@@ -213,6 +214,73 @@ else
     fi
   done
   echo "✅ Updated: ${#NEW_FILES[@]} new, ${#MODIFIED_FILES[@]} modified, $UNCHANGED unchanged"
+fi
+
+# Sync my-prefixed items from my/ directory
+if [ -d "$EXTRACTED_DIR/my" ]; then
+  echo ""
+  echo "Syncing my-prefixed items..."
+  MY_NEW=0
+  MY_MOD=0
+  MY_UNCH=0
+
+  for my_cat in "${MY_DIRS[@]}"; do
+    MY_SRC="$EXTRACTED_DIR/my/$my_cat"
+    [ -d "$MY_SRC" ] || continue
+
+    if [ "$my_cat" = "skills" ]; then
+      # Skills are directories
+      for item_dir in "$MY_SRC"/my-*/; do
+        [ -d "$item_dir" ] || continue
+        item_name=$(basename "$item_dir")
+        target_item="$TARGET_DIR/skills/$item_name"
+        mkdir -p "$TARGET_DIR/skills"
+
+        if [ ! -d "$target_item" ]; then
+          echo "   + my/$my_cat/$item_name"
+          ((MY_NEW++)) || true
+          [ "$DRY_RUN" -eq 0 ] && cp -r "$item_dir" "$target_item"
+        elif ! diff -rq "$item_dir" "$target_item" > /dev/null 2>&1; then
+          echo "   ~ my/$my_cat/$item_name"
+          ((MY_MOD++)) || true
+          if [ "$DRY_RUN" -eq 0 ]; then
+            rm -rf "$target_item"
+            cp -r "$item_dir" "$target_item"
+          fi
+        else
+          ((MY_UNCH++)) || true
+        fi
+      done
+    else
+      # Agents, commands, runbooks are flat files
+      mkdir -p "$TARGET_DIR/$my_cat"
+      for item_file in "$MY_SRC"/my-*.md; do
+        [ -f "$item_file" ] || continue
+        item_name=$(basename "$item_file")
+        target_item="$TARGET_DIR/$my_cat/$item_name"
+
+        if [ ! -f "$target_item" ]; then
+          echo "   + my/$my_cat/$item_name"
+          ((MY_NEW++)) || true
+          [ "$DRY_RUN" -eq 0 ] && cp "$item_file" "$target_item"
+        elif ! diff -q "$item_file" "$target_item" > /dev/null 2>&1; then
+          echo "   ~ my/$my_cat/$item_name"
+          ((MY_MOD++)) || true
+          [ "$DRY_RUN" -eq 0 ] && cp "$item_file" "$target_item"
+        else
+          ((MY_UNCH++)) || true
+        fi
+      done
+    fi
+  done
+
+  if [ "$MY_NEW" -eq 0 ] && [ "$MY_MOD" -eq 0 ]; then
+    echo "   ✅ my-items already up to date ($MY_UNCH items)"
+  elif [ "$DRY_RUN" -eq 1 ]; then
+    echo "   Would update my-items: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
+  else
+    echo "   ✅ my-items updated: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
+  fi
 fi
 
 # Optionally install the n8n skills pack (only if skills directory is being installed)

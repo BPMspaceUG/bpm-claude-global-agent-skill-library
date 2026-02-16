@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+#
+# my-library-pull - Pull my-prefixed items from the Git repository to local ~/.claude/
+#
+# Usage:
+#   my-library-pull                  Pull all my-items
+#   my-library-pull --dry-run        Show what would change
+#   my-library-pull --only-skills    Pull only skills
+#   my-library-pull --verbose        Show detailed output
+#
+# Requires: git
+
+set -euo pipefail
+
+VERSION="1.0.0"
+REPO_NAME="bpm-claude-global-agent-skill-library"
+REPO_URL="git@github.com:BPMspaceUG/bpm-claude-global-agent-skill-library.git"
+REPO_DIR="$HOME/$REPO_NAME"
+
+# Defaults
+DRY_RUN=0
+VERBOSE=0
+ONLY_SKILLS=0
+ONLY_AGENTS=0
+ONLY_COMMANDS=0
+ONLY_RUNBOOKS=0
+
+# Categories to sync
+CATEGORIES=(skills agents commands runbooks)
+
+# Determine target directory
+get_target_dir() {
+  if [[ -d "$HOME/.config/claude" ]]; then
+    echo "$HOME/.config/claude"
+  else
+    echo "$HOME/.claude"
+  fi
+}
+
+log_verbose() {
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    echo "[DEBUG] $*" >&2
+  fi
+}
+
+show_help() {
+  echo "my-library-pull v$VERSION - Pull my-items from repo to local"
+  echo ""
+  echo "Usage:"
+  echo "  my-library-pull                  Pull all my-items"
+  echo "  my-library-pull --dry-run        Show what would change without applying"
+  echo "  my-library-pull --verbose        Show detailed output"
+  echo "  my-library-pull --only-skills    Pull only skills"
+  echo "  my-library-pull --only-agents    Pull only agents"
+  echo "  my-library-pull --only-commands  Pull only commands"
+  echo "  my-library-pull --only-runbooks  Pull only runbooks"
+  echo "  my-library-pull --version        Show version"
+  echo "  my-library-pull --help           Show this help"
+}
+
+# Parse arguments
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run)       DRY_RUN=1 ;;
+    --verbose)       VERBOSE=1 ;;
+    --only-skills)   ONLY_SKILLS=1 ;;
+    --only-agents)   ONLY_AGENTS=1 ;;
+    --only-commands) ONLY_COMMANDS=1 ;;
+    --only-runbooks) ONLY_RUNBOOKS=1 ;;
+    -v|--version)    echo "my-library-pull v$VERSION"; exit 0 ;;
+    -h|--help)       show_help; exit 0 ;;
+    *)               echo "Unknown option: $arg"; show_help; exit 1 ;;
+  esac
+done
+
+# Determine which categories to process
+if [[ "$ONLY_SKILLS" -eq 1 ]] || [[ "$ONLY_AGENTS" -eq 1 ]] || [[ "$ONLY_COMMANDS" -eq 1 ]] || [[ "$ONLY_RUNBOOKS" -eq 1 ]]; then
+  CATEGORIES=()
+  [[ "$ONLY_SKILLS" -eq 1 ]] && CATEGORIES+=("skills")
+  [[ "$ONLY_AGENTS" -eq 1 ]] && CATEGORIES+=("agents")
+  [[ "$ONLY_COMMANDS" -eq 1 ]] && CATEGORIES+=("commands")
+  [[ "$ONLY_RUNBOOKS" -eq 1 ]] && CATEGORIES+=("runbooks")
+fi
+
+TARGET_DIR="$(get_target_dir)"
+log_verbose "Target directory: $TARGET_DIR"
+log_verbose "Categories: ${CATEGORIES[*]}"
+
+echo "my-library-pull v$VERSION"
+echo ""
+
+# Step 1: Ensure repo clone exists
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+  echo "Repository not found at $REPO_DIR"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "Would clone: $REPO_URL -> $REPO_DIR"
+    echo ""
+    echo "DRY RUN - Run without --dry-run to clone and pull"
+    exit 0
+  fi
+  echo "Cloning $REPO_URL..."
+  git clone "$REPO_URL" "$REPO_DIR"
+  echo ""
+fi
+
+# Step 2: Pull latest changes
+cd "$REPO_DIR"
+echo "Updating repository..."
+if ! git pull --ff-only 2>/dev/null; then
+  echo "WARNING: Fast-forward pull failed. Local changes may exist."
+  echo "         Resolve manually: cd $REPO_DIR && git status"
+  echo ""
+fi
+
+# Step 3: Check for my/ directory in repo
+if [[ ! -d "$REPO_DIR/my" ]]; then
+  echo "No my/ directory found in repository."
+  echo "Nothing to pull."
+  exit 0
+fi
+
+# Step 4: Compare and sync each category
+NEW_COUNT=0
+MODIFIED_COUNT=0
+UNCHANGED_COUNT=0
+SKIPPED_COUNT=0
+
+for category in "${CATEGORIES[@]}"; do
+  REPO_CAT_DIR="$REPO_DIR/my/$category"
+
+  if [[ ! -d "$REPO_CAT_DIR" ]]; then
+    log_verbose "No my/$category directory in repo, skipping"
+    continue
+  fi
+
+  # Determine local target based on category
+  LOCAL_CAT_DIR="$TARGET_DIR/$category"
+  mkdir -p "$LOCAL_CAT_DIR"
+
+  log_verbose "Processing category: $category"
+  log_verbose "  Repo:  $REPO_CAT_DIR"
+  log_verbose "  Local: $LOCAL_CAT_DIR"
+
+  # Handle skills (directories with SKILL.md)
+  if [[ "$category" == "skills" ]]; then
+    for item_dir in "$REPO_CAT_DIR"/my-*/; do
+      [[ -d "$item_dir" ]] || continue
+      item_name=$(basename "$item_dir")
+      local_item="$LOCAL_CAT_DIR/$item_name"
+
+      if [[ ! -d "$local_item" ]]; then
+        echo "  + $category/$item_name (new)"
+        ((NEW_COUNT++)) || true
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          cp -r "$item_dir" "$local_item"
+        fi
+      elif ! diff -rq "$item_dir" "$local_item" > /dev/null 2>&1; then
+        echo "  ~ $category/$item_name (modified)"
+        ((MODIFIED_COUNT++)) || true
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          rm -rf "$local_item"
+          cp -r "$item_dir" "$local_item"
+        fi
+      else
+        ((UNCHANGED_COUNT++)) || true
+        log_verbose "  = $category/$item_name (unchanged)"
+      fi
+    done
+  else
+    # Handle agents, commands, runbooks (flat .md files)
+    for item_file in "$REPO_CAT_DIR"/my-*.md; do
+      [[ -f "$item_file" ]] || continue
+      item_name=$(basename "$item_file")
+      local_item="$LOCAL_CAT_DIR/$item_name"
+
+      if [[ ! -f "$local_item" ]]; then
+        echo "  + $category/$item_name (new)"
+        ((NEW_COUNT++)) || true
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          cp "$item_file" "$local_item"
+        fi
+      elif ! diff -q "$item_file" "$local_item" > /dev/null 2>&1; then
+        echo "  ~ $category/$item_name (modified)"
+        ((MODIFIED_COUNT++)) || true
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          cp "$item_file" "$local_item"
+        fi
+      else
+        ((UNCHANGED_COUNT++)) || true
+        log_verbose "  = $category/$item_name (unchanged)"
+      fi
+    done
+  fi
+done
+
+# Summary
+echo ""
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "DRY RUN - No changes made"
+  echo "Would update: $NEW_COUNT new, $MODIFIED_COUNT modified, $UNCHANGED_COUNT unchanged"
+else
+  if [[ "$NEW_COUNT" -eq 0 ]] && [[ "$MODIFIED_COUNT" -eq 0 ]]; then
+    echo "Already up to date ($UNCHANGED_COUNT items)"
+  else
+    echo "Updated: $NEW_COUNT new, $MODIFIED_COUNT modified, $UNCHANGED_COUNT unchanged"
+  fi
+fi

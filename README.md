@@ -1,19 +1,28 @@
 # BPMspace Claude Global Agents & Skills Library
 
-This repository contains a collection of **agents**, **skills**, **runbooks** and **templates** designed for use with Claude Code CLI. These resources are intended to be installed globally on your development machine so that they can be reused across multiple projects.
+This repository contains a collection of **agents**, **skills**, **runbooks** and **templates** designed for use with Claude Code CLI. These resources are installed globally on your development machine and reused across multiple projects.
 
 ## Contents
 
-- `agents/` – role definitions describing responsibilities, inputs, outputs and guardrails for each agent.
-- `skills/` – playbooks that standardise how to perform common tasks across technologies. Each skill includes a goal, checklist, minimal examples, success criteria and common failure modes.
-- `runbooks/` – detailed operational guides for recurring processes such as releases, environment setup, database migrations and workflow versioning.
-- `templates/` – issue and pull‑request templates to streamline collaboration.
+- `my/` – all custom `my-`prefixed items (skills, agents, commands, runbooks), versioned and synced across machines
+- `runbooks/` – detailed operational guides for recurring processes
+- `templates/` – issue and pull-request templates
+
+### my/ Directory
+
+All custom items follow the `my-` naming convention and live under `my/`:
+
+| Type | Path | Format |
+|------|------|--------|
+| Skills | `my/skills/my-<name>/` | Directory with `SKILL.md` |
+| Agents | `my/agents/my-<name>.md` | Flat .md file |
+| Commands | `my/commands/my-<name>.md` | Flat .md file |
+| Runbooks | `my/runbooks/my-<name>.md` | Flat .md file |
 
 ## Installation
 
 ### One-time usage
 
-Without n8n skills:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
 ```
@@ -25,24 +34,14 @@ curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-
 
 ### Install bcgasl command (for repeated use)
 
-Interactive (asks user/global):
+Interactive:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash
 ```
 
-User install (`~/.local/bin/bcgasl`):
+With my-library tools:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --user
-```
-
-Global install (`/usr/local/bin/bcgasl`, requires sudo):
-```bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global
-```
-
-Both user and global install:
-```bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --all
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global --with-my-library
 ```
 
 ### Usage
@@ -57,30 +56,48 @@ With n8n skills:
 bcgasl --n8n
 ```
 
-Preview changes without applying:
+Preview changes:
 ```bash
 bcgasl --dry-run
 ```
 
-Show version:
+## my-library: Push/Pull Sync
+
+Synchronise custom `my-` items between machines via this Git repository.
+
+### Pull (repo → local)
+
 ```bash
-bcgasl --version
+my-library-pull                  # Pull all my-items
+my-library-pull --dry-run        # Preview what would change
+my-library-pull --only-skills    # Pull only skills
 ```
 
-The sync copies `agents/`, `skills/`, `runbooks/` and `templates/` to `~/.config/claude` or `~/.claude`. Use `--n8n` to also install [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills).
+### Push (local → repo)
 
-## Usage
+```bash
+my-library-push                          # Push all my-items
+my-library-push --dry-run                # Preview what would change
+my-library-push --message "custom msg"   # Custom commit message
+my-library-push --only-skills            # Push only skills
+```
 
-Once installed, you can reference these definitions in your prompts to Claude Code CLI. For example:
+### Workflow
 
-- *“Use the Bash secure script standard to implement the installer.”*
-- *“As the Orchestrator, check the available MCP servers and provide an MCP Availability Handoff.”*
+1. Create or modify a custom item locally (`~/.claude/skills/my-foo/`, etc.)
+2. `my-library-push` — syncs to repo (includes commit + push)
+3. On another machine: `my-library-pull` — downloads and installs
 
-The Orchestrator agent is responsible for discovering which MCP servers are available in your session and publishing that information in its planning outputs. All other agents rely on this declaration and do not probe MCP servers on their own.
+## Usage in Prompts
+
+Reference these definitions in your prompts to Claude Code CLI:
+
+- *"Use the Bash secure script standard to implement the installer."*
+- *"As the Orchestrator, check the available MCP servers and provide an MCP Availability Handoff."*
 
 ## External Skill Packs
 
-The n8n skill pack is maintained in a separate repository. When the `--n8n` option is used, the `sync` script will clone the pack and copy its compiled skills into your global `skills/` directory. You can update the n8n skill pack by rerunning the `sync` script with `--n8n`.
+The n8n skill pack is maintained in a <a href="https://github.com/czlonkowski/n8n-skills" target="_blank">separate repository</a>. Use `bcgasl --n8n` to install it.
 
 ## License
 
