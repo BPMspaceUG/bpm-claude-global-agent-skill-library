@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-release-ops
 description: Process for controlled software releases including versioning, CI/CD, artefact packaging, and rollback procedures. Use before cutting releases, setting up CI/CD, or building deployment playbooks. Derived from S12.
 ---

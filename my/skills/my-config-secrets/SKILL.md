@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-config-secrets
 description: Safe configuration and secrets management via .env files across Bash, PHP, and n8n. Use when scripts or applications require API tokens, database credentials, or other sensitive configuration. Derived from S04.
 ---

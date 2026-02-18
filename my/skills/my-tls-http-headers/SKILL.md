@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-tls-http-headers
 description: Baseline for TLS and HTTP security header configuration protecting against downgrade attacks, XSS, and clickjacking. Use when deploying web applications or configuring reverse proxies. Derived from S10b.
 ---

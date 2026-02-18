@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-curlbash-installer
 description: Pattern for curl|bash installation, update, and uninstall scripts supporting system-wide and user-level installs. Use when distributing CLI tools, creating installers, or building update mechanisms. Derived from S03.
 ---

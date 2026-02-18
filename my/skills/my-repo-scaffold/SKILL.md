@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-repo-scaffold
 description: Consistent starting point for new projects with directory layout, naming conventions, and baseline files. Use when starting a new project, restructuring a repository, or adding asset types (agents, skills, runbooks, templates). Derived from S01.
 ---

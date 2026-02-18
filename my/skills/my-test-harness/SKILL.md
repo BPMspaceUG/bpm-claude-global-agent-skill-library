@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-test-harness
 description: Consistent approach to building and running tests across Bash, PHP, and APIs. Use when creating test suites, expanding test coverage, or integrating tests into CI pipelines. Derived from S11.
 ---

@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-api-contract
 description: Rules for designing and consuming RESTful APIs consistently with predictable endpoints, filtering, pagination, and error handling. Use when designing HTTP endpoints, integrating with APIs, or reviewing API behaviour. Derived from S08a.
 ---

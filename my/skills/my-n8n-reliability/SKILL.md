@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-n8n-reliability
 description: Patterns for reliable, maintainable, and versionable n8n workflows. Use when creating or modifying n8n workflows, exporting for version control, or preparing for multi-environment deployment. Derived from S06.
 ---

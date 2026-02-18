@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-redis-keyspace
 description: Conventions for Redis key names, TTL policies, locks, and queues. Use when implementing caching, locking, rate limiting, or queues with Redis. Derived from S07b.
 ---

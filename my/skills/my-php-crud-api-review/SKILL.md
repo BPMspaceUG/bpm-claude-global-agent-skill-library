@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-php-crud-api-review
 description: Guidance for reviewing and integrating mevdschee/php-crud-api deployments. Use when evaluating php-crud-api, integrating its endpoints, or performing security reviews. Derived from S08b.
 ---

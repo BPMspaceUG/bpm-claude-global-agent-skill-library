@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-bash-secure-script
 description: Pattern for robust, maintainable, and secure Bash scripts. Use when creating new automation scripts, refactoring existing scripts, or reviewing scripts for security and reliability. Derived from S02.
 ---

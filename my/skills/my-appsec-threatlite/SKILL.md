@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-appsec-threatlite
 description: Lightweight threat-model and checklist for application security focusing on file handling safety and common vulnerabilities. Use during security reviews of scripts, code, and workflows, or when handling external input/files. Derived from S10a.
 ---

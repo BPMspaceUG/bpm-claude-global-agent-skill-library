@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-skill-optimizer
 description: Create and optimize custom user skills derived from originals or built from scratch. Use when the user wants to create a new custom skill, optimize an existing skill for their workflow, or fork/customize an installed skill. Enforces the my- naming convention to clearly separate custom skills from originals. Includes Codex-reviewed quality gates, segregation of duty, and optional agent team orchestration for complex skill development. Derived from skill-creator.
 ---

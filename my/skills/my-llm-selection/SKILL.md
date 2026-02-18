@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-llm-selection
 description: Guide for selecting and delegating tasks to LLMs and resolving conflicts through consensus finding. Use at the start of multi-agent workflows, when assigning tasks to agents, or when consensus is needed between disagreeing agents. Derived from S13.
 ---

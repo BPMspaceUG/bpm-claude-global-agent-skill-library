@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-library-manager
 description: Central knowledge hub for the my- item convention, library management, and push/pull synchronisation. Use when the user asks about my-library, wants to sync items, discusses the my- naming convention, or needs guidance on creating/managing custom items across skills, agents, commands, and runbooks.
 ---

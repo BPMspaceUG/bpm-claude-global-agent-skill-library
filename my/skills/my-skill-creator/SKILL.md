@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-skill-creator
 description: Create new custom skills with automatic detection of existing my- versions. Use when the user wants to create a new skill or update an existing skill. If a my- version already exists, delegates to my-skill-optimizer instead of creating from scratch. Enforces my- naming convention, segregation of duty, and Codex review. Derived from skill-creator.
 ---
