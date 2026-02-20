@@ -35,32 +35,9 @@ Do NOT use labels. Do NOT use tags. Issue Type + Milestone is the only tracking 
 - NEVER create multiple issues for the same improvement
 
 ### Milestone-Based Lifecycle
-Issues move through milestones to track progress. The milestone names ARE the workflow states:
+**Read `my-team-milestones` skill for full milestone definitions, rules, and Codex gate patterns.**
 
-```
-new
-  → planned
-    → plan-approved
-      → test-designed
-        → test-design-approved
-          → implemented
-            → tested-success  OR  tested-failed
-              ↓                     ↓
-        test-approved          back to "planned" or "implemented"
-              ↓                (with documented reason)
-            DONE
-        (ONLY by humans!)
-```
-
-Rules:
-- Each issue has exactly ONE milestone at a time = its current state
-- Moving an issue to the next milestone = progressing through the workflow
-- `plan-approved` means BOTH Team Lead AND Codex approved. Details in comments.
-- `test-design-approved` means BOTH Team Lead AND Codex approved. Details in comments.
-- `tested-success` means a teammate reports tests passing. But this is NOT the final gate — Lead and Codex must still independently verify before moving to `test-approved`.
-- `test-approved` means Lead AND Codex have independently verified the tests. This is the final automated milestone.
-- `DONE` — the Team Lead NEVER sets this. ONLY a human may move an issue to DONE. The lead must explicitly tell the user which issues are at `test-approved` and ready for human sign-off.
-- `tested-failed` — Lead documents WHY in a comment, then moves issue back to `planned` (wrong approach) or `implemented` (implementation bug). The bounce-back is visible in milestone history.
+Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only).
 
 ### Existing Issues
 Before creating ANY new issues:
