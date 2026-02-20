@@ -35,33 +35,9 @@ Each discrete improvement, fix, or feature gets its own issue. All phases of wor
 
 ### Milestone-Based Lifecycle
 
-Every issue progresses through milestones in strict order:
+**Read `my-team-milestones` skill** for full milestone definitions, transition rules, and Codex gate patterns.
 
-```
-new → planned → plan-approved → test-designed → test-design-approved → implemented → tested-success / tested-failed → test-approved → DONE
-```
-
-| Milestone | Set By | Meaning |
-|-----------|--------|---------|
-| `new` | Team Lead | Issue created, not yet planned |
-| `planned` | Teammate | Plan submitted as issue comment |
-| `plan-approved` | Team Lead + Codex | Both reviewed and approved the plan |
-| `test-designed` | Teammate | Test design submitted as issue comment |
-| `test-design-approved` | Team Lead + Codex | Both reviewed and approved test design |
-| `implemented` | Teammate | Code changes committed on feature branch |
-| `tested-success` | Teammate | All tests pass |
-| `tested-failed` | Teammate | Tests fail — bounces back with documented reason |
-| `test-approved` | Team Lead + Codex | Independent verification of test results |
-| `DONE` | **Human only** | Final sign-off — agents NEVER set this |
-
-### Rules
-
-- One milestone at a time per issue — no skipping
-- `plan-approved` requires BOTH Team Lead AND Codex approval
-- `test-design-approved` requires BOTH Team Lead AND Codex approval
-- `DONE` is ONLY set by humans — agents must never set this milestone
-- `tested-failed` bounces the issue back to the teammate with a documented reason as an issue comment
-- Always check existing issues before creating new ones to avoid duplicates
+Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only).
 
 ---
 

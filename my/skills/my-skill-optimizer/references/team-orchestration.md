@@ -33,28 +33,9 @@ Each discrete skill change gets its own issue. All phases of work are documented
 
 ### Milestone-Based Lifecycle
 
-Every issue progresses through milestones in strict order:
+**Read `my-team-milestones` skill** for full milestone definitions, transition rules, and Codex gate patterns.
 
-```
-new → planned → plan-approved → implemented → reviewed → review-approved → DONE
-```
-
-| Milestone | Set By | Meaning |
-|-----------|--------|---------|
-| `new` | Team Lead | Issue created, not yet planned |
-| `planned` | Teammate | Plan submitted as issue comment |
-| `plan-approved` | Team Lead + Codex | Both reviewed and approved the plan |
-| `implemented` | Teammate | Skill files created/modified |
-| `reviewed` | Codex | Codex review completed, results posted as issue comment |
-| `review-approved` | Team Lead + Codex | Both approved the final result |
-| `DONE` | **Human only** | Final sign-off — agents NEVER set this |
-
-### Rules
-
-- One milestone at a time per issue — no skipping
-- `plan-approved` requires BOTH Team Lead AND Codex approval
-- `DONE` is ONLY set by humans — agents must never set this milestone
-- Always check existing issues before creating new ones to avoid duplicates
+Uses the COMPACT lifecycle: `new` -> `planned` -> `plan-approved` -> `implemented` -> `reviewed` -> `review-approved` -> `DONE` (human only).
 
 ---
 
