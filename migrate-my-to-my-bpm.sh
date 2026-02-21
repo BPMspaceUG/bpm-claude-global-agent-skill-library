@@ -153,7 +153,7 @@ create_backup() {
         fi
         cp -r "$item" "$BACKUP_DIR/$dir/"
       done
-      [[ "$found" -eq 1 ]] && debug "Backed up my-* items from $dir/"
+      [[ "$found" -eq 1 ]] && debug "Backed up my-* items from $dir/" || true
     fi
   done
 
