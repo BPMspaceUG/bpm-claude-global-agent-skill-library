@@ -28,7 +28,7 @@ RESET='\033[0m'
 info()  { printf "${GREEN}[INFO]${RESET}  %s\n" "$*"; }
 warn()  { printf "${YELLOW}[WARN]${RESET}  %s\n" "$*"; }
 error() { printf "${RED}[ERROR]${RESET} %s\n" "$*" >&2; }
-debug() { [[ "${VERBOSE:-0}" -eq 1 ]] && printf "${CYAN}[DEBUG]${RESET} %s\n" "$*"; }
+debug() { [[ "${VERBOSE:-0}" -eq 1 ]] && printf "${CYAN}[DEBUG]${RESET} %s\n" "$*" || true; }
 
 # ── Hardcoded BPM item lists ────────────────────────────────────────────────
 
