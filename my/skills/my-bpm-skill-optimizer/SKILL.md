@@ -29,24 +29,16 @@ The most important principle: **original skills are read-only**.
 - Clear audit trail: `my-` = user-created or user-modified
 - Rollback is trivial: delete `my-` version, original still works
 
-## The `my-{org}-` Naming Convention
+## The `my-` Naming Convention
 
-**Custom/optimized skills MUST use the `my-{org}-` prefix** to identify the owning organization.
+**Custom/optimized skills MUST use the `my-` prefix.**
 
 | Scenario | Name | Example |
 |----------|------|---------|
 | Installed/original skill | Keep original name | `frontend-design`, `n8n-code-javascript` |
-| New custom skill (BPM) | `my-bpm-` + descriptive name | `my-bpm-flightphp-pro`, `my-bpm-data-pipeline` |
-| New custom skill (ICO) | `my-ico-` + descriptive name | `my-ico-workflow-engine` |
-| Forked/optimized original | `my-{org}-` + original name | `my-bpm-frontend-design`, `my-bpm-skill-creator` |
-| Skills-about-skills | `my-{org}-skill-` + function | `my-bpm-skill-optimizer`, `my-bpm-skill-validator` |
-
-### Multi-Library Awareness
-
-When optimizing a skill:
-- **Already has `my-{org}-` prefix** (e.g., `my-bpm-flightphp-pro`) → preserve the prefix, no question needed
-- **Has plain `my-` prefix without org** (e.g., `my-data-pipeline`) → ask: "Which organization does this skill belong to? (BPM / ICO / other)" and rename to `my-{org}-{name}`
-- **Known organizations:** `bpm` (BPMspace), `ico` (ICO)
+| New custom skill | `my-` + descriptive name | `my-bpm-flightphp-pro`, `my-data-pipeline` |
+| Forked/optimized original | `my-` + original name | `my-frontend-design`, `my-bpm-skill-creator` |
+| Skills-about-skills | `my-skill-` + function | `my-bpm-skill-optimizer`, `my-skill-validator` |
 
 ### Identifying Custom vs. Original
 

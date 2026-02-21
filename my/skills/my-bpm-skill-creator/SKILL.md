@@ -8,36 +8,18 @@ description: Create new custom skills with automatic detection of existing my- v
 
 Create new skills with built-in awareness of existing custom versions. Extends the original `skill-creator` with existence checks, automatic delegation, and custom workflow rules.
 
-## Multi-Library Awareness
-
-Skills belong to an **organization library** identified by prefix: `my-{org}-{name}`.
-
-**Known organizations:**
-| Org | Prefix | Library repo |
-|-----|--------|-------------|
-| BPM | `my-bpm-` | `bpm-claude-global-agent-skill-library` |
-| ICO | `my-ico-` | *(TBD)* |
-
-**When creating a new item, always ask:**
-> "Which library is this item for? (BPM / ICO / other)"
-
-Then apply the correct prefix: `my-bpm-<name>`, `my-ico-<name>`, or `my-{org}-<name>`.
-
-If the user's context makes the org obvious (e.g., working inside a BPM repo), default to that org without asking.
-
 ## Decision Flow
 
 **BEFORE creating any skill, run this check:**
 
 ```
 1. User requests: "create/build/make a skill for X"
-2. Determine organization → ask or infer from context
-3. Determine skill name → my-{org}-<name>
-4. Check: does ~/.claude/skills/my-{org}-<name>/ already exist?
+2. Determine skill name → my-<name>
+3. Check: does ~/.claude/skills/my-<name>/ already exist?
    ├── YES → STOP. Delegate to my-bpm-skill-optimizer (optimize/update existing)
    └── NO  → Continue with creation workflow below
-5. Check: does an original skill exist to fork from?
-   ├── YES → Fork workflow (copy original, rename to my-{org}-, modify)
+4. Check: does an original skill exist to fork from?
+   ├── YES → Fork workflow (copy original, rename to my-, modify)
    └── NO  → From-scratch workflow
 ```
 
@@ -123,9 +105,8 @@ After real usage, the user may request improvements. At that point:
 ## Rules
 
 ### Naming
-- ALL custom skills use `my-{org}-` prefix (e.g., `my-bpm-`, `my-ico-`) — no exceptions
+- ALL custom skills use `my-` prefix — no exceptions
 - Original skills keep their name — never rename them
-- The `{org}` segment identifies which library/organization owns the item
 
 ### Segregation of Duty
 - **NEVER modify files in `plugins/marketplaces/`** — these are read-only originals

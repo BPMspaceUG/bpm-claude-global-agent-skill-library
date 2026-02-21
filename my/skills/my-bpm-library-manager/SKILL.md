@@ -8,33 +8,23 @@ description: Central knowledge hub for the my- item convention, library manageme
 
 Central knowledge hub for managing `my-` prefixed custom items across all artefact types. Coordinates push/pull synchronisation via the Git repository.
 
-## The `my-{org}-` Multi-Org Convention
+## The `my-` Convention
 
-**All custom/user-created items use the `my-{org}-` prefix**, where `{org}` identifies the owning organization.
-
-### Known Organizations
-
-| Org | Prefix | Library repo |
-|-----|--------|-------------|
-| BPM | `my-bpm-` | `bpm-claude-global-agent-skill-library` |
-| ICO | `my-ico-` | *(TBD)* |
-
-### Naming Pattern: `my-{org}-{name}`
+**All custom/user-created items use the `my-` prefix.** This applies to ALL artefact types:
 
 | Type | Location | Format | Example |
 |------|----------|--------|---------|
-| Skills | `~/.claude/skills/my-{org}-<name>/` | Directory with `SKILL.md` | `my-bpm-flightphp-pro/SKILL.md` |
-| Agents | `~/.claude/agents/my-{org}-<name>.md` | Flat .md file | `my-bpm-orchestrator-planner.md` |
-| Commands | `~/.claude/commands/my-{org}-<name>.md` | Flat .md file | `my-bpm-refactor-repo.md` |
-| Runbooks | `~/.claude/runbooks/my-{org}-<name>.md` | Flat .md file | `my-bpm-deployment.md` |
+| Skills | `~/.claude/skills/my-<name>/` | Directory with `SKILL.md` | `my-bpm-flightphp-pro/SKILL.md` |
+| Agents | `~/.claude/agents/my-<name>.md` | Flat .md file | `my-bpm-orchestrator-planner.md` |
+| Commands | `~/.claude/commands/my-<name>.md` | Flat .md file | `my-bpm-refactor-repo.md` |
+| Runbooks | `~/.claude/runbooks/my-<name>.md` | Flat .md file | `my-deployment.md` |
 
 ### Rules
 
-- `my-{org}-` prefix = user-created or user-modified for that org, **always**
+- `my-` prefix = user-created or user-modified, **always**
 - Original/installed items keep their original name — **never rename**
 - Two versions can coexist: original for reference, custom for use
-- Rollback: delete `my-{org}-` version, original still works
-- Each org's items live in their own library repo and are synced independently
+- Rollback: delete `my-` version, original still works
 
 ## Repository Structure
 
