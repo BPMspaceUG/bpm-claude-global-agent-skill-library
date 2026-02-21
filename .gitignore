@@ -16,8 +16,7 @@ Thumbs.db
 claude.json
 settings.json
 
-# Bootstrap (script is gitignored; .env contains secrets)
-bpm-bootstrap.sh
+# Bootstrap secrets (script is committed; .env has secrets)
 bpm-bootstrap.env
 
 # Build and temp directories
