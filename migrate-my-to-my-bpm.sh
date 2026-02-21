@@ -139,10 +139,21 @@ create_backup() {
 
   mkdir -p "$BACKUP_DIR"
 
+  # Only back up my-* items (not the entire directory which can be huge)
   for dir in skills agents commands; do
     if [[ -d "$TARGET_DIR/$dir" ]]; then
-      cp -r "$TARGET_DIR/$dir" "$BACKUP_DIR/$dir"
-      debug "Backed up $dir/"
+      local found=0
+      for item in "$TARGET_DIR/$dir"/my-*; do
+        [[ -e "$item" ]] || continue
+        # Skip items already using my-bpm- prefix
+        [[ "$(basename "$item")" == my-bpm-* ]] && continue
+        if [[ "$found" -eq 0 ]]; then
+          mkdir -p "$BACKUP_DIR/$dir"
+          found=1
+        fi
+        cp -r "$item" "$BACKUP_DIR/$dir/"
+      done
+      [[ "$found" -eq 1 ]] && debug "Backed up my-* items from $dir/"
     fi
   done
 
