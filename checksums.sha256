@@ -1,7 +1,15 @@
 # SHA256 checksums for bcgasl releases
-# Generated: 2026-01-20
+# Generated: 2026-02-21
 # To verify: sha256sum -c checksums.sha256
 #
 # Release tarball checksums (versioned releases)
 bfd04abdd7766ae1748398e22084f58c64c3547714724cbbad815d1aa9013624  v1.0.0.tar.gz
 babc86aa3d8e8fdf65006371b54f61166abe72144d818ba6263e803c3e7e9546  v1.0.1.tar.gz
+#
+# Script checksums (current main branch)
+0dc14e74bc2ba5a6512885ae6d615052e4fd40563b35905f2c1888fb928767e6  bcgasl
+a1b2afe37677a38706edbbceaff12834fc7eb0cb7a8862c729b768ed1a3c8a08  lib.sh
+95b859eb854c8dbb9ad5e304eb01e0836a1a5d9d8011a1f89476a5887d66145b  sync
+709dd63aa52f9939f129b89980606c8782315c1e97f68c16b6ca8a9d76045484  install
+9ecbab2d7ff981ad2efa7b18bf215c520b1815d7290988d461071965c94a29c8  my-bpm-library-pull
+fa481385da20eca6174487a979e9b5f1cd855ed0d8b00630b071794743113262  my-bpm-library-push

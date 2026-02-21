@@ -10,6 +10,10 @@
 # Current version
 BCGASL_VERSION="1.0.1"
 
+# Organization prefix for my-items (used in naming: my-{ORG_PREFIX}-{name})
+# shellcheck disable=SC2034
+ORG_PREFIX="bpm"
+
 # Trusted domains for downloads (security: only allow known hosts)
 TRUSTED_DOMAINS=("github.com" "raw.githubusercontent.com")
 

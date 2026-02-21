@@ -219,7 +219,7 @@ fi
 # Sync my-prefixed items from my/ directory
 if [ -d "$EXTRACTED_DIR/my" ]; then
   echo ""
-  echo "Syncing my-prefixed items..."
+  echo "Syncing my-bpm-prefixed items..."
   MY_NEW=0
   MY_MOD=0
   MY_UNCH=0
@@ -275,11 +275,11 @@ if [ -d "$EXTRACTED_DIR/my" ]; then
   done
 
   if [ "$MY_NEW" -eq 0 ] && [ "$MY_MOD" -eq 0 ]; then
-    echo "   ✅ my-items already up to date ($MY_UNCH items)"
+    echo "   ✅ my-bpm-items already up to date ($MY_UNCH items)"
   elif [ "$DRY_RUN" -eq 1 ]; then
-    echo "   Would update my-items: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
+    echo "   Would update my-bpm-items: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
   else
-    echo "   ✅ my-items updated: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
+    echo "   ✅ my-bpm-items updated: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
   fi
 fi
 

@@ -1,0 +1,412 @@
+#!/usr/bin/env bash
+#
+# my-bpm-library-push - Push local my-bpm-prefixed items from ~/.claude/ to the Git repository
+#
+# Usage:
+#   my-bpm-library-push                          Push all my-bpm-items
+#   my-bpm-library-push --dry-run                Show what would change
+#   my-bpm-library-push --force                  Overwrite even on conflicts (local wins)
+#   my-bpm-library-push --message "custom msg"   Custom commit message
+#   my-bpm-library-push --only-skills            Push only skills
+#   my-bpm-library-push --verbose                Show detailed output
+#
+# Requires: git
+
+set -euo pipefail
+
+VERSION="1.1.0"
+REPO_NAME="bpm-claude-global-agent-skill-library"
+REPO_DIR="$HOME/$REPO_NAME"
+
+# Defaults
+DRY_RUN=0
+VERBOSE=0
+FORCE=0
+ONLY_SKILLS=0
+ONLY_AGENTS=0
+ONLY_COMMANDS=0
+ONLY_RUNBOOKS=0
+COMMIT_MSG=""
+
+# Categories to sync
+CATEGORIES=(skills agents commands runbooks)
+
+# Determine source directory (check which one Claude Code actually uses)
+get_source_dir() {
+  # Prefer the directory that has settings.json (= actively used by Claude Code)
+  if [[ -f "$HOME/.claude/settings.json" ]]; then
+    echo "$HOME/.claude"
+  elif [[ -f "$HOME/.config/claude/settings.json" ]]; then
+    echo "$HOME/.config/claude"
+  elif [[ -d "$HOME/.claude" ]]; then
+    echo "$HOME/.claude"
+  elif [[ -d "$HOME/.config/claude" ]]; then
+    echo "$HOME/.config/claude"
+  else
+    echo "$HOME/.claude"
+  fi
+}
+
+log_verbose() {
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    echo "[DEBUG] $*" >&2
+  fi
+}
+
+# --- Sync state management (conflict detection) ---
+
+declare -A SYNC_STATE
+
+# Compute a deterministic hash for a file or directory
+compute_item_hash() {
+  local path="$1"
+  if [[ -d "$path" ]]; then
+    (cd "$path" && find . -type f -print0 | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)
+  elif [[ -f "$path" ]]; then
+    sha256sum "$path" | cut -d' ' -f1
+  else
+    echo ""
+  fi
+}
+
+load_sync_state() {
+  local sync_file="$1"
+  SYNC_STATE=()
+  [[ -f "$sync_file" ]] || return 0
+  while IFS=' ' read -r hash key; do
+    [[ -z "$hash" || "$hash" == "#"* ]] && continue
+    SYNC_STATE["$key"]="$hash"
+  done < "$sync_file"
+  log_verbose "Loaded ${#SYNC_STATE[@]} sync baselines"
+}
+
+get_sync_hash() {
+  echo "${SYNC_STATE[$1]:-}"
+}
+
+set_sync_hash() {
+  SYNC_STATE["$1"]="$2"
+}
+
+save_sync_state() {
+  local sync_file="$1"
+  [[ "$DRY_RUN" -eq 1 ]] && return 0
+  : > "$sync_file"
+  for key in $(echo "${!SYNC_STATE[@]}" | tr ' ' '\n' | sort); do
+    echo "${SYNC_STATE[$key]} $key" >> "$sync_file"
+  done
+  log_verbose "Saved ${#SYNC_STATE[@]} sync baselines"
+}
+
+# --- End sync state ---
+
+show_help() {
+  echo "my-bpm-library-push v$VERSION - Push my-bpm-items from local to repo"
+  echo ""
+  echo "Usage:"
+  echo "  my-bpm-library-push                          Push all my-bpm-items"
+  echo "  my-bpm-library-push --dry-run                Show what would change without applying"
+  echo "  my-bpm-library-push --force                  Overwrite even on conflicts (local wins)"
+  echo "  my-bpm-library-push --verbose                Show detailed output"
+  echo "  my-bpm-library-push --message \"custom msg\"   Custom commit message"
+  echo "  my-bpm-library-push --only-skills            Push only skills"
+  echo "  my-bpm-library-push --only-agents            Push only agents"
+  echo "  my-bpm-library-push --only-commands          Push only commands"
+  echo "  my-bpm-library-push --only-runbooks          Push only runbooks"
+  echo "  my-bpm-library-push --version                Show version"
+  echo "  my-bpm-library-push --help                   Show this help"
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)       DRY_RUN=1; shift ;;
+    --verbose)       VERBOSE=1; shift ;;
+    --force)         FORCE=1; shift ;;
+    --only-skills)   ONLY_SKILLS=1; shift ;;
+    --only-agents)   ONLY_AGENTS=1; shift ;;
+    --only-commands) ONLY_COMMANDS=1; shift ;;
+    --only-runbooks) ONLY_RUNBOOKS=1; shift ;;
+    --message)       COMMIT_MSG="$2"; shift 2 ;;
+    -v|--version)    echo "my-bpm-library-push v$VERSION"; exit 0 ;;
+    -h|--help)       show_help; exit 0 ;;
+    *)               echo "Unknown option: $1"; show_help; exit 1 ;;
+  esac
+done
+
+# Determine which categories to process
+if [[ "$ONLY_SKILLS" -eq 1 ]] || [[ "$ONLY_AGENTS" -eq 1 ]] || [[ "$ONLY_COMMANDS" -eq 1 ]] || [[ "$ONLY_RUNBOOKS" -eq 1 ]]; then
+  CATEGORIES=()
+  [[ "$ONLY_SKILLS" -eq 1 ]] && CATEGORIES+=("skills")
+  [[ "$ONLY_AGENTS" -eq 1 ]] && CATEGORIES+=("agents")
+  [[ "$ONLY_COMMANDS" -eq 1 ]] && CATEGORIES+=("commands")
+  [[ "$ONLY_RUNBOOKS" -eq 1 ]] && CATEGORIES+=("runbooks")
+fi
+
+SOURCE_DIR="$(get_source_dir)"
+SYNC_STATE_FILE="$SOURCE_DIR/.my-bpm-library-sync"
+
+log_verbose "Source directory: $SOURCE_DIR"
+log_verbose "Sync state file: $SYNC_STATE_FILE"
+log_verbose "Categories: ${CATEGORIES[*]}"
+
+load_sync_state "$SYNC_STATE_FILE"
+
+echo "my-bpm-library-push v$VERSION"
+echo ""
+
+# Step 1: Ensure repo clone exists
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+  echo "ERROR: Repository not found at $REPO_DIR"
+  echo "Run 'my-bpm-library-pull' first to clone the repository."
+  exit 1
+fi
+
+# Step 2: Pull latest changes first (best-effort)
+cd "$REPO_DIR"
+echo "Syncing repository..."
+if git diff --quiet && git diff --cached --quiet 2>/dev/null; then
+  # Clean working tree — safe to pull
+  if ! git pull --ff-only 2>/dev/null; then
+    echo "WARNING: Fast-forward pull failed. Remote may have diverged."
+    echo "         Resolve manually: cd $REPO_DIR && git status"
+    exit 1
+  fi
+else
+  # Uncommitted changes exist — try pull but don't fail
+  log_verbose "Uncommitted changes detected, attempting pull..."
+  if ! git pull --ff-only 2>/dev/null; then
+    echo "NOTE: Skipping pull (uncommitted changes in repo). Push will proceed."
+  fi
+fi
+
+# Ensure my/ directory structure exists
+for category in "${CATEGORIES[@]}"; do
+  mkdir -p "$REPO_DIR/my/$category"
+done
+
+# Step 3: Compare and sync each category
+NEW_ITEMS=()
+MODIFIED_ITEMS=()
+DELETED_ITEMS=()
+CONFLICT_ITEMS=()
+UNCHANGED_COUNT=0
+
+for category in "${CATEGORIES[@]}"; do
+  LOCAL_CAT_DIR="$SOURCE_DIR/$category"
+  REPO_CAT_DIR="$REPO_DIR/my/$category"
+
+  if [[ ! -d "$LOCAL_CAT_DIR" ]]; then
+    log_verbose "No local $category directory, skipping"
+    continue
+  fi
+
+  log_verbose "Processing category: $category"
+  log_verbose "  Local: $LOCAL_CAT_DIR"
+  log_verbose "  Repo:  $REPO_CAT_DIR"
+
+  # Handle skills (directories with SKILL.md)
+  if [[ "$category" == "skills" ]]; then
+    # Find local my-* skill directories
+    for item_dir in "$LOCAL_CAT_DIR"/my-*/; do
+      [[ -d "$item_dir" ]] || continue
+      item_name=$(basename "$item_dir")
+      repo_item="$REPO_CAT_DIR/$item_name"
+      item_key="$category/$item_name"
+
+      if [[ ! -d "$repo_item" ]]; then
+        echo "  + $item_key (new)"
+        NEW_ITEMS+=("$item_key")
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          cp -r "$item_dir" "$repo_item"
+          set_sync_hash "$item_key" "$(compute_item_hash "$item_dir")"
+        fi
+      elif ! diff -rq "$item_dir" "$repo_item" > /dev/null 2>&1; then
+        # Items differ — check for conflict
+        baseline_hash=$(get_sync_hash "$item_key")
+        if [[ -n "$baseline_hash" ]]; then
+          local_hash=$(compute_item_hash "$item_dir")
+          repo_hash=$(compute_item_hash "$repo_item")
+          local_changed=0
+          repo_changed=0
+          [[ "$local_hash" != "$baseline_hash" ]] && local_changed=1
+          [[ "$repo_hash" != "$baseline_hash" ]] && repo_changed=1
+
+          if [[ "$local_changed" -eq 1 ]] && [[ "$repo_changed" -eq 1 ]]; then
+            if [[ "$FORCE" -eq 1 ]]; then
+              echo "  ~ $item_key (CONFLICT resolved: --force, local wins)"
+              MODIFIED_ITEMS+=("$item_key")
+              if [[ "$DRY_RUN" -eq 0 ]]; then
+                rm -rf "$repo_item"
+                cp -r "$item_dir" "$repo_item"
+                set_sync_hash "$item_key" "$(compute_item_hash "$item_dir")"
+              fi
+            else
+              echo "  X $item_key (CONFLICT: changed locally AND in repo)"
+              CONFLICT_ITEMS+=("$item_key")
+            fi
+            continue
+          fi
+        fi
+        # No conflict
+        echo "  ~ $item_key (modified)"
+        MODIFIED_ITEMS+=("$item_key")
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          rm -rf "$repo_item"
+          cp -r "$item_dir" "$repo_item"
+          set_sync_hash "$item_key" "$(compute_item_hash "$item_dir")"
+        fi
+      else
+        ((UNCHANGED_COUNT++)) || true
+        log_verbose "  = $item_key (unchanged)"
+        if [[ -z "$(get_sync_hash "$item_key")" ]] && [[ "$DRY_RUN" -eq 0 ]]; then
+          set_sync_hash "$item_key" "$(compute_item_hash "$item_dir")"
+        fi
+      fi
+    done
+
+    # Check for items in repo that no longer exist locally
+    for repo_item_dir in "$REPO_CAT_DIR"/my-*/; do
+      [[ -d "$repo_item_dir" ]] || continue
+      item_name=$(basename "$repo_item_dir")
+      local_item="$LOCAL_CAT_DIR/$item_name"
+
+      if [[ ! -d "$local_item" ]]; then
+        echo "  ! $category/$item_name (in repo but not local - NOT auto-deleted)"
+        DELETED_ITEMS+=("$category/$item_name")
+      fi
+    done
+  else
+    # Handle agents, commands, runbooks (flat .md files)
+    for item_file in "$LOCAL_CAT_DIR"/my-*.md; do
+      [[ -f "$item_file" ]] || continue
+      item_name=$(basename "$item_file")
+      repo_item="$REPO_CAT_DIR/$item_name"
+      item_key="$category/$item_name"
+
+      if [[ ! -f "$repo_item" ]]; then
+        echo "  + $item_key (new)"
+        NEW_ITEMS+=("$item_key")
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          cp "$item_file" "$repo_item"
+          set_sync_hash "$item_key" "$(compute_item_hash "$item_file")"
+        fi
+      elif ! diff -q "$item_file" "$repo_item" > /dev/null 2>&1; then
+        # Items differ — check for conflict
+        baseline_hash=$(get_sync_hash "$item_key")
+        if [[ -n "$baseline_hash" ]]; then
+          local_hash=$(compute_item_hash "$item_file")
+          repo_hash=$(compute_item_hash "$repo_item")
+          local_changed=0
+          repo_changed=0
+          [[ "$local_hash" != "$baseline_hash" ]] && local_changed=1
+          [[ "$repo_hash" != "$baseline_hash" ]] && repo_changed=1
+
+          if [[ "$local_changed" -eq 1 ]] && [[ "$repo_changed" -eq 1 ]]; then
+            if [[ "$FORCE" -eq 1 ]]; then
+              echo "  ~ $item_key (CONFLICT resolved: --force, local wins)"
+              MODIFIED_ITEMS+=("$item_key")
+              if [[ "$DRY_RUN" -eq 0 ]]; then
+                cp "$item_file" "$repo_item"
+                set_sync_hash "$item_key" "$(compute_item_hash "$item_file")"
+              fi
+            else
+              echo "  X $item_key (CONFLICT: changed locally AND in repo)"
+              CONFLICT_ITEMS+=("$item_key")
+            fi
+            continue
+          fi
+        fi
+        # No conflict
+        echo "  ~ $item_key (modified)"
+        MODIFIED_ITEMS+=("$item_key")
+        if [[ "$DRY_RUN" -eq 0 ]]; then
+          cp "$item_file" "$repo_item"
+          set_sync_hash "$item_key" "$(compute_item_hash "$item_file")"
+        fi
+      else
+        ((UNCHANGED_COUNT++)) || true
+        log_verbose "  = $item_key (unchanged)"
+        if [[ -z "$(get_sync_hash "$item_key")" ]] && [[ "$DRY_RUN" -eq 0 ]]; then
+          set_sync_hash "$item_key" "$(compute_item_hash "$item_file")"
+        fi
+      fi
+    done
+
+    # Check for items in repo that no longer exist locally
+    for repo_item_file in "$REPO_CAT_DIR"/my-*.md; do
+      [[ -f "$repo_item_file" ]] || continue
+      item_name=$(basename "$repo_item_file")
+      local_item="$LOCAL_CAT_DIR/$item_name"
+
+      if [[ ! -f "$local_item" ]]; then
+        echo "  ! $category/$item_name (in repo but not local - NOT auto-deleted)"
+        DELETED_ITEMS+=("$category/$item_name")
+      fi
+    done
+  fi
+done
+
+# Save sync state
+save_sync_state "$SYNC_STATE_FILE"
+
+# Summary
+echo ""
+TOTAL_CHANGES=$(( ${#NEW_ITEMS[@]} + ${#MODIFIED_ITEMS[@]} ))
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "DRY RUN - No changes made"
+  echo "Would push: ${#NEW_ITEMS[@]} new, ${#MODIFIED_ITEMS[@]} modified, $UNCHANGED_COUNT unchanged"
+  if [[ ${#CONFLICT_ITEMS[@]} -gt 0 ]]; then
+    echo ""
+    echo "CONFLICTS: ${#CONFLICT_ITEMS[@]} item(s) changed on both sides."
+    echo "  Run 'my-bpm-library-pull' first or use --force to let local win."
+  fi
+  if [[ ${#DELETED_ITEMS[@]} -gt 0 ]]; then
+    echo ""
+    echo "Items in repo but missing locally (manual cleanup needed):"
+    for d in "${DELETED_ITEMS[@]}"; do echo "  ! $d"; done
+  fi
+  exit 0
+fi
+
+if [[ "$TOTAL_CHANGES" -eq 0 ]]; then
+  echo "Nothing to push ($UNCHANGED_COUNT items up to date)"
+  if [[ ${#CONFLICT_ITEMS[@]} -gt 0 ]]; then
+    echo ""
+    echo "CONFLICTS: ${#CONFLICT_ITEMS[@]} item(s) skipped (changed on both sides)."
+    echo "  Run 'my-bpm-library-pull' first or use --force to let local win."
+  fi
+  exit 0
+fi
+
+# Step 4: Commit and push
+cd "$REPO_DIR"
+
+# Build commit message
+if [[ -z "$COMMIT_MSG" ]]; then
+  SUMMARY_PARTS=()
+  [[ ${#NEW_ITEMS[@]} -gt 0 ]] && SUMMARY_PARTS+=("${#NEW_ITEMS[@]} new")
+  [[ ${#MODIFIED_ITEMS[@]} -gt 0 ]] && SUMMARY_PARTS+=("${#MODIFIED_ITEMS[@]} modified")
+  SUMMARY=$(IFS=', '; echo "${SUMMARY_PARTS[*]}")
+  COMMIT_MSG="Update my-items: $SUMMARY"
+fi
+
+git add my/
+git commit -m "$COMMIT_MSG"
+git push
+
+echo ""
+echo "Pushed: ${#NEW_ITEMS[@]} new, ${#MODIFIED_ITEMS[@]} modified, $UNCHANGED_COUNT unchanged"
+
+if [[ ${#CONFLICT_ITEMS[@]} -gt 0 ]]; then
+  echo ""
+  echo "CONFLICTS: ${#CONFLICT_ITEMS[@]} item(s) skipped (changed on both sides)."
+  echo "  Run 'my-bpm-library-pull' first or use --force to let local win."
+fi
+
+if [[ ${#DELETED_ITEMS[@]} -gt 0 ]]; then
+  echo ""
+  echo "Items in repo but missing locally (manual cleanup needed):"
+  for d in "${DELETED_ITEMS[@]}"; do echo "  ! $d"; done
+fi

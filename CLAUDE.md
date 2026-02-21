@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `my-` prefix and are versioned under `my/`.
+This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `my-{org}-` prefix convention (e.g., `my-bpm-`) and are versioned under `my/`.
 
 ## Architecture
 
@@ -12,41 +12,42 @@ This is the **BPMspace** global agents and skills library for Claude Code CLI. I
 
 ```
 bpm-claude-global-agent-skill-library/
-├── my/                  # All my-prefixed custom items
-│   ├── skills/          # Directories (my-<name>/SKILL.md)
-│   ├── agents/          # Flat files (my-<name>.md)
-│   ├── commands/        # Flat files (my-<name>.md)
-│   └── runbooks/        # Flat files (my-<name>.md)
-├── runbooks/            # Standard operational guides
-├── templates/           # Issue and PR templates
-├── my-library-pull      # Pull my-items from repo to local
-├── my-library-push      # Push my-items from local to repo
+├── my/                      # All my-bpm-prefixed custom items
+│   ├── skills/              # Directories (my-bpm-<name>/SKILL.md)
+│   ├── agents/              # Flat files (my-bpm-<name>.md)
+│   ├── commands/            # Flat files (my-bpm-<name>.md)
+│   └── runbooks/            # Flat files (my-bpm-<name>.md)
+├── runbooks/                # Standard operational guides
+├── templates/               # Issue and PR templates
+├── my-bpm-library-pull      # Pull my-bpm-items from repo to local
+├── my-bpm-library-push      # Push my-bpm-items from local to repo
 ├── bcgasl               # Main install/update command
 ├── install              # Installer script
 ├── sync                 # Sync script
 └── lib.sh               # Shared library functions
 ```
 
-### The `my-` Convention
+### The `my-{org}-` Naming Convention
 
-All custom/user-created items use the `my-` prefix:
-- `my-` = user-created or user-modified
-- Original/installed items keep their original name
+Custom items use the `my-{org}-{name}` pattern, where `{org}` identifies the organization/library:
+- `ORG_PREFIX="bpm"` → all BPMspace items are named `my-bpm-{name}`
+- This allows multiple organizations' libraries to coexist without conflicts
+- Original/installed items (without `my-` prefix) keep their original name
 - Two versions can coexist: original for reference, custom for use
 
 ### Agent Hierarchy
 
-The **Orchestrator** (`my-orchestrator-planner`) coordinates all work:
+The **Orchestrator** (`my-bpm-orchestrator-planner`) coordinates all work:
 - Discovers MCP server availability and publishes an **MCP Availability Handoff**
 - Decomposes goals into tasks with acceptance criteria
 - Assigns work to implementer agents
 
 Implementer agents:
-- **my-backend-bash-php** - Bash scripts and PHP (Flight MVC)
-- **my-workflow-n8n-api** - n8n workflows and REST APIs
-- **my-data-mariadb-redis** - MariaDB migrations and Redis keyspace
-- **my-security-reviewer** - AppSec reviews, TLS/HTTP headers
-- **my-qa-tester** - Test harness development and execution
+- **my-bpm-backend-bash-php** - Bash scripts and PHP (Flight MVC)
+- **my-bpm-workflow-n8n-api** - n8n workflows and REST APIs
+- **my-bpm-data-mariadb-redis** - MariaDB migrations and Redis keyspace
+- **my-bpm-security-reviewer** - AppSec reviews, TLS/HTTP headers
+- **my-bpm-qa-tester** - Test harness development and execution
 
 ### Key Patterns
 
@@ -58,27 +59,27 @@ Implementer agents:
 ## Installation
 
 ```bash
-# Install bcgasl + my-library tools
-curl -fsSL .../install | bash -s -- --global --with-my-library
+# Install bcgasl + my-bpm-library tools
+curl -fsSL .../install | bash -s -- --global --with-my-bpm-library
 
 # Then use
-bcgasl                # Install/update agents & skills
-my-library-pull       # Pull my-items from repo
-my-library-push       # Push my-items to repo
+bcgasl                    # Install/update agents & skills
+my-bpm-library-pull       # Pull my-bpm-items from repo
+my-bpm-library-push       # Push my-bpm-items to repo
 ```
 
-## my-library Workflow
+## my-bpm-library Workflow
 
 ```bash
 # Pull latest from repo
-my-library-pull
+my-bpm-library-pull
 
 # After creating/modifying items locally
-my-library-push
+my-bpm-library-push
 
 # Preview without changes
-my-library-pull --dry-run
-my-library-push --dry-run
+my-bpm-library-pull --dry-run
+my-bpm-library-push --dry-run
 ```
 
 ## Technology Stack
