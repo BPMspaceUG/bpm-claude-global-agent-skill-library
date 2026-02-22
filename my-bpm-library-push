@@ -8,13 +8,14 @@
 #   my-bpm-library-push --force                  Overwrite even on conflicts (local wins)
 #   my-bpm-library-push --message "custom msg"   Custom commit message
 #   my-bpm-library-push --only-skills            Push only skills
+#   my-bpm-library-push --clean                  Remove repo items that no longer exist locally
 #   my-bpm-library-push --verbose                Show detailed output
 #
 # Requires: git
 
 set -euo pipefail
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 REPO_NAME="bpm-claude-global-agent-skill-library"
 REPO_DIR="$HOME/$REPO_NAME"
 
@@ -22,6 +23,7 @@ REPO_DIR="$HOME/$REPO_NAME"
 DRY_RUN=0
 VERBOSE=0
 FORCE=0
+CLEAN=0
 ONLY_SKILLS=0
 ONLY_AGENTS=0
 ONLY_COMMANDS=0
@@ -98,6 +100,27 @@ save_sync_state() {
   log_verbose "Saved ${#SYNC_STATE[@]} sync baselines"
 }
 
+# Prune sync state entries where the local item no longer exists
+prune_sync_state() {
+  local source_dir="$1"
+  local pruned=0
+  for key in "${!SYNC_STATE[@]}"; do
+    local category="${key%%/*}"
+    local item_name="${key#*/}"
+    local local_path="$source_dir/$key"
+    # Skills are directories, others are files
+    if [[ "$category" == "skills" ]]; then
+      [[ -d "$local_path" ]] && continue
+    else
+      [[ -f "$local_path" ]] && continue
+    fi
+    unset 'SYNC_STATE[$key]'
+    log_verbose "Pruned stale sync entry: $key"
+    ((pruned++)) || true
+  done
+  [[ "$pruned" -gt 0 ]] && echo "Pruned $pruned stale sync entries" || true
+}
+
 # --- End sync state ---
 
 show_help() {
@@ -109,6 +132,7 @@ show_help() {
   echo "  my-bpm-library-push --force                  Overwrite even on conflicts (local wins)"
   echo "  my-bpm-library-push --verbose                Show detailed output"
   echo "  my-bpm-library-push --message \"custom msg\"   Custom commit message"
+  echo "  my-bpm-library-push --clean                  Remove repo items not present locally"
   echo "  my-bpm-library-push --only-skills            Push only skills"
   echo "  my-bpm-library-push --only-agents            Push only agents"
   echo "  my-bpm-library-push --only-commands          Push only commands"
@@ -123,6 +147,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run)       DRY_RUN=1; shift ;;
     --verbose)       VERBOSE=1; shift ;;
     --force)         FORCE=1; shift ;;
+    --clean)         CLEAN=1; shift ;;
     --only-skills)   ONLY_SKILLS=1; shift ;;
     --only-agents)   ONLY_AGENTS=1; shift ;;
     --only-commands) ONLY_COMMANDS=1; shift ;;
@@ -151,6 +176,7 @@ log_verbose "Sync state file: $SYNC_STATE_FILE"
 log_verbose "Categories: ${CATEGORIES[*]}"
 
 load_sync_state "$SYNC_STATE_FILE"
+prune_sync_state "$SOURCE_DIR"
 
 echo "my-bpm-library-push v$VERSION"
 echo ""
@@ -272,7 +298,12 @@ for category in "${CATEGORIES[@]}"; do
       local_item="$LOCAL_CAT_DIR/$item_name"
 
       if [[ ! -d "$local_item" ]]; then
-        echo "  ! $category/$item_name (in repo but not local - NOT auto-deleted)"
+        if [[ "$CLEAN" -eq 1 ]]; then
+          echo "  - $category/$item_name (removed from repo)"
+          [[ "$DRY_RUN" -eq 0 ]] && rm -rf "$repo_item_dir"
+        else
+          echo "  ! $category/$item_name (in repo but not local — use --clean to remove)"
+        fi
         DELETED_ITEMS+=("$category/$item_name")
       fi
     done
@@ -340,7 +371,12 @@ for category in "${CATEGORIES[@]}"; do
       local_item="$LOCAL_CAT_DIR/$item_name"
 
       if [[ ! -f "$local_item" ]]; then
-        echo "  ! $category/$item_name (in repo but not local - NOT auto-deleted)"
+        if [[ "$CLEAN" -eq 1 ]]; then
+          echo "  - $category/$item_name (removed from repo)"
+          [[ "$DRY_RUN" -eq 0 ]] && rm -rf "$repo_item_file"
+        else
+          echo "  ! $category/$item_name (in repo but not local — use --clean to remove)"
+        fi
         DELETED_ITEMS+=("$category/$item_name")
       fi
     done
@@ -352,7 +388,9 @@ save_sync_state "$SYNC_STATE_FILE"
 
 # Summary
 echo ""
-TOTAL_CHANGES=$(( ${#NEW_ITEMS[@]} + ${#MODIFIED_ITEMS[@]} ))
+CLEAN_DELETED=0
+[[ "$CLEAN" -eq 1 ]] && CLEAN_DELETED=${#DELETED_ITEMS[@]}
+TOTAL_CHANGES=$(( ${#NEW_ITEMS[@]} + ${#MODIFIED_ITEMS[@]} + CLEAN_DELETED ))
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "DRY RUN - No changes made"
@@ -362,9 +400,9 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "CONFLICTS: ${#CONFLICT_ITEMS[@]} item(s) changed on both sides."
     echo "  Run 'my-bpm-library-pull' first or use --force to let local win."
   fi
-  if [[ ${#DELETED_ITEMS[@]} -gt 0 ]]; then
+  if [[ ${#DELETED_ITEMS[@]} -gt 0 ]] && [[ "$CLEAN" -eq 0 ]]; then
     echo ""
-    echo "Items in repo but missing locally (manual cleanup needed):"
+    echo "Items in repo but missing locally (use --clean to remove):"
     for d in "${DELETED_ITEMS[@]}"; do echo "  ! $d"; done
   fi
   exit 0
@@ -388,6 +426,7 @@ if [[ -z "$COMMIT_MSG" ]]; then
   SUMMARY_PARTS=()
   [[ ${#NEW_ITEMS[@]} -gt 0 ]] && SUMMARY_PARTS+=("${#NEW_ITEMS[@]} new")
   [[ ${#MODIFIED_ITEMS[@]} -gt 0 ]] && SUMMARY_PARTS+=("${#MODIFIED_ITEMS[@]} modified")
+  [[ "$CLEAN_DELETED" -gt 0 ]] && SUMMARY_PARTS+=("$CLEAN_DELETED removed")
   SUMMARY=$(IFS=', '; echo "${SUMMARY_PARTS[*]}")
   COMMIT_MSG="Update my-items: $SUMMARY"
 fi
@@ -405,8 +444,8 @@ if [[ ${#CONFLICT_ITEMS[@]} -gt 0 ]]; then
   echo "  Run 'my-bpm-library-pull' first or use --force to let local win."
 fi
 
-if [[ ${#DELETED_ITEMS[@]} -gt 0 ]]; then
+if [[ ${#DELETED_ITEMS[@]} -gt 0 ]] && [[ "$CLEAN" -eq 0 ]]; then
   echo ""
-  echo "Items in repo but missing locally (manual cleanup needed):"
+  echo "Items in repo but missing locally (use --clean to remove):"
   for d in "${DELETED_ITEMS[@]}"; do echo "  ! $d"; done
 fi

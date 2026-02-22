@@ -6,6 +6,7 @@
 #   my-bpm-library-pull                  Pull all my-bpm-items
 #   my-bpm-library-pull --dry-run        Show what would change
 #   my-bpm-library-pull --force          Overwrite even on conflicts (repo wins)
+#   my-bpm-library-pull --clean            Remove local items that no longer exist in repo
 #   my-bpm-library-pull --only-skills    Pull only skills
 #   my-bpm-library-pull --verbose        Show detailed output
 #
@@ -13,7 +14,7 @@
 
 set -euo pipefail
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 REPO_NAME="bpm-claude-global-agent-skill-library"
 REPO_URL="git@github.com:BPMspaceUG/bpm-claude-global-agent-skill-library.git"
 REPO_DIR="$HOME/$REPO_NAME"
@@ -22,6 +23,7 @@ REPO_DIR="$HOME/$REPO_NAME"
 DRY_RUN=0
 VERBOSE=0
 FORCE=0
+CLEAN=0
 ONLY_SKILLS=0
 ONLY_AGENTS=0
 ONLY_COMMANDS=0
@@ -97,6 +99,27 @@ save_sync_state() {
   log_verbose "Saved ${#SYNC_STATE[@]} sync baselines"
 }
 
+# Prune sync state entries where the repo item no longer exists
+prune_sync_state() {
+  local repo_my_dir="$1"
+  local pruned=0
+  for key in "${!SYNC_STATE[@]}"; do
+    local category="${key%%/*}"
+    local item_name="${key#*/}"
+    local repo_path="$repo_my_dir/$key"
+    # Skills are directories, others are files
+    if [[ "$category" == "skills" ]]; then
+      [[ -d "$repo_path" ]] && continue
+    else
+      [[ -f "$repo_path" ]] && continue
+    fi
+    unset 'SYNC_STATE[$key]'
+    log_verbose "Pruned stale sync entry: $key"
+    ((pruned++)) || true
+  done
+  [[ "$pruned" -gt 0 ]] && echo "Pruned $pruned stale sync entries" || true
+}
+
 # --- End sync state ---
 
 show_help() {
@@ -106,6 +129,7 @@ show_help() {
   echo "  my-bpm-library-pull                  Pull all my-bpm-items"
   echo "  my-bpm-library-pull --dry-run        Show what would change without applying"
   echo "  my-bpm-library-pull --force          Overwrite even on conflicts (repo wins)"
+  echo "  my-bpm-library-pull --clean          Remove local items not present in repo"
   echo "  my-bpm-library-pull --verbose        Show detailed output"
   echo "  my-bpm-library-pull --only-skills    Pull only skills"
   echo "  my-bpm-library-pull --only-agents    Pull only agents"
@@ -121,6 +145,7 @@ for arg in "$@"; do
     --dry-run)       DRY_RUN=1 ;;
     --verbose)       VERBOSE=1 ;;
     --force)         FORCE=1 ;;
+    --clean)         CLEAN=1 ;;
     --only-skills)   ONLY_SKILLS=1 ;;
     --only-agents)   ONLY_AGENTS=1 ;;
     --only-commands) ONLY_COMMANDS=1 ;;
@@ -181,6 +206,9 @@ if [[ ! -d "$REPO_DIR/my" ]]; then
   echo "Nothing to pull."
   exit 0
 fi
+
+# Prune stale sync state entries (items no longer in repo)
+prune_sync_state "$REPO_DIR/my"
 
 # Step 4: Compare and sync each category
 NEW_COUNT=0
@@ -263,6 +291,21 @@ for category in "${CATEGORIES[@]}"; do
         fi
       fi
     done
+
+    # Check for local items not in repo
+    for local_item in "$LOCAL_CAT_DIR"/my-*/; do
+      [[ -d "$local_item" ]] || continue
+      item_name=$(basename "$local_item")
+      repo_item="$REPO_CAT_DIR/$item_name"
+      if [[ ! -d "$repo_item" ]]; then
+        if [[ "$CLEAN" -eq 1 ]]; then
+          echo "  - $category/$item_name (removed locally)"
+          [[ "$DRY_RUN" -eq 0 ]] && rm -rf "$local_item"
+        else
+          echo "  ! $category/$item_name (local but not in repo — use --clean to remove)"
+        fi
+      fi
+    done
   else
     # Handle agents, commands, runbooks (flat .md files)
     for item_file in "$REPO_CAT_DIR"/my-*.md; do
@@ -316,6 +359,21 @@ for category in "${CATEGORIES[@]}"; do
         log_verbose "  = $item_key (unchanged)"
         if [[ -z "$(get_sync_hash "$item_key")" ]] && [[ "$DRY_RUN" -eq 0 ]]; then
           set_sync_hash "$item_key" "$(compute_item_hash "$local_item")"
+        fi
+      fi
+    done
+
+    # Check for local items not in repo
+    for local_item in "$LOCAL_CAT_DIR"/my-*.md; do
+      [[ -f "$local_item" ]] || continue
+      item_name=$(basename "$local_item")
+      repo_item="$REPO_CAT_DIR/$item_name"
+      if [[ ! -f "$repo_item" ]]; then
+        if [[ "$CLEAN" -eq 1 ]]; then
+          echo "  - $category/$item_name (removed locally)"
+          [[ "$DRY_RUN" -eq 0 ]] && rm -rf "$local_item"
+        else
+          echo "  ! $category/$item_name (local but not in repo — use --clean to remove)"
         fi
       fi
     done
