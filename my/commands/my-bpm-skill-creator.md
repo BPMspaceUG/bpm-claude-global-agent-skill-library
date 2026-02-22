@@ -1,7 +1,7 @@
 ---
 model: opus
 name: my-bpm-skill-creator
-description: Create new custom skills with automatic detection of existing my- versions. Use when the user wants to create a new skill or update an existing skill. If a my- version already exists, delegates to my-skill-optimizer instead of creating from scratch. Enforces my- naming convention, segregation of duty, and Codex review. Derived from skill-creator.
+description: Create new custom skills with automatic detection of existing my- versions. Use when the user wants to create a new skill or update an existing skill. If a my-bpm- version already exists, delegates to my-bpm-skill-optimizer instead of creating from scratch. Enforces my-bpm- naming convention, segregation of duty, and Codex review. Derived from skill-creator.
 ---
 
 # Skill Creator (Custom)
@@ -16,7 +16,7 @@ Create new skills with built-in awareness of existing custom versions. Extends t
 1. User requests: "create/build/make a skill for X"
 2. Determine skill name → my-<name>
 3. Check: does ~/.claude/skills/my-<name>/ already exist?
-   ├── YES → STOP. Delegate to my-skill-optimizer (optimize/update existing)
+   ├── YES → STOP. Delegate to my-bpm-skill-optimizer (optimize/update existing)
    └── NO  → Continue with creation workflow below
 4. Check: does an original skill exist to fork from?
    ├── YES → Fork workflow (copy original, rename to my-, modify)
@@ -32,7 +32,7 @@ ls -d ~/.claude/skills/my-<name>/ 2>/dev/null && echo "EXISTS" || echo "NEW"
 If the skill already exists:
 - **Do NOT create a new one**
 - **Inform the user**: "A custom version `my-<name>` already exists. Switching to optimization mode."
-- **Load `my-skill-optimizer`** and follow its optimization workflow instead
+- **Load `my-bpm-skill-optimizer`** and follow its optimization workflow instead
 
 ## Creation Workflow (New Skills Only)
 
@@ -99,7 +99,7 @@ Skill content: <skill content>"
 ### Step 6: Iterate
 
 After real usage, the user may request improvements. At that point:
-- **Load `my-skill-optimizer`** — it handles all optimization workflows
+- **Load `my-bpm-skill-optimizer`** — it handles all optimization workflows
 - Do NOT re-run the creation workflow for existing skills
 
 ## Rules

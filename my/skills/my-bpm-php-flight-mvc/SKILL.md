@@ -1,7 +1,7 @@
 ---
 model: opus
 name: my-bpm-php-flight-mvc
-description: Conventions for PHP backend applications using Flight microframework in MVC style. Use when starting a new PHP service with Flight, refactoring to modular structure, or reviewing contributions. Basis skill — my-bpm-flightphp-pro is the extended version. Derived from S05.
+description: Conventions for PHP backend applications using Flight microframework in MVC style. Use when starting a new PHP service with Flight, refactoring to modular structure, or reviewing contributions. Basis skill — my-flightphp-pro is the extended version. Derived from S05.
 ---
 
 # PHP Flight MVC

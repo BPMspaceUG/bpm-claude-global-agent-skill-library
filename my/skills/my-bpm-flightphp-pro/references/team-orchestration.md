@@ -35,7 +35,7 @@ Each discrete improvement, fix, or feature gets its own issue. All phases of wor
 
 ### Milestone-Based Lifecycle
 
-**Read `my-bpm-team-milestones` skill** for full milestone definitions, transition rules, and Codex gate patterns.
+**Read `my-team-milestones` skill** for full milestone definitions, transition rules, and Codex gate patterns.
 
 Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only).
 

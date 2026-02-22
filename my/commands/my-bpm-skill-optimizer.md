@@ -38,7 +38,7 @@ The most important principle: **original skills are read-only**.
 | Installed/original skill | Keep original name | `frontend-design`, `n8n-code-javascript` |
 | New custom skill | `my-` + descriptive name | `my-flightphp-pro`, `my-data-pipeline` |
 | Forked/optimized original | `my-` + original name | `my-frontend-design`, `my-skill-creator` |
-| Skills-about-skills | `my-skill-` + function | `my-skill-optimizer`, `my-skill-validator` |
+| Skills-about-skills | `my-bpm-skill-` + function | `my-bpm-skill-optimizer`, `my-bpm-skill-validator` |
 
 ### Identifying Custom vs. Original
 
@@ -134,7 +134,7 @@ Always mention the origin in the description when forking. This helps track prov
 ├── n8n-code-javascript/      # Original (installed) — READ ONLY
 ├── skill-creator/            # Original (installed) — READ ONLY
 ├── my-flightphp-pro/         # Custom (user-created)
-├── my-skill-optimizer/       # Custom (derived from skill-creator)
+├── my-bpm-skill-optimizer/   # Custom (derived from skill-creator)
 └── ...
 ```
 

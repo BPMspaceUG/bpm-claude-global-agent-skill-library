@@ -1,6 +1,6 @@
 ---
 name: my-bpm-team-milestones
-description: Central milestone-based lifecycle for agent team orchestration. Defines workflow states, transition rules, Codex gate patterns, and audit trail requirements. Referenced by all team commands (my-bpm-experteam-openissues, my-bpm-refactor-repo, refactor_repo) and team-capable skills (my-bpm-flightphp-pro, my-bpm-skill-optimizer).
+description: Central milestone-based lifecycle for agent team orchestration. Defines workflow states, transition rules, Codex gate patterns, and audit trail requirements. Referenced by all team commands (my-experteam-openissues, my-refactor-repo, refactor_repo) and team-capable skills (my-flightphp-pro, my-skill-optimizer).
 ---
 
 # Milestone-Based Issue Lifecycle
@@ -115,10 +115,10 @@ gh api repos/{owner}/{repo}/milestones
 ## Integration
 
 This skill is referenced by:
-- `/my-bpm-experteam-openissues` — open issues team workflow
-- `/my-bpm-refactor-repo` — repo refactoring team workflow
+- `/my-experteam-openissues` — open issues team workflow
+- `/my-refactor-repo` — repo refactoring team workflow
 - `/refactor_repo` — repo refactoring team workflow (original)
-- `my-bpm-flightphp-pro` — Flight PHP team orchestration
-- `my-bpm-skill-optimizer` — skill development team orchestration
+- `my-flightphp-pro` — Flight PHP team orchestration
+- `my-skill-optimizer` — skill development team orchestration
 
 Each referencing skill/command adds domain-specific review criteria on top of these shared patterns.

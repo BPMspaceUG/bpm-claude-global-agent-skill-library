@@ -3,7 +3,7 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 description: Show a table of the local repo's open issues with status, type, and milestone. If no milestones exist in the GitHub repo, creates them and adds the mandatory lifecycle section to the local CLAUDE.md.
 ---
 
-# /my-bpm-open-issues — Open Issues Dashboard
+# /my-bpm-openissues-list — Open Issues Dashboard
 
 Show all open GitHub Issues for the current repository in a compact table. If milestones are missing from the repo, set them up and enforce the lifecycle in CLAUDE.md.
 
@@ -76,7 +76,7 @@ The full lifecycle requires these milestones:
    4. **One issue per discrete change** — all phases documented as comments on that issue
    5. **Audit trail** — every Codex response posted as comment on the GitHub Issue
    6. **On failure**: `tested-failed` bounces back to `planned` (wrong approach) or `implemented` (code bug), with documented reason
-   7. **Run `/my-bpm-open-issues` before any issue-related work** to check status and milestones
+   7. **Run `/my-bpm-openissues-list` before any issue-related work** to check status and milestones
    ```
 
    If the section already exists, do NOT duplicate it.

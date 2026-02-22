@@ -33,7 +33,7 @@ Each discrete skill change gets its own issue. All phases of work are documented
 
 ### Milestone-Based Lifecycle
 
-**Read `my-bpm-team-milestones` skill** for full milestone definitions, transition rules, and Codex gate patterns.
+**Read `my-team-milestones` skill** for full milestone definitions, transition rules, and Codex gate patterns.
 
 Uses the COMPACT lifecycle: `new` -> `planned` -> `plan-approved` -> `implemented` -> `reviewed` -> `review-approved` -> `DONE` (human only).
 
@@ -144,7 +144,7 @@ Each teammate receives:
 2. **Boundaries** — Skills they must NOT touch (especially originals)
 3. **Issue numbers** — Which GitHub issues they are responsible for
 4. **Segregation reminder** — Originals are READ ONLY, all changes go to `my-` versions
-5. **Skills to load** — `my-bpm-skill-optimizer` for naming/workflow conventions, `skill-creator` for creation process
+5. **Skills to load** — `my-skill-optimizer` for naming/workflow conventions, `skill-creator` for creation process
 6. **First action** — Submit a plan as an issue comment BEFORE any implementation
 
 ---
@@ -188,7 +188,7 @@ Both Team Lead AND Codex must approve. Move to milestone: `plan-approved`.
 
 - **Fork before modify** — never edit originals in place
 - **Follow skill-creator conventions** — frontmatter, progressive disclosure, lean structure
-- **Load `skill-creator`** for creation guidance and `my-bpm-skill-optimizer` for custom rules
+- **Load `skill-creator`** for creation guidance and `my-skill-optimizer` for custom rules
 - **Stay within assigned scope** — do not modify skills outside your boundaries
 - **Commit incrementally** with descriptive messages
 

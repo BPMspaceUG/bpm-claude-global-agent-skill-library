@@ -4,7 +4,7 @@ model: opus
 description: Spawn an agent team (2-6 teammates, Opus 4.6) to work on all open GitHub issues in parallel. Security-first, git-pull-first, Codex-reviewed, test-mandatory. Plan approval required before any changes.
 ---
 
-# /my-bpm-experteam-openissues — Open Issues Agent Team
+# /my-bpm-openissues-team — Open Issues Agent Team
 
 You are the TEAM LEAD. You run in DELEGATE MODE.
 - Switch to delegate mode immediately (Shift+Tab if not already active)

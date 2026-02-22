@@ -4,7 +4,7 @@ description: "Full repository audit with team-based parallel analysis. Triggers:
 user-invocable: true
 ---
 
-# /my-bpm-auditor - Repository Audit Skill
+# /my-auditor - Repository Audit Skill
 
 Comprehensive, team-based audit of an existing repository. Produces a single Markdown report — no GitHub issues created.
 
