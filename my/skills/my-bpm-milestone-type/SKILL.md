@@ -9,6 +9,34 @@ Every GitHub issue MUST have:
 1. **Exactly one milestone** — tracking lifecycle state
 2. **Exactly one type label** — `bug` or `enhancement` (always lowercase)
 
+## Project Classification
+
+A **development project** is automatically detected by checking for known signals in the repo root. Only development projects receive milestone/type enforcement. Non-development repos (tracking repos, documentation, config) are skipped entirely.
+
+### Detection Signals (at least 1 must match)
+
+| Category | Signals |
+|----------|---------|
+| Build files | `package.json`, `composer.json`, `Cargo.toml`, `go.mod`, `Makefile`, `pyproject.toml`, `setup.py`, `build.gradle` |
+| Source dirs | `src/`, `lib/`, `app/` |
+| Test dirs | `tests/`, `test/`, `spec/` |
+| CI/CD | `.github/workflows/`, `Jenkinsfile`, `.gitlab-ci.yml` |
+
+### Detection Function
+
+```bash
+is_dev_project() {
+  local repo_path="${1:-.}"
+  local signals=(package.json composer.json Cargo.toml go.mod Makefile pyproject.toml setup.py build.gradle)
+  local dirs=(src lib app tests test spec .github/workflows)
+  for f in "${signals[@]}"; do [ -f "$repo_path/$f" ] && return 0; done
+  for d in "${dirs[@]}"; do [ -d "$repo_path/$d" ] && return 0; done
+  return 1
+}
+```
+
+Non-development repos are skipped with a log message — milestones and type labels are never enforced on them.
+
 ## Issue Type Labels
 
 | Label | Use When |
@@ -90,6 +118,14 @@ On failure: `tested-failed` bounces back to `planned` (wrong approach) or `imple
 
 When auditing a repo, check ALL of these:
 
+### Step 0: Classify Project
+
+```bash
+is_dev_project . || { echo "SKIP: {owner}/{repo} is not a development project"; exit 0; }
+```
+
+If the repo is **not** a development project, stop here — do not enforce milestones or type labels. Log `"SKIP: {repo} is not a development project"` and move on.
+
 ### Step 1: Milestones Exist
 
 ```bash
@@ -139,6 +175,7 @@ Output a compliance table:
 
 ```
 Repo: {owner}/{repo}
+Project type: development ✓  (detected via: package.json, src/)
 Milestones: ✓ all 10 exist
 Type labels: ✓ bug + enhancement (lowercase)
 Open issues: 12
@@ -146,6 +183,34 @@ Open issues: 12
   With type label: 11/12 ✗
   Missing type: #42 "Add logging"
 ```
+
+For skipped (non-development) repos:
+
+```
+Repo: {owner}/{repo}
+Project type: non-development — SKIPPED
+Signals checked: package.json, composer.json, Cargo.toml, go.mod, Makefile, pyproject.toml, setup.py, build.gradle, src/, lib/, app/, tests/, test/, spec/, .github/workflows/ — none found
+```
+
+## Multi-Repo Scan
+
+When scanning multiple repos under a parent directory, iterate and classify each:
+
+```bash
+for repo in /path/to/repos/*/; do
+  [ -d "$repo/.git" ] || continue          # Skip non-git dirs
+  cd "$repo"
+  if ! is_dev_project .; then
+    echo "SKIP (not a dev project): $repo"
+    cd - > /dev/null
+    continue
+  fi
+  # Run audit steps 1-5 for this repo...
+  cd - > /dev/null
+done
+```
+
+This ensures only development projects are audited while non-dev repos are logged and skipped.
 
 ## Rules (Non-Negotiable)
 
@@ -157,6 +222,7 @@ Open issues: 12
 6. **One issue per discrete change** — all phases documented as comments
 7. **Audit trail** — every Codex response posted as comment on the GitHub Issue
 8. **Check existing issues** before creating new ones to avoid duplicates
+9. **Milestones apply only to development projects** — non-dev repos are skipped, never enforced
 
 ## Codex Gate Patterns
 
