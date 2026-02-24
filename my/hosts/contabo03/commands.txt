@@ -1,7 +1,8 @@
 # Host: contabo03
-# Updated: 2026-02-24T07:08:33Z
+# Updated: 2026-02-24T12:25:43Z
 # Category: commands
 #
+my-bpm-library-compare.md
 my-bpm-library-pull.md
 my-bpm-library-push.md
 my-bpm-openissues-list.md
