@@ -385,7 +385,7 @@ save_sync_state "$SYNC_STATE_FILE"
 
 # Write host inventory
 if [[ "$DRY_RUN" -eq 0 ]]; then
-  source "$(dirname "$0")/lib.sh"
+  source "$(dirname "$(readlink -f "$0")")/lib.sh"
   write_host_inventory "$REPO_DIR" "$TARGET_DIR"
   # Commit inventory (best-effort, no push)
   cd "$REPO_DIR"
