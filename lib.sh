@@ -409,6 +409,57 @@ validate_extracted_dir() {
   return 0
 }
 
+# Write host inventory to my/hosts/<HOSTNAME>/
+# Records which my-bpm-items are installed on this host
+# Usage: write_host_inventory "/path/to/repo" "/path/to/claude-dir"
+write_host_inventory() {
+  local repo_dir="$1"
+  local claude_dir="$2"
+  local host_name
+  host_name="$(hostname)"
+  local host_dir="$repo_dir/my/hosts/$host_name"
+
+  mkdir -p "$host_dir"
+
+  local ts
+  ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+  # Skills (directories)
+  {
+    echo "# Host: $host_name"
+    echo "# Updated: $ts"
+    echo "# Category: skills"
+    echo "#"
+    if [[ -d "$claude_dir/skills" ]]; then
+      ls -1 "$claude_dir/skills/" 2>/dev/null | grep '^my-bpm-' | sort
+    fi
+  } > "$host_dir/skills.txt"
+
+  # Commands (files)
+  {
+    echo "# Host: $host_name"
+    echo "# Updated: $ts"
+    echo "# Category: commands"
+    echo "#"
+    if [[ -d "$claude_dir/commands" ]]; then
+      ls -1 "$claude_dir/commands/" 2>/dev/null | grep '^my-bpm-' | sort
+    fi
+  } > "$host_dir/commands.txt"
+
+  # Agents (files)
+  {
+    echo "# Host: $host_name"
+    echo "# Updated: $ts"
+    echo "# Category: agents"
+    echo "#"
+    if [[ -d "$claude_dir/agents" ]]; then
+      ls -1 "$claude_dir/agents/" 2>/dev/null | grep '^my-bpm-' | sort
+    fi
+  } > "$host_dir/agents.txt"
+
+  log_verbose "Host inventory written to $host_dir"
+}
+
 # Check if a command exists
 # Usage: command_exists "curl"
 command_exists() {

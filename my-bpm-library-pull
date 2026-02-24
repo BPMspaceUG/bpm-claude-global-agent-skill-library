@@ -383,6 +383,19 @@ done
 # Save sync state
 save_sync_state "$SYNC_STATE_FILE"
 
+# Write host inventory
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  source "$(dirname "$0")/lib.sh"
+  write_host_inventory "$REPO_DIR" "$TARGET_DIR"
+  # Commit inventory (best-effort, no push)
+  cd "$REPO_DIR"
+  if ! git diff --quiet my/hosts/ 2>/dev/null; then
+    git add my/hosts/
+    git commit -m "Update host inventory: $(hostname)" --no-gpg-sign 2>/dev/null || true
+    git push 2>/dev/null || log_verbose "Could not push host inventory (will push next time)"
+  fi
+fi
+
 # Summary
 echo ""
 if [[ "$DRY_RUN" -eq 1 ]]; then
