@@ -7,7 +7,7 @@
 #   curl -fsSL .../install | bash -s -- --user   # User install
 #   curl -fsSL .../install | bash -s -- --global # Global install (sudo)
 #   curl -fsSL .../install | bash -s -- --all    # Both user and global
-#   curl -fsSL .../install | bash -s -- --with-my-bpm-library  # Also install my-bpm-library-pull/push
+#   curl -fsSL .../install | bash -s -- --with-my-bpm-library  # Also install my-bpm-library tools + lib.sh
 
 set -euo pipefail
 
@@ -130,18 +130,32 @@ if [ "$INSTALL_MY_LIBRARY" -eq 1 ]; then
   if [[ -f "$SCRIPT_DIR/my-bpm-library-pull" ]] && [[ -f "$SCRIPT_DIR/my-bpm-library-push" ]]; then
     sudo cp "$SCRIPT_DIR/my-bpm-library-pull" "$GLOBAL_BIN/my-bpm-library-pull"
     sudo cp "$SCRIPT_DIR/my-bpm-library-push" "$GLOBAL_BIN/my-bpm-library-push"
+    sudo cp "$SCRIPT_DIR/lib.sh" "$GLOBAL_BIN/lib.sh"
+    if [[ -f "$SCRIPT_DIR/my-bpm-library-compare" ]]; then
+      sudo cp "$SCRIPT_DIR/my-bpm-library-compare" "$GLOBAL_BIN/my-bpm-library-compare"
+    fi
   else
     MY_PULL_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/my-bpm-library-pull"
     MY_PUSH_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/my-bpm-library-push"
+    MY_LIB_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/lib.sh"
+    MY_COMPARE_URL="https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/my-bpm-library-compare"
     validate_url "$MY_PULL_URL" || exit 1
     validate_url "$MY_PUSH_URL" || exit 1
+    validate_url "$MY_LIB_URL" || exit 1
+    validate_url "$MY_COMPARE_URL" || exit 1
     sudo curl -fsSL "$MY_PULL_URL" -o "$GLOBAL_BIN/my-bpm-library-pull"
     sudo curl -fsSL "$MY_PUSH_URL" -o "$GLOBAL_BIN/my-bpm-library-push"
+    sudo curl -fsSL "$MY_LIB_URL" -o "$GLOBAL_BIN/lib.sh"
+    sudo curl -fsSL "$MY_COMPARE_URL" -o "$GLOBAL_BIN/my-bpm-library-compare"
   fi
 
-  sudo chown root:root "$GLOBAL_BIN/my-bpm-library-pull" "$GLOBAL_BIN/my-bpm-library-push"
-  sudo chmod +x "$GLOBAL_BIN/my-bpm-library-pull" "$GLOBAL_BIN/my-bpm-library-push"
-  echo "Installed my-bpm-library-pull and my-bpm-library-push to $GLOBAL_BIN/"
+  sudo chown root:root "$GLOBAL_BIN/my-bpm-library-pull" "$GLOBAL_BIN/my-bpm-library-push" "$GLOBAL_BIN/lib.sh"
+  sudo chmod +x "$GLOBAL_BIN/my-bpm-library-pull" "$GLOBAL_BIN/my-bpm-library-push" "$GLOBAL_BIN/lib.sh"
+  if [[ -f "$GLOBAL_BIN/my-bpm-library-compare" ]]; then
+    sudo chown root:root "$GLOBAL_BIN/my-bpm-library-compare"
+    sudo chmod +x "$GLOBAL_BIN/my-bpm-library-compare"
+  fi
+  echo "Installed my-bpm-library tools (pull, push, lib.sh) to $GLOBAL_BIN/"
 fi
 
 echo ""
@@ -150,6 +164,7 @@ echo "  bcgasl                - Install/update agents & skills"
 echo "  bcgasl --n8n          - Install/update with n8n skills"
 echo "  bcgasl --help         - Show help"
 if [ "$INSTALL_MY_LIBRARY" -eq 1 ]; then
-  echo "  my-bpm-library-pull   - Pull my-bpm-items from repo to local"
-  echo "  my-bpm-library-push   - Push my-bpm-items from local to repo"
+  echo "  my-bpm-library-pull    - Pull my-bpm-items from repo to local"
+  echo "  my-bpm-library-push    - Push my-bpm-items from local to repo"
+  echo "  my-bpm-library-compare - Compare local vs repo my-bpm-items"
 fi

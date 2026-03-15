@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-bpm-linux-archive
 description: Back up and restore host configurations (dotfiles, tool configs, installed-tools manifest) to the host's bpm-{hostname} GitHub repo. Use when installing tools, changing configs, or recovering a host setup.
 ---

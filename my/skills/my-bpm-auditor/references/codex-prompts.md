@@ -34,4 +34,4 @@ codex exec --skip-git-repo-check "Final devil's advocate review of complete audi
 - Include Codex disagreements in the report (Section 8)
 - If Codex identifies missed issues, add them to relevant sections
 - If Codex disputes severity, note both assessments
-- If Codex is unavailable, note "Codex review skipped" in report
+- If Codex is unavailable, try fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable, note "Independent review skipped — no reviewer available" in report. Always log which reviewer was used.

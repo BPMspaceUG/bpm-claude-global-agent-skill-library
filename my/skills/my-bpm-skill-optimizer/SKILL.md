@@ -113,6 +113,8 @@ codex exec --skip-git-repo-check "Review this Claude Code skill for Skills 2.0 c
 Skill content: <skill content>"
 ```
 
+If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: notify user, do not proceed without independent review. Log which reviewer was used.
+
 ### Step 5: Test
 
 Verify the optimized skill:

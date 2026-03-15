@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-bpm-question-auditor
 description: >
   Audits exam question quality for a Topic via EduMS3 php-crud-api. Checks answer
@@ -180,7 +181,7 @@ Every finding row MUST include the **question UUID** and **answer UUID** for dir
 ### ON BLOCKERS
 - API unreachable → STOP, inform user
 - Missing credentials → STOP, ask user for .env
-- Codex unavailable → note in report, proceed with own assessment
+- Codex unavailable → try fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: notify user, do not proceed without independent review. Log which reviewer was used.
 - No questions returned → report "0 questions found", check filter
 
 ## References

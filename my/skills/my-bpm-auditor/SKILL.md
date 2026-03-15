@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-bpm-auditor
 description: "Full repository audit with team-based parallel analysis. Triggers: 'audit this repo', 'review this codebase', 'full report on project', 'check code quality/security/performance', due diligence, maintenance handover. Produces [REPONAME]-YYMMDD-HHSS.md report. No issues created."
 user-invocable: true
@@ -95,7 +96,7 @@ A single Markdown file: `[REPONAME]-YYMMDD-HHSS.md` in the repo root.
 
 ### Phase 4: Codex Final Review
 
-**CRITICAL: Codex is the PRIMARY REVIEW authority.**
+**CRITICAL: Independent review is mandatory (Codex primary, Gemini/other as fallback).**
 
 Run final Codex review on the complete assembled findings. See `references/codex-prompts.md` for the exact prompt.
 
@@ -157,18 +158,18 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 
 ### MUST
 - Produce exactly one `.md` report file
-- Run Codex devil's advocate after EACH phase (not just at the end)
+- Run independent devil's advocate review after EACH phase (Codex primary, Gemini/other as fallback)
 - Spawn at minimum 2 teammates, maximum 10
 - Use Opus 4.6 for all teammates (inherit, never haiku)
 - Include severity ratings for all findings
 - Run existing tests if safe to do so
-- Invoke Codex ONLY via: `codex exec --skip-git-repo-check [PROMPT]`
+- Invoke Codex ONLY via: `codex exec --skip-git-repo-check [PROMPT]` (if unavailable, use fallback chain)
 
 ### MUST NOT
 - Create GitHub issues (report only)
 - Push code or create branches
 - Modify any repository files (read-only audit)
-- Skip the Codex devil's advocate review
+- Skip the independent devil's advocate review (must use fallback chain if Codex unavailable)
 - Make claims without reading actual files (see claim-verification rule)
 - Use haiku model for any teammate
 
@@ -176,4 +177,4 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 - If unable to detect tech stack → ask user
 - If tests require credentials/DB → note as "unable to verify" in report
 - If repo is too large for single pass → ask user to scope the audit
-- If Codex is unavailable → note in report, proceed without
+- Codex unavailable → try fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: notify user, do not proceed without independent review. Log which reviewer was used.

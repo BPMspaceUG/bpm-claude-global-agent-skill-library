@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-bpm-milestone-type
 description: Enforce milestone lifecycle AND issue type on every GitHub issue. Ensures milestones exist, every issue has exactly one milestone, and every issue has a type label (bug or enhancement, always lowercase). Use to audit and fix repos for compliance. Successor to my-bpm-team-milestones.
 ---
@@ -195,12 +196,12 @@ Open issues: 12
 ## Rules (Non-Negotiable)
 
 1. **One milestone at a time** per issue — no skipping states
-2. **Dual approval required** at every gate — Team Lead AND Codex must both approve
+2. **Dual approval required** at every gate — Team Lead AND independent reviewer (Codex → Gemini → other) must both approve
 3. **`DONE` is human-only** — agents must NEVER set this milestone
 4. **Every issue gets a type** — `bug` or `enhancement`, no exceptions
 5. **Always lowercase** — normalize on sight
 6. **One issue per discrete change** — all phases documented as comments
-7. **Audit trail** — every Codex response posted as comment on the GitHub Issue
+7. **Audit trail** — every reviewer response (Codex/Gemini/other) posted as comment on the GitHub Issue
 8. **Check existing issues** before creating new ones to avoid duplicates
 
 ## Codex Gate Patterns
@@ -233,9 +234,18 @@ Check: tests passing legitimately, no false positives, test coverage adequate, \
 code quality acceptable. Approve or reject."
 ```
 
-### If Codex Unavailable
+### If Codex Is Unavailable
 
-**STOP. Notify user. Do NOT proceed without Codex review.**
+Try the fallback chain before stopping:
+
+1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
+2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
+3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
+
+If ALL models in the chain are unavailable:
+- **Notify the user** immediately
+- **Do NOT proceed** without at least one independent review
+- Log which reviewer was used (Codex/Gemini/other) in all review comments
 
 ## Milestone Transitions via GitHub MCP
 

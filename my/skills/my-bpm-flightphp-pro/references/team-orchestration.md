@@ -165,15 +165,13 @@ Present a summary to the user:
 
 ### Model Policy
 
-Choose the cheapest model that can handle the task:
+Use Opus 4.6 for all teammates:
 
 | Model | When to Use |
 |-------|------------|
-| **Haiku** (default) | Single-file changes, straightforward refactoring, test writing, documentation |
-| **Sonnet** | Complex multi-file changes, architectural refactoring, intricate logic |
-| **Opus** | Only if both Haiku and Sonnet fail at the task |
+| **Opus 4.6** (default) | All tasks — single-file changes, refactoring, test writing, documentation, complex logic |
 
-Start with Haiku. Escalate only when needed.
+Do not use Haiku or Sonnet for teammates.
 
 ### Teammate Naming
 
@@ -379,7 +377,7 @@ Present a synthesis report to the user:
 
 ## Codex Rules
 
-Codex is the primary review authority for all Claude-generated code in this workflow.
+Independent review is mandatory for all Claude-generated code (Codex primary, Gemini/other as fallback).
 
 ### Invocation
 
@@ -389,11 +387,11 @@ Codex is invoked ONLY via:
 codex exec --skip-git-repo-check "<review prompt>"
 ```
 
-Never use interactive mode. Never skip Codex review at mandatory gates.
+Never use interactive mode. Never skip independent review at mandatory gates (use fallback chain if Codex unavailable).
 
 ### Mandatory Review Gates
 
-Codex review is required at exactly 3 gates:
+Independent review (Codex → Gemini → other) is required at exactly 3 gates:
 
 1. **Plan approval** (Phase 4) — Reviews the implementation plan
 2. **Test design approval** (Phase 5) — Reviews the test design
@@ -401,10 +399,16 @@ Codex review is required at exactly 3 gates:
 
 ### If Codex Is Unavailable
 
-If Codex cannot be reached or fails to respond:
-- **STOP** all work at that gate
+Try the fallback chain before stopping:
+
+1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
+2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
+3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
+
+If ALL models in the chain are unavailable:
 - **Notify the user** immediately
-- **Do NOT proceed** without Codex review — the dual-gate requirement is non-negotiable
+- **Do NOT proceed** without at least one independent review
+- Log which reviewer was used (Codex/Gemini/other) in all review comments
 
 ### Logging
 

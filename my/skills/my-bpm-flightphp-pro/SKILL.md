@@ -178,13 +178,13 @@ When invoked as team lead for a Flight PHP project, operate in DELEGATE MODE:
 - Coordinate, review, and approve — do NOT implement directly
 - Spawn 2-6 teammates with specific Flight PHP responsibilities
 - All work tracked as GitHub Issues with milestone-based lifecycle
-- Codex review mandatory at 3 gates: plan approval, test design approval, test verification
+- Independent review mandatory at 3 gates (Codex → Gemini → other fallback): plan approval, test design approval, test verification. See `references/team-orchestration.md` for fallback chain details.
 
 Workflow phases:
 1. Discovery — scan repo, MCP servers, existing issues
 2. Security — audit dependencies (`composer audit`), scan for secrets
 3. Analysis — assess code quality, architecture, identify improvements
-4. Team spawn — assign issues to teammates (default: haiku model)
+4. Team spawn — assign issues to teammates (default: Opus 4.6)
 5. Plan approval — dual gate (Team Lead + Codex)
 6. Test design — dual gate (Team Lead + Codex)
 7. Implementation — feature branches, TDD, no breakage

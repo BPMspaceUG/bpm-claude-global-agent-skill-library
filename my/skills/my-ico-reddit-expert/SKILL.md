@@ -207,72 +207,16 @@ For each post:
   If score < 0.2 → agent_status='skipped'
 ```
 
-## Relevance Scoring Patterns
+## Reference Files
 
-### High Value (0.4 points each)
+### `references/scoring.md`
+Read when: modifying relevance patterns, adjusting weights, or adding new scoring tags
 
-| Pattern | Tag |
-|---------|-----|
-| ISO/IEC 42001, ISO 42001 | iso-42001 |
-| ISO 27001 | iso-27001 |
-| ISO 27701 | iso-27701 |
-| NIS2 / NIS-2 | nis2 |
-| DORA regulation | dora |
-| GDPR / DSGVO | gdpr |
-| AI Management System / AIMS | aims |
-| Personal?a? certification | personal-certification |
-| Auditor certification | auditor-certification |
-| Certification body/scheme/program | certification-body |
-| Accreditation | accreditation |
-| Compliance officer/manager/training | compliance-training |
-| CISO | ciso |
-| ISMS | isms |
+### `references/subreddits.md`
+Read when: adding, removing, or re-prioritizing monitored subreddits
 
-### Medium Value (0.2 points each)
-
-| Pattern | Tag |
-|---------|-----|
-| certification (general) | certification |
-| cybersecurity training/course/bootcamp | cyber-training |
-| security awareness | security-awareness |
-| risk management/assessment | risk-management |
-| audit(ing) | auditing |
-| compliance (general) | compliance |
-| AI governance/ethics/regulation/act | ai-governance |
-| EU AI Act | eu-ai-act |
-| CompTIA, CISSP, CISM, CISA | vendor-cert |
-| penetration testing | pentest |
-| SOC 2 | soc2 |
-| BCM / business continuity | bcm |
-
-### Scoring Rules
-
-- Score = sum of matched pattern weights, capped at 1.0
-- Category bonus: +0.05 for `security_compliance` subreddits
-- Threshold: score >= 0.2 sends post to agent classification
-- Tags: deduplicated array of all matched pattern keys
-
-## Monitored Subreddits
-
-| Subreddit | Category | Priority |
-|-----------|----------|:--------:|
-| cybersecurity | security_compliance | 1 |
-| ISO27001 | security_compliance | 1 |
-| ITManagers | security_compliance | 2 |
-| cybersecurity_help | security_compliance | 2 |
-| Cybersecurity101 | security_compliance | 3 |
-| CyberSecurityAdvice | security_compliance | 3 |
-| ITCareerQuestions | careers_certs | 1 |
-| certifications | careers_certs | 1 |
-| ExamTopics | careers_certs | 2 |
-| Career | careers_certs | 3 |
-| careerguidance | careers_certs | 3 |
-| ArtificialInteligence | ai_aims | 1 |
-| aiHub | ai_aims | 2 |
-| Ethics | ai_aims | 3 |
-| AIJobs | ai_aims | 3 |
-
-Priority 1 = checked every run. Priority 3 = checked only when budget allows.
+### `references/schema.md`
+Read when: writing queries, adding columns, or debugging data issues
 
 ## HTTP Error Handling
 
@@ -284,26 +228,6 @@ Priority 1 = checked every run. Priority 3 = checked only when budget allows.
 | 429 | Rate limited — set 2-min cooldown, skip rest of run |
 | 500-503 | Reddit server error — sleep DELAY_RECOVERY, retry once |
 | Timeout | After 30s — log error, continue to next sub |
-
-## Database Schema (Quick Reference)
-
-### posts
-
-Primary key: `id` (VARCHAR 20, Reddit fullname `t3_xxx`)
-
-Key columns: `subreddit`, `category`, `title`, `selftext`, `author`, `url`, `permalink`, `score`, `upvote_ratio`, `num_comments`, `created_utc`, `is_self`, `link_flair_text`, `domain`
-
-Agent columns: `agent_status` (pending/processing/classified/skipped/error), `agent_relevance` (0.0-1.0), `agent_category`, `agent_tags` (JSON), `agent_summary`, `agent_action` (none/monitor/respond/flag_urgent)
-
-### subreddit_config
-
-Primary key: `subreddit` (VARCHAR 100)
-
-Key columns: `category`, `priority` (1-3), `enabled`, `monitor_interval_min`, `last_monitored_at`, `backfill_cursor`, `backfill_done`
-
-### scrape_log
-
-Auto-increment `id`. Logs every API request: `subreddit`, `mode` (monitor/backfill), `posts_fetched`, `posts_new`, `http_status`, `rate_limit_remaining`, `duration_ms`
 
 ## Operational Best Practices
 

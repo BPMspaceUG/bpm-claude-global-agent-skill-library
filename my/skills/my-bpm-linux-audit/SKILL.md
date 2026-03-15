@@ -1,4 +1,5 @@
 ---
+model: opus
 name: my-bpm-linux-audit
 description: Audit a Linux host for runtime conflicts, security issues, and system health. Creates one GitHub Issue per finding in the host's tracking repo (bpm-{hostname}). Runs as agent team with Codex-gated approvals, milestone tracking, and issue types (BUG/ENHANCEMENT). Use when onboarding a new server, after major changes, or on a regular schedule.
 ---
@@ -270,20 +271,32 @@ No labels. No tags. Issue type + milestone = full lifecycle tracking.
 
 ## Codex Rules (NON-NEGOTIABLE)
 
-- Codex is the **PRIMARY REVIEW AUTHORITY** for all findings
-- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check "<prompt>"`
-- Codex review is **MANDATORY** at 2 gates:
+- Independent review is **MANDATORY** for all findings (Codex primary, Gemini/other as fallback)
+- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check "<prompt>"` (if unavailable, use fallback chain)
+- Independent review is **MANDATORY** at 2 gates (try Codex → Gemini → other):
   1. Findings approval (Phase 3)
   2. Audit summary review (Phase 5)
-- If Codex is unavailable: **STOP → notify user → do NOT proceed without Codex**
-- Log ALL Codex responses as comments on the Audit Run issue
+- Log ALL reviewer responses as comments on the Audit Run issue
+
+### If Codex Is Unavailable
+
+Try the fallback chain before stopping:
+
+1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
+2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
+3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
+
+If ALL models in the chain are unavailable:
+- **Notify the user** immediately
+- **Do NOT proceed** without at least one independent review
+- Log which reviewer was used (Codex/Gemini/other) in all review comments
 
 ---
 
 ## Segregation of Duty
 
 - **Audit teammates** run commands and prepare findings
-- **Codex** reviews and approves findings via `codex exec`
+- **Independent reviewer** (Codex/Gemini/other) reviews and approves findings
 - **Team Lead** coordinates but NEVER runs audit commands
 - No LLM reviews its own work
 - All approvals documented in GitHub Issues

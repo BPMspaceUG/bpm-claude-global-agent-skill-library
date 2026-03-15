@@ -117,15 +117,13 @@ Present a summary:
 
 ### Model Policy
 
-Choose the cheapest model that can handle the task:
+Use Opus 4.6 for all teammates:
 
 | Model | When to Use |
 |-------|------------|
-| **Haiku** (default) | Single-skill changes, forking, documentation, minor optimizations |
-| **Sonnet** | Complex multi-reference skills, architectural restructuring |
-| **Opus** | Only if both Haiku and Sonnet fail at the task |
+| **Opus 4.6** (default) | All tasks — skill changes, forking, documentation, optimizations, restructuring |
 
-Start with Haiku. Escalate only when needed.
+Do not use Haiku or Sonnet for teammates.
 
 ### Teammate Naming
 
@@ -258,20 +256,27 @@ Codex is invoked ONLY via:
 codex exec --skip-git-repo-check "<review prompt>"
 ```
 
-Never use interactive mode. Never skip Codex review at mandatory gates.
+Never use interactive mode. Never skip independent review at mandatory gates (use fallback chain if Codex unavailable).
 
 ### Mandatory Review Gates
 
-Codex review is required at exactly 2 gates:
+Independent review (Codex → Gemini → other) is required at exactly 2 gates:
 
 1. **Plan approval** (Phase 3) — Reviews the development plan
 2. **Skill review** (Phase 5) — Reviews the implemented skill
 
 ### If Codex Is Unavailable
 
-- **STOP** all work at that gate
+Try the fallback chain before stopping:
+
+1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
+2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
+3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
+
+If ALL models in the chain are unavailable:
 - **Notify the user** immediately
-- **Do NOT proceed** without Codex review — the dual-gate requirement is non-negotiable
+- **Do NOT proceed** without at least one independent review
+- Log which reviewer was used (Codex/Gemini/other) in all review comments
 
 ### Logging
 
