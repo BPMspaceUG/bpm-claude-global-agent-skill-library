@@ -65,7 +65,7 @@ gh label delete Enhancement --yes 2>/dev/null || true
 | `test-approved` | Team Lead + Codex | Final automated gate — independent verification passed |
 | `DONE` | **Human only** | Final sign-off. Agents NEVER set this. |
 
-### Compact Lifecycle (simpler workflows)
+### Compact Lifecycle (simpler development workflows)
 
 | Milestone | Set By | Meaning |
 |-----------|--------|---------|
@@ -77,14 +77,59 @@ gh label delete Enhancement --yes 2>/dev/null || true
 | `review-approved` | Team Lead + Codex | Both approved |
 | `DONE` | **Human only** | Agents NEVER set this |
 
-### Lifecycle Flow
+### Ops/Task Lifecycle (investigations, audits, configuration, documentation)
 
+For issues that do NOT involve writing code — e.g. audit runs, error investigations, configuration changes, host bootstrapping, documentation tasks.
+
+| Milestone | Set By | Meaning |
+|-----------|--------|---------|
+| `new` | Team Lead | Issue created |
+| `investigating` | Agent/Team Lead | Actively being researched or worked on |
+| `resolved` | Agent/Team Lead | Investigation/task complete, awaiting human sign-off |
+| `DONE` | **Human only** | Agents NEVER set this |
+
+**Use this lifecycle when:**
+- The issue is an audit run or audit finding that needs investigation (not code)
+- The issue is a configuration/infra task (install tool, change config, bind ports)
+- The issue is a documentation or bootstrap task
+- The issue is an error report that needs diagnosis before deciding on a fix
+
+**Do NOT use this lifecycle when:**
+- Code needs to be written or modified → use Full or Compact lifecycle
+- A bug fix with tests is required → use Full lifecycle
+
+### Choosing the Right Lifecycle
+
+| Issue Type | Lifecycle | Example |
+|------------|-----------|---------|
+| Bug requiring code fix | Full | "Fix auth middleware crash" |
+| Enhancement with tests | Full | "Add rate limiting to API" |
+| Simple code change | Compact | "Rename config key" |
+| Audit run | Ops/Task | "Audit Run 2026-02-21" |
+| Error investigation | Ops/Task | "Startup hook error" |
+| Configuration change | Ops/Task | "Bind Redis to localhost" |
+| Host bootstrap/docs | Ops/Task | "Host-Repo bootstrap" |
+
+### Lifecycle Flows
+
+**Full:**
 ```
 new -> planned -> plan-approved -> test-designed -> test-design-approved
   -> implemented -> tested-success / tested-failed -> test-approved -> DONE
 ```
 
-On failure: `tested-failed` bounces back to `planned` (wrong approach) or `implemented` (code bug).
+**Compact:**
+```
+new -> planned -> plan-approved -> implemented -> reviewed -> review-approved -> DONE
+```
+
+**Ops/Task:**
+```
+new -> investigating -> resolved -> DONE
+```
+
+On failure (Full): `tested-failed` bounces back to `planned` (wrong approach) or `implemented` (code bug).
+On escalation (Ops/Task): if investigation reveals a code fix is needed, create a NEW issue with Full lifecycle and link it.
 
 ## Audit Procedure
 
@@ -97,7 +142,7 @@ When auditing a repo, check ALL of these:
 gh api repos/{owner}/{repo}/milestones --jq '.[].title'
 
 # Create missing ones
-for ms in new planned plan-approved test-designed test-design-approved implemented tested-success tested-failed test-approved DONE; do
+for ms in new planned plan-approved test-designed test-design-approved implemented tested-success tested-failed test-approved reviewed review-approved investigating resolved DONE; do
   gh api repos/{owner}/{repo}/milestones --method POST -f title="$ms" 2>/dev/null || true
 done
 ```

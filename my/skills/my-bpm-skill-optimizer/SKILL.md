@@ -1,18 +1,47 @@
 ---
-model: opus
 name: my-bpm-skill-optimizer
-description: Create and optimize custom user skills derived from originals or built from scratch. Use when the user wants to create a new custom skill, optimize an existing skill for their workflow, or fork/customize an installed skill. Enforces the my- naming convention to clearly separate custom skills from originals. Includes Codex-reviewed quality gates, segregation of duty, and optional agent team orchestration for complex skill development. Derived from skill-creator.
+description: >
+  Optimize existing custom skills for Skills 2.0 features and best practices.
+  Use when the user wants to improve, refactor, or upgrade a skill — especially
+  adding frontmatter fields (context, allowed-tools, disable-model-invocation,
+  argument-hint, hooks), supporting files, dynamic context injection, or
+  subagent configuration. Enforces the my- naming convention. Derived from
+  skill-creator with Skills 2.0 enhancements.
+model: opus
+disable-model-invocation: true
+argument-hint: "[skill-name]"
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Skill Optimizer
 
-Create, fork, and optimize skills for personal use. Extends `skill-creator` with strict separation of originals vs. custom skills, Codex review gates, and team orchestration support.
+Optimize, upgrade, and refactor skills for personal use. Extends `skill-creator`
+with Skills 2.0 features, strict separation of originals vs. custom skills,
+Codex review gates, and team orchestration support.
+
+## Skills 2.0 Feature Checklist
+
+When optimizing a skill, check whether these features would improve it:
+
+| Feature | When to Add |
+|---------|-------------|
+| `disable-model-invocation: true` | Task skills with side effects (deploy, build, commit) |
+| `user-invocable: false` | Background knowledge Claude should auto-load but users should not invoke |
+| `allowed-tools` | Restrict tool access for safety (e.g., read-only skills) |
+| `context: fork` | Skills that should run in an isolated subagent |
+| `agent` | Specify subagent type (`Explore`, `Plan`, custom) when using `context: fork` |
+| `argument-hint` | Skills that accept arguments — show hint in autocomplete |
+| `hooks` | Skills needing lifecycle event handling |
+| `model` | Override model for specific skills (e.g., `opus` for complex tasks) |
+| `!`command`` | Dynamic context injection — run shell commands before prompt |
+| `${CLAUDE_SKILL_DIR}` | Reference scripts/files bundled with the skill |
+| `${CLAUDE_SESSION_ID}` | Session-specific logging or file creation |
+| `$ARGUMENTS[N]` / `$N` | Positional argument access |
+| Supporting files | Templates, scripts, examples in subdirectories |
 
 ## Segregation of Duty
 
 The most important principle: **original skills are read-only**.
-
-### Rules
 
 | Action | Allowed? | How |
 |--------|----------|-----|
@@ -22,142 +51,113 @@ The most important principle: **original skills are read-only**.
 | Create custom skill | YES | Always with `my-` prefix |
 | Fork original to custom | YES | Copy, rename with `my-` prefix, then modify |
 
-### Why
-
-- Originals may be updated upstream — local edits get overwritten
-- Two versions coexist: original for reference, custom for use
-- Clear audit trail: `my-` = user-created or user-modified
-- Rollback is trivial: delete `my-` version, original still works
-
 ## The `my-` Naming Convention
 
 **Custom/optimized skills MUST use the `my-` prefix.**
 
 | Scenario | Name | Example |
 |----------|------|---------|
-| Installed/original skill | Keep original name | `frontend-design`, `n8n-code-javascript` |
-| New custom skill | `my-` + descriptive name | `my-flightphp-pro`, `my-data-pipeline` |
-| Forked/optimized original | `my-` + original name | `my-frontend-design`, `my-skill-creator` |
-| Skills-about-skills | `my-skill-` + function | `my-skill-optimizer`, `my-skill-validator` |
+| Installed/original skill | Keep original name | `frontend-design`, `skill-creator` |
+| New custom skill | `my-` + descriptive name | `my-bpm-flightphp-pro` |
+| Forked/optimized original | `my-` + original name | `my-bpm-skill-creator` |
 
 ### Identifying Custom vs. Original
 
-- `LICENSE.txt` present -> likely an installed original
-- No `LICENSE.txt` -> likely user-created
-- Directory starts with `my-` -> definitively user-created/optimized
-- Located in `plugins/marketplaces/` -> always original, never touch
+- `LICENSE.txt` present → likely an installed original
+- No `LICENSE.txt` → likely user-created
+- Directory starts with `my-` → definitively user-created/optimized
+- Located in `plugins/marketplaces/` → always original, never touch
 
-## Skill Creation Workflow
+## Optimization Workflow
 
-### From Scratch
+### Step 1: Audit Current Skill
 
-1. Read `skill-creator` SKILL.md for the full creation process (Steps 1-6)
-2. Name the skill with `my-` prefix
-3. Follow all skill-creator conventions (frontmatter, structure, progressive disclosure)
-4. Run Codex review before finalizing (see Codex Review below)
-
-### Forking an Existing Skill
-
-1. Identify the original: `plugins/marketplaces/` or `skills/<name>/`
-2. Copy to new directory: `cp -r original-name my-original-name`
-3. Update `name:` in SKILL.md frontmatter to `my-original-name`
-4. Update `description:` — add what was changed/optimized and why, include "Derived from <original>"
-5. Remove `LICENSE.txt` if copied (custom skills don't carry original licenses)
-6. Make modifications
-7. Run Codex review on the result
-8. **Keep the original intact** — verify no files were changed in the original directory
-
-### Optimizing a Skill
-
-1. **Identify what to improve** — missing patterns, wrong defaults, better examples, missing references
-2. **Fork first** — copy to `my-` prefixed version (never edit in place)
-3. **Document changes** — note what differs from the original in the SKILL.md body
-4. **Codex review** — submit changes for review
-5. **Test** — verify the optimized skill triggers correctly and provides better guidance
-6. **Keep lean** — optimization means better, not bigger
-
-## Codex Review
-
-Codex is the review authority for skill quality. All non-trivial skill changes go through Codex review.
-
-### When Required
-
-- New skill creation (Step 4 of from-scratch workflow)
-- Forking an original (Step 7 of forking workflow)
-- Major changes to an existing custom skill
-
-### When Optional
-
-- Typo fixes, minor wording adjustments
-- Adding a single example
-
-### Invocation
+Read the skill and evaluate against Skills 2.0 checklist:
 
 ```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
-1. Frontmatter: name and description are clear, description includes trigger conditions
-2. Progressive disclosure: SKILL.md under 500 lines, references split out properly
+cat "${CLAUDE_SKILL_DIR}/../<skill-name>/SKILL.md"
+```
+
+Check:
+1. **Frontmatter completeness** — missing fields from the checklist above?
+2. **Invocation control** — should Claude auto-invoke? Should users invoke?
+3. **Tool restrictions** — can we limit `allowed-tools` for safety?
+4. **Isolation** — should this run in a subagent (`context: fork`)?
+5. **Arguments** — does it use `$ARGUMENTS`? Could it use positional `$N`?
+6. **Dynamic context** — could `!`command`` inject useful data?
+7. **Supporting files** — should large reference content be split out?
+8. **SKILL.md size** — over 500 lines? Split into references/
+
+### Step 2: Plan Changes
+
+Document what will change and why. Present to user for approval.
+
+### Step 3: Apply Changes
+
+1. Fork first if modifying a non-`my-` skill
+2. Update frontmatter with new fields
+3. Refactor content for Skills 2.0 patterns
+4. Move large sections to supporting files if needed
+5. Add scripts to `scripts/` if `${CLAUDE_SKILL_DIR}` references needed
+
+### Step 4: Codex Review
+
+```bash
+codex exec --skip-git-repo-check "Review this Claude Code skill for Skills 2.0 compliance. Check:
+1. Frontmatter: all relevant Skills 2.0 fields present (disable-model-invocation, allowed-tools, context, agent, argument-hint)
+2. SKILL.md under 500 lines, references split out
 3. No duplication between SKILL.md and reference files
-4. Examples are concrete and minimal, not verbose explanations
-5. Constraints are actionable (MUST/MUST NOT), not vague guidelines
-6. No unnecessary files (README.md, CHANGELOG.md, etc.)
+4. Dynamic context injection used where beneficial
+5. Supporting files properly referenced
+6. Naming convention (my- prefix for custom)
 Skill content: <skill content>"
 ```
 
-### Review Criteria
+### Step 5: Test
 
-| Criterion | Pass | Fail |
-|-----------|------|------|
-| Description includes triggers | "Use when..." present | Missing trigger conditions |
-| SKILL.md size | Under 500 lines | Over 500 lines without split |
-| No duplication | Info in one place only | Same info in SKILL.md and references |
-| Examples over explanations | Concrete code/usage examples | Walls of explanatory text |
-| Lean structure | Only necessary files | README.md, CHANGELOG.md, etc. |
-| Naming convention | `my-` prefix for custom | Missing prefix or renamed original |
+Verify the optimized skill:
+- Triggers correctly (or is correctly hidden from auto-invocation)
+- Arguments work as expected
+- Tool restrictions don't break functionality
+- Subagent mode works if `context: fork` is set
 
-## Frontmatter for Custom Skills
+## Frontmatter Template (Skills 2.0)
 
 ```yaml
 ---
 name: my-example-skill
-description: [What it does]. [When to use it — explicit triggers]. Derived from/inspired by [original-skill-name] with [what's different].
+description: >
+  [What it does]. [When to use it — triggers]. Derived from [original].
+model: opus                        # Optional: override model
+disable-model-invocation: true     # Optional: manual-only
+user-invocable: true               # Optional: hide from / menu
+allowed-tools: Read, Grep, Glob    # Optional: tool whitelist
+context: fork                      # Optional: run in subagent
+agent: Explore                     # Optional: subagent type
+argument-hint: "[arg1] [arg2]"     # Optional: autocomplete hint
 ---
 ```
-
-Always mention the origin in the description when forking. This helps track provenance.
 
 ## Directory Layout
 
 ```
 ~/.claude/skills/
-├── frontend-design/          # Original (installed) — READ ONLY
-├── n8n-code-javascript/      # Original (installed) — READ ONLY
 ├── skill-creator/            # Original (installed) — READ ONLY
-├── my-flightphp-pro/         # Custom (user-created)
-├── my-skill-optimizer/       # Custom (derived from skill-creator)
+├── my-bpm-skill-creator/     # Custom (derived from skill-creator)
+├── my-bpm-skill-optimizer/   # Custom (this skill)
+│   ├── SKILL.md              # Main instructions (required)
+│   └── references/           # Optional supporting files
+│       └── team-orchestration.md
 └── ...
 ```
 
-## GitHub Issue Tracking
-
-All skill development plans and progress are tracked in GitHub Issues, never in separate plan files.
-
-- Plans -> Issue body or comments
-- Progress -> Issue comments
-- Codex review results -> Issue comments
-- No `ISSUE_X_PLAN.md` or similar files
-
-## Team Orchestration Mode
-
-For complex skill development (multiple skills, large refactoring, cross-skill dependencies), use agent team orchestration with Codex-reviewed quality gates and milestone-tracked lifecycle.
-
-Read `references/team-orchestration.md` for the complete phased workflow, milestone definitions, Codex review commands, and team coordination rules.
-
 ## Library Integration
 
-After creating or optimizing a skill, use `my-library-push` to sync it to the Git repository. See `my-library-manager` skill for the full push/pull workflow and conventions for all artefact types (not just skills).
+After optimizing a skill, use `my-bpm-library-push` to sync to Git.
 
 ## Reference Files
 
 ### `references/team-orchestration.md`
-Read when: orchestrating a team to build or refactor multiple skills in parallel, setting up milestone-based issue tracking for skill development, spawning and coordinating agent teammates, running Codex review gates, or managing the full development lifecycle from discovery through PR synthesis.
+Read when: orchestrating a team to build or refactor multiple skills in parallel,
+setting up milestone-based issue tracking, spawning agent teammates, running
+Codex review gates, or managing the full lifecycle from discovery through PR.
