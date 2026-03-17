@@ -460,6 +460,86 @@ write_host_inventory() {
   log_verbose "Host inventory written to $host_dir"
 }
 
+# --- Sync state management (shared between pull/push) ---
+# Requires: DRY_RUN variable to be set (0 or 1) before calling save_sync_state
+
+declare -A SYNC_STATE
+
+# Compute a deterministic hash for a file or directory
+# Usage: hash=$(compute_item_hash "/path/to/item")
+compute_item_hash() {
+  local path="$1"
+  if [[ -d "$path" ]]; then
+    (cd "$path" && find . -type f -print0 | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)
+  elif [[ -f "$path" ]]; then
+    sha256sum "$path" | cut -d' ' -f1
+  else
+    echo ""
+  fi
+}
+
+# Load sync state from file into SYNC_STATE associative array
+# Usage: load_sync_state "/path/to/sync-file"
+load_sync_state() {
+  local sync_file="$1"
+  SYNC_STATE=()
+  [[ -f "$sync_file" ]] || return 0
+  while IFS=' ' read -r hash key; do
+    [[ -z "$hash" || "$hash" == "#"* ]] && continue
+    SYNC_STATE["$key"]="$hash"
+  done < "$sync_file"
+  log_verbose "Loaded ${#SYNC_STATE[@]} sync baselines"
+}
+
+# Get the stored hash for a sync key
+# Usage: hash=$(get_sync_hash "category/item_name")
+get_sync_hash() {
+  echo "${SYNC_STATE[$1]:-}"
+}
+
+# Set the hash for a sync key
+# Usage: set_sync_hash "category/item_name" "hash_value"
+set_sync_hash() {
+  SYNC_STATE["$1"]="$2"
+}
+
+# Save sync state to file (skips if DRY_RUN=1)
+# Usage: save_sync_state "/path/to/sync-file"
+# Requires: DRY_RUN variable
+save_sync_state() {
+  local sync_file="$1"
+  [[ "${DRY_RUN:-0}" -eq 1 ]] && return 0
+  : > "$sync_file"
+  for key in $(echo "${!SYNC_STATE[@]}" | tr ' ' '\n' | sort); do
+    echo "${SYNC_STATE[$key]} $key" >> "$sync_file"
+  done
+  log_verbose "Saved ${#SYNC_STATE[@]} sync baselines"
+}
+
+# Prune sync state entries where the source item no longer exists
+# Usage: prune_sync_state "/path/to/source/dir"
+prune_sync_state() {
+  local source_dir="$1"
+  local pruned=0
+  for key in "${!SYNC_STATE[@]}"; do
+    local category="${key%%/*}"
+    local item_name="${key#*/}"
+    local source_path="$source_dir/$key"
+    # Skills are directories, others are files
+    if [[ "$category" == "skills" ]]; then
+      [[ -d "$source_path" ]] && continue
+    else
+      [[ -f "$source_path" ]] && continue
+    fi
+    unset 'SYNC_STATE[$key]'
+    log_verbose "Pruned stale sync entry: $key"
+    ((pruned++)) || true
+  done
+  [[ "$pruned" -gt 0 ]] && echo "Pruned $pruned stale sync entries" || true
+}
+
+# --- End sync state ---
+
 # Check if a command exists
 # Usage: command_exists "curl"
 command_exists() {

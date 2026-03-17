@@ -8,22 +8,40 @@
 #   my-bpm-library-pull --force          Overwrite even on conflicts (repo wins)
 #   my-bpm-library-pull --clean            Remove local items that no longer exist in repo
 #   my-bpm-library-pull --only-skills    Pull only skills
+#   my-bpm-library-pull --push-inventory Push host inventory to remote after commit
 #   my-bpm-library-pull --verbose        Show detailed output
 #
 # Requires: git
 
 set -euo pipefail
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 REPO_NAME="bpm-claude-global-agent-skill-library"
 REPO_URL="git@github.com:BPMspaceUG/bpm-claude-global-agent-skill-library.git"
 REPO_DIR="$HOME/$REPO_NAME"
+
+# Source shared library early (provides: ORG_PREFIX, get_target_dir, log_verbose,
+# compute_item_hash, load/save/get/set_sync_hash, prune_sync_state,
+# write_host_inventory, SYNC_STATE, etc.)
+# Resolve script directory (portable symlink resolution)
+_resolve_script_dir() {
+  local src="$1"
+  while [[ -L "$src" ]]; do
+    local dir="$(cd "$(dirname "$src")" && pwd -P)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="$dir/$src"
+  done
+  cd "$(dirname "$src")" && pwd -P
+}
+SCRIPT_DIR="$(_resolve_script_dir "$0")"
+source "$SCRIPT_DIR/lib.sh"
 
 # Defaults
 DRY_RUN=0
 VERBOSE=0
 FORCE=0
 CLEAN=0
+PUSH_INVENTORY=0
 ONLY_SKILLS=0
 ONLY_AGENTS=0
 ONLY_COMMANDS=0
@@ -31,96 +49,6 @@ ONLY_RUNBOOKS=0
 
 # Categories to sync
 CATEGORIES=(skills agents commands runbooks)
-
-# Determine target directory (check which one Claude Code actually uses)
-get_target_dir() {
-  # Prefer the directory that has settings.json (= actively used by Claude Code)
-  if [[ -f "$HOME/.claude/settings.json" ]]; then
-    echo "$HOME/.claude"
-  elif [[ -f "$HOME/.config/claude/settings.json" ]]; then
-    echo "$HOME/.config/claude"
-  elif [[ -d "$HOME/.claude" ]]; then
-    echo "$HOME/.claude"
-  elif [[ -d "$HOME/.config/claude" ]]; then
-    echo "$HOME/.config/claude"
-  else
-    echo "$HOME/.claude"
-  fi
-}
-
-log_verbose() {
-  if [[ "$VERBOSE" -eq 1 ]]; then
-    echo "[DEBUG] $*" >&2
-  fi
-}
-
-# --- Sync state management (conflict detection) ---
-
-declare -A SYNC_STATE
-
-# Compute a deterministic hash for a file or directory
-compute_item_hash() {
-  local path="$1"
-  if [[ -d "$path" ]]; then
-    (cd "$path" && find . -type f -print0 | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)
-  elif [[ -f "$path" ]]; then
-    sha256sum "$path" | cut -d' ' -f1
-  else
-    echo ""
-  fi
-}
-
-load_sync_state() {
-  local sync_file="$1"
-  SYNC_STATE=()
-  [[ -f "$sync_file" ]] || return 0
-  while IFS=' ' read -r hash key; do
-    [[ -z "$hash" || "$hash" == "#"* ]] && continue
-    SYNC_STATE["$key"]="$hash"
-  done < "$sync_file"
-  log_verbose "Loaded ${#SYNC_STATE[@]} sync baselines"
-}
-
-get_sync_hash() {
-  echo "${SYNC_STATE[$1]:-}"
-}
-
-set_sync_hash() {
-  SYNC_STATE["$1"]="$2"
-}
-
-save_sync_state() {
-  local sync_file="$1"
-  [[ "$DRY_RUN" -eq 1 ]] && return 0
-  : > "$sync_file"
-  for key in $(echo "${!SYNC_STATE[@]}" | tr ' ' '\n' | sort); do
-    echo "${SYNC_STATE[$key]} $key" >> "$sync_file"
-  done
-  log_verbose "Saved ${#SYNC_STATE[@]} sync baselines"
-}
-
-# Prune sync state entries where the repo item no longer exists
-prune_sync_state() {
-  local repo_my_dir="$1"
-  local pruned=0
-  for key in "${!SYNC_STATE[@]}"; do
-    local category="${key%%/*}"
-    local item_name="${key#*/}"
-    local repo_path="$repo_my_dir/$key"
-    # Skills are directories, others are files
-    if [[ "$category" == "skills" ]]; then
-      [[ -d "$repo_path" ]] && continue
-    else
-      [[ -f "$repo_path" ]] && continue
-    fi
-    unset 'SYNC_STATE[$key]'
-    log_verbose "Pruned stale sync entry: $key"
-    ((pruned++)) || true
-  done
-  [[ "$pruned" -gt 0 ]] && echo "Pruned $pruned stale sync entries" || true
-}
-
-# --- End sync state ---
 
 show_help() {
   echo "my-bpm-library-pull v$VERSION - Pull my-bpm-items from repo to local"
@@ -131,6 +59,7 @@ show_help() {
   echo "  my-bpm-library-pull --force          Overwrite even on conflicts (repo wins)"
   echo "  my-bpm-library-pull --clean          Remove local items not present in repo"
   echo "  my-bpm-library-pull --verbose        Show detailed output"
+  echo "  my-bpm-library-pull --push-inventory Push host inventory to remote"
   echo "  my-bpm-library-pull --only-skills    Pull only skills"
   echo "  my-bpm-library-pull --only-agents    Pull only agents"
   echo "  my-bpm-library-pull --only-commands  Pull only commands"
@@ -146,6 +75,7 @@ for arg in "$@"; do
     --verbose)       VERBOSE=1 ;;
     --force)         FORCE=1 ;;
     --clean)         CLEAN=1 ;;
+    --push-inventory) PUSH_INVENTORY=1 ;;
     --only-skills)   ONLY_SKILLS=1 ;;
     --only-agents)   ONLY_AGENTS=1 ;;
     --only-commands) ONLY_COMMANDS=1 ;;
@@ -234,7 +164,7 @@ for category in "${CATEGORIES[@]}"; do
 
   # Handle skills (directories with SKILL.md)
   if [[ "$category" == "skills" ]]; then
-    for item_dir in "$REPO_CAT_DIR"/my-*/; do
+    for item_dir in "$REPO_CAT_DIR"/my-"${ORG_PREFIX}"-*/; do
       [[ -d "$item_dir" ]] || continue
       item_name=$(basename "$item_dir")
       local_item="$LOCAL_CAT_DIR/$item_name"
@@ -293,7 +223,7 @@ for category in "${CATEGORIES[@]}"; do
     done
 
     # Check for local items not in repo
-    for local_item in "$LOCAL_CAT_DIR"/my-*/; do
+    for local_item in "$LOCAL_CAT_DIR"/my-"${ORG_PREFIX}"-*/; do
       [[ -d "$local_item" ]] || continue
       item_name=$(basename "$local_item")
       repo_item="$REPO_CAT_DIR/$item_name"
@@ -308,7 +238,7 @@ for category in "${CATEGORIES[@]}"; do
     done
   else
     # Handle agents, commands, runbooks (flat .md files)
-    for item_file in "$REPO_CAT_DIR"/my-*.md; do
+    for item_file in "$REPO_CAT_DIR"/my-"${ORG_PREFIX}"-*.md; do
       [[ -f "$item_file" ]] || continue
       item_name=$(basename "$item_file")
       local_item="$LOCAL_CAT_DIR/$item_name"
@@ -364,7 +294,7 @@ for category in "${CATEGORIES[@]}"; do
     done
 
     # Check for local items not in repo
-    for local_item in "$LOCAL_CAT_DIR"/my-*.md; do
+    for local_item in "$LOCAL_CAT_DIR"/my-"${ORG_PREFIX}"-*.md; do
       [[ -f "$local_item" ]] || continue
       item_name=$(basename "$local_item")
       repo_item="$REPO_CAT_DIR/$item_name"
@@ -385,14 +315,14 @@ save_sync_state "$SYNC_STATE_FILE"
 
 # Write host inventory
 if [[ "$DRY_RUN" -eq 0 ]]; then
-  source "$(dirname "$(readlink -f "$0")")/lib.sh"
   write_host_inventory "$REPO_DIR" "$TARGET_DIR"
-  # Commit inventory (best-effort, no push)
-  cd "$REPO_DIR"
-  if ! git diff --quiet my/hosts/ 2>/dev/null; then
-    git add my/hosts/
-    git commit -m "Update host inventory: $(hostname)" --no-gpg-sign 2>/dev/null || true
-    git push 2>/dev/null || log_verbose "Could not push host inventory (will push next time)"
+  if [[ "$PUSH_INVENTORY" -eq 1 ]]; then
+    cd "$REPO_DIR"
+    if ! git diff --quiet my/hosts/ 2>/dev/null; then
+      git add my/hosts/
+      git commit -m "Update host inventory: $(hostname)" --no-gpg-sign 2>/dev/null || true
+      git push 2>/dev/null || log_verbose "Could not push host inventory (will push next time)"
+    fi
   fi
 fi
 
