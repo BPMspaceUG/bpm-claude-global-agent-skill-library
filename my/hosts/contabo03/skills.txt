@@ -1,31 +1,5 @@
 # Host: contabo03
-# Updated: 2026-03-04T06:42:23Z
+# Updated: 2026-03-17T07:15:13Z (cleared during c-bpm rename)
 # Category: skills
 #
-my-bpm-api-contract
-my-bpm-appsec-threatlite
-my-bpm-auditor
-my-bpm-bash-secure-script
-my-bpm-bootstrap-ui
-my-bpm-config-secrets
-my-bpm-curlbash-installer
-my-bpm-datatables
-my-bpm-flightphp-pro
-my-bpm-jquery-ajax-forms
-my-bpm-library-manager
-my-bpm-linux-admin
-my-bpm-linux-audit
-my-bpm-llm-selection
-my-bpm-mariadb-migrations
-my-bpm-milestone-type
-my-bpm-n8n-reliability
-my-bpm-php-crud-api-review
-my-bpm-php-flight-mvc
-my-bpm-question-auditor
-my-bpm-redis-keyspace
-my-bpm-release-ops
-my-bpm-repo-scaffold
-my-bpm-skill-creator
-my-bpm-skill-optimizer
-my-bpm-test-harness
-my-bpm-tls-http-headers
+# Will be regenerated on next pull from this host

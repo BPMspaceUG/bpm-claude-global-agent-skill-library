@@ -4,20 +4,20 @@ This repository contains a collection of **agents**, **skills**, **runbooks** an
 
 ## Contents
 
-- `my/` – all custom `my-bpm-`prefixed items (skills, agents, commands, runbooks), versioned and synced across machines
+- `my/` – all custom `c-bpm-`prefixed items (skills, agents, commands, runbooks), versioned and synced across machines
 - `runbooks/` – detailed operational guides for recurring processes
 - `templates/` – issue and pull-request templates
 
 ### my/ Directory
 
-All custom items follow the `my-bpm-` naming convention and live under `my/`:
+All custom items follow the `c-bpm-{type}-{name}` naming convention and live under `my/`:
 
 | Type | Path | Format |
 |------|------|--------|
-| Skills | `my/skills/my-bpm-<name>/` | Directory with `SKILL.md` |
-| Agents | `my/agents/my-bpm-<name>.md` | Flat .md file |
-| Commands | `my/commands/my-bpm-<name>.md` | Flat .md file |
-| Runbooks | `my/runbooks/my-bpm-<name>.md` | Flat .md file |
+| Skills | `my/skills/c-bpm-sk-<name>/` | Directory with `SKILL.md` |
+| Agents | `my/agents/c-bpm-ag-<name>.md` | Flat .md file |
+| Commands | `my/commands/c-bpm-cm-<name>.md` | Flat .md file |
+| Runbooks | `my/runbooks/c-bpm-rb-<name>.md` | Flat .md file |
 
 ## Quick Start (neue Maschine)
 
@@ -27,26 +27,26 @@ Komplettes Setup in 3 Schritten:
 # 1. Repo klonen
 git clone git@github.com:BPMspaceUG/bpm-claude-global-agent-skill-library.git ~/bpm-claude-global-agent-skill-library
 
-# 2. CLI-Tools installieren (bcgasl + my-bpm-library-pull + my-bpm-library-push)
+# 2. CLI-Tools installieren (bcgasl + c-bpm-cm-library-pull + c-bpm-cm-library-push)
 cd ~/bpm-claude-global-agent-skill-library
-./install --global --with-my-bpm-library
+./install --global --with-c-bpm-library
 
-# 3. Alle my-bpm-Items nach ~/.claude/ installieren
-my-bpm-library-pull
+# 3. Alle c-bpm-Items nach ~/.claude/ installieren
+c-bpm-cm-library-pull
 ```
 
 Danach stehen alle Skills, Agents, Commands und Runbooks in Claude Code zur Verfügung.
 
 ### Ohne Repo-Klon (curl|bash)
 
-Nur `bcgasl` + my-bpm-library-Tools installieren (Repo wird beim ersten `my-bpm-library-pull` automatisch geklont):
+Nur `bcgasl` + c-bpm-library-Tools installieren (Repo wird beim ersten `c-bpm-cm-library-pull` automatisch geklont):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global --with-my-bpm-library
-my-bpm-library-pull
+curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global --with-c-bpm-library
+c-bpm-cm-library-pull
 ```
 
-### Nur Standard-Skills (ohne my-bpm-library)
+### Nur Standard-Skills (ohne c-bpm-library)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/sync | bash
@@ -63,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-
 
 ```bash
 cd ~/bpm-claude-global-agent-skill-library && git pull
-my-bpm-library-pull              # Aktualisiert alle my-bpm-Items lokal
+c-bpm-cm-library-pull              # Aktualisiert alle c-bpm-Items lokal
 ```
 
 ### Oder via bcgasl
@@ -74,40 +74,40 @@ bcgasl --n8n                     # Mit n8n-Skills
 bcgasl --dry-run                 # Vorschau ohne Änderungen
 ```
 
-## my-library: Push/Pull Sync
+## c-bpm-library: Push/Pull Sync
 
-Synchronise custom `my-bpm-` items between machines via this Git repository.
+Synchronise custom `c-bpm-` items between machines via this Git repository.
 
 ### Pull (repo → local)
 
 ```bash
-my-bpm-library-pull                  # Pull all my-bpm-items
-my-bpm-library-pull --dry-run        # Preview what would change
-my-bpm-library-pull --force          # Overwrite conflicts (repo wins)
-my-bpm-library-pull --only-skills    # Pull only skills
-my-bpm-library-pull --only-agents    # Pull only agents
-my-bpm-library-pull --only-commands  # Pull only commands
-my-bpm-library-pull --only-runbooks  # Pull only runbooks
-my-bpm-library-pull --verbose        # Detailed output
+c-bpm-cm-library-pull                  # Pull all c-bpm-items
+c-bpm-cm-library-pull --dry-run        # Preview what would change
+c-bpm-cm-library-pull --force          # Overwrite conflicts (repo wins)
+c-bpm-cm-library-pull --only-skills    # Pull only skills
+c-bpm-cm-library-pull --only-agents    # Pull only agents
+c-bpm-cm-library-pull --only-commands  # Pull only commands
+c-bpm-cm-library-pull --only-runbooks  # Pull only runbooks
+c-bpm-cm-library-pull --verbose        # Detailed output
 ```
 
 ### Push (local → repo)
 
 ```bash
-my-bpm-library-push                          # Push all my-bpm-items
-my-bpm-library-push --dry-run                # Preview what would change
-my-bpm-library-push --force                  # Overwrite conflicts (local wins)
-my-bpm-library-push --message "custom msg"   # Custom commit message
-my-bpm-library-push --only-skills            # Push only skills
-my-bpm-library-push --verbose                # Detailed output
+c-bpm-cm-library-push                          # Push all c-bpm-items
+c-bpm-cm-library-push --dry-run                # Preview what would change
+c-bpm-cm-library-push --force                  # Overwrite conflicts (local wins)
+c-bpm-cm-library-push --message "custom msg"   # Custom commit message
+c-bpm-cm-library-push --only-skills            # Push only skills
+c-bpm-cm-library-push --verbose                # Detailed output
 ```
 
 ### Conflict Detection
 
-Both scripts track a SHA256 baseline per item in `~/.claude/.my-bpm-library-sync`. When an item has changed on **both** sides (locally and in the repo) since the last sync, it is flagged as a conflict and **skipped**:
+Both scripts track a SHA256 baseline per item in `~/.claude/.c-bpm-library-sync`. When an item has changed on **both** sides (locally and in the repo) since the last sync, it is flagged as a conflict and **skipped**:
 
 ```
-  X skills/my-bpm-foo (CONFLICT: changed locally AND in repo)
+  X skills/c-bpm-sk-foo (CONFLICT: changed locally AND in repo)
 
 CONFLICTS: 1 item(s) changed on both sides.
   Review manually, then re-run. Or use --force to let repo win.
@@ -125,11 +125,11 @@ CONFLICTS: 1 item(s) changed on both sides.
 
 ```bash
 # Auf Maschine A: neues Item erstellen und pushen
-# (z.B. neuen Skill in ~/.claude/skills/my-bpm-foo/ anlegen)
-my-bpm-library-push
+# (z.B. neuen Skill in ~/.claude/skills/c-bpm-sk-foo/ anlegen)
+c-bpm-cm-library-push
 
 # Auf Maschine B: Items synchronisieren
-my-bpm-library-pull
+c-bpm-cm-library-pull
 ```
 
 ## Usage in Prompts

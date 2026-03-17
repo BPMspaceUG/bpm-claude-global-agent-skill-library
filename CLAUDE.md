@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `my-{org}-` prefix convention (e.g., `my-bpm-`) and are versioned under `my/`.
+This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `c-{org}-{type}-{name}` prefix convention (e.g., `c-bpm-sk-`, `c-bpm-ag-`) and are versioned under `my/`.
 
 ## Architecture
 
@@ -12,42 +12,43 @@ This is the **BPMspace** global agents and skills library for Claude Code CLI. I
 
 ```
 bpm-claude-global-agent-skill-library/
-├── my/                      # All my-bpm-prefixed custom items
-│   ├── skills/              # Directories (my-bpm-<name>/SKILL.md)
-│   ├── agents/              # Flat files (my-bpm-<name>.md)
-│   ├── commands/            # Flat files (my-bpm-<name>.md)
-│   └── runbooks/            # Flat files (my-bpm-<name>.md)
+├── my/                      # All c-bpm-prefixed custom items
+│   ├── skills/              # Directories (c-bpm-sk-<name>/SKILL.md)
+│   ├── agents/              # Flat files (c-bpm-ag-<name>.md)
+│   ├── commands/            # Flat files (c-bpm-cm-<name>.md)
+│   └── runbooks/            # Flat files (c-bpm-rb-<name>.md)
 ├── runbooks/                # Standard operational guides
 ├── templates/               # Issue and PR templates
-├── my-bpm-library-pull      # Pull my-bpm-items from repo to local
-├── my-bpm-library-push      # Push my-bpm-items from local to repo
+├── c-bpm-cm-library-pull    # Pull c-bpm-items from repo to local
+├── c-bpm-cm-library-push    # Push c-bpm-items from local to repo
 ├── bcgasl               # Main install/update command
 ├── install              # Installer script
 ├── sync                 # Sync script
 └── lib.sh               # Shared library functions
 ```
 
-### The `my-{org}-` Naming Convention
+### The `c-{org}-{type}-{name}` Naming Convention
 
-Custom items use the `my-{org}-{name}` pattern, where `{org}` identifies the organization/library:
-- `ORG_PREFIX="bpm"` → all BPMspace items are named `my-bpm-{name}`
+Custom items use the `c-{org}-{type}-{name}` pattern:
+- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"` with type codes: `sk` (skills), `ag` (agents), `cm` (commands), `rb` (runbooks)
+- Example: `c-bpm-sk-bash-secure-script` (a skill), `c-bpm-ag-orchestrator-planner` (an agent)
 - This allows multiple organizations' libraries to coexist without conflicts
-- Original/installed items (without `my-` prefix) keep their original name
+- Original/installed items (without `c-` prefix) keep their original name
 - Two versions can coexist: original for reference, custom for use
 
 ### Agent Hierarchy
 
-The **Orchestrator** (`my-bpm-orchestrator-planner`) coordinates all work:
+The **Orchestrator** (`c-bpm-ag-orchestrator-planner`) coordinates all work:
 - Discovers MCP server availability and publishes an **MCP Availability Handoff**
 - Decomposes goals into tasks with acceptance criteria
 - Assigns work to implementer agents
 
 Implementer agents:
-- **my-bpm-backend-bash-php** - Bash scripts and PHP (Flight MVC)
-- **my-bpm-workflow-n8n-api** - n8n workflows and REST APIs
-- **my-bpm-data-mariadb-redis** - MariaDB migrations and Redis keyspace
-- **my-bpm-security-reviewer** - AppSec reviews, TLS/HTTP headers
-- **my-bpm-qa-tester** - Test harness development and execution
+- **c-bpm-ag-backend-bash-php** - Bash scripts and PHP (Flight MVC)
+- **c-bpm-ag-workflow-n8n-api** - n8n workflows and REST APIs
+- **c-bpm-ag-data-mariadb-redis** - MariaDB migrations and Redis keyspace
+- **c-bpm-ag-security-reviewer** - AppSec reviews, TLS/HTTP headers
+- **c-bpm-ag-qa-tester** - Test harness development and execution
 
 ### Key Patterns
 
@@ -59,27 +60,27 @@ Implementer agents:
 ## Installation
 
 ```bash
-# Install bcgasl + my-bpm-library tools
-curl -fsSL .../install | bash -s -- --global --with-my-bpm-library
+# Install bcgasl + c-bpm-library tools
+curl -fsSL .../install | bash -s -- --global --with-c-bpm-library
 
 # Then use
 bcgasl                    # Install/update agents & skills
-my-bpm-library-pull       # Pull my-bpm-items from repo
-my-bpm-library-push       # Push my-bpm-items to repo
+c-bpm-cm-library-pull     # Pull c-bpm-items from repo
+c-bpm-cm-library-push     # Push c-bpm-items to repo
 ```
 
-## my-bpm-library Workflow
+## c-bpm-library Workflow
 
 ```bash
 # Pull latest from repo
-my-bpm-library-pull
+c-bpm-cm-library-pull
 
 # After creating/modifying items locally
-my-bpm-library-push
+c-bpm-cm-library-push
 
 # Preview without changes
-my-bpm-library-pull --dry-run
-my-bpm-library-push --dry-run
+c-bpm-cm-library-pull --dry-run
+c-bpm-cm-library-push --dry-run
 ```
 
 ## Technology Stack

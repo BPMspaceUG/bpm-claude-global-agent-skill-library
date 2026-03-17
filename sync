@@ -216,10 +216,10 @@ else
   echo "✅ Updated: ${#NEW_FILES[@]} new, ${#MODIFIED_FILES[@]} modified, $UNCHANGED unchanged"
 fi
 
-# Sync my-prefixed items from my/ directory
+# Sync c-bpm-prefixed items from my/ directory
 if [ -d "$EXTRACTED_DIR/my" ]; then
   echo ""
-  echo "Syncing my-bpm-prefixed items..."
+  echo "Syncing c-bpm-prefixed items..."
   MY_NEW=0
   MY_MOD=0
   MY_UNCH=0
@@ -230,7 +230,7 @@ if [ -d "$EXTRACTED_DIR/my" ]; then
 
     if [ "$my_cat" = "skills" ]; then
       # Skills are directories
-      for item_dir in "$MY_SRC"/my-*/; do
+      for item_dir in "$MY_SRC"/c-*/; do
         [ -d "$item_dir" ] || continue
         item_name=$(basename "$item_dir")
         target_item="$TARGET_DIR/skills/$item_name"
@@ -254,7 +254,7 @@ if [ -d "$EXTRACTED_DIR/my" ]; then
     else
       # Agents, commands, runbooks are flat files
       mkdir -p "$TARGET_DIR/$my_cat"
-      for item_file in "$MY_SRC"/my-*.md; do
+      for item_file in "$MY_SRC"/c-*.md; do
         [ -f "$item_file" ] || continue
         item_name=$(basename "$item_file")
         target_item="$TARGET_DIR/$my_cat/$item_name"
@@ -275,11 +275,11 @@ if [ -d "$EXTRACTED_DIR/my" ]; then
   done
 
   if [ "$MY_NEW" -eq 0 ] && [ "$MY_MOD" -eq 0 ]; then
-    echo "   ✅ my-bpm-items already up to date ($MY_UNCH items)"
+    echo "   ✅ c-bpm-items already up to date ($MY_UNCH items)"
   elif [ "$DRY_RUN" -eq 1 ]; then
-    echo "   Would update my-bpm-items: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
+    echo "   Would update c-bpm-items: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
   else
-    echo "   ✅ my-bpm-items updated: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
+    echo "   ✅ c-bpm-items updated: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
   fi
 fi
 

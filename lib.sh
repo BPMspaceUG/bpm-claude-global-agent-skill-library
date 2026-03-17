@@ -10,9 +10,31 @@
 # Current version
 BCGASL_VERSION="1.0.1"
 
-# Organization prefix for my-items (used in naming: my-{ORG_PREFIX}-{name})
+# Naming convention: c-{ORG_PREFIX}-{type}-{name}
+# shellcheck disable=SC2034
+ITEM_PREFIX="c"
 # shellcheck disable=SC2034
 ORG_PREFIX="bpm"
+# Type prefixes for glob patterns
+# shellcheck disable=SC2034
+SK_PREFIX="${ITEM_PREFIX}-${ORG_PREFIX}-sk"  # c-bpm-sk
+# shellcheck disable=SC2034
+CM_PREFIX="${ITEM_PREFIX}-${ORG_PREFIX}-cm"  # c-bpm-cm
+# shellcheck disable=SC2034
+AG_PREFIX="${ITEM_PREFIX}-${ORG_PREFIX}-ag"  # c-bpm-ag
+# shellcheck disable=SC2034
+RB_PREFIX="${ITEM_PREFIX}-${ORG_PREFIX}-rb"  # c-bpm-rb
+
+# Map category name to its type prefix
+# Usage: prefix=$(get_category_prefix "skills")
+get_category_prefix() {
+  case "$1" in
+    skills)   echo "$SK_PREFIX" ;;
+    commands) echo "$CM_PREFIX" ;;
+    agents)   echo "$AG_PREFIX" ;;
+    runbooks) echo "$RB_PREFIX" ;;
+  esac
+}
 
 # Trusted domains for downloads (security: only allow known hosts)
 TRUSTED_DOMAINS=("github.com" "raw.githubusercontent.com")
@@ -410,7 +432,7 @@ validate_extracted_dir() {
 }
 
 # Write host inventory to my/hosts/<HOSTNAME>/
-# Records which my-bpm-items are installed on this host
+# Records which c-bpm items are installed on this host
 # Usage: write_host_inventory "/path/to/repo" "/path/to/claude-dir"
 write_host_inventory() {
   local repo_dir="$1"
@@ -431,7 +453,7 @@ write_host_inventory() {
     echo "# Category: skills"
     echo "#"
     if [[ -d "$claude_dir/skills" ]]; then
-      ls -1 "$claude_dir/skills/" 2>/dev/null | grep '^my-bpm-' | sort
+      ls -1 "$claude_dir/skills/" 2>/dev/null | grep "^${ITEM_PREFIX}-${ORG_PREFIX}-" | sort
     fi
   } > "$host_dir/skills.txt"
 
@@ -442,7 +464,7 @@ write_host_inventory() {
     echo "# Category: commands"
     echo "#"
     if [[ -d "$claude_dir/commands" ]]; then
-      ls -1 "$claude_dir/commands/" 2>/dev/null | grep '^my-bpm-' | sort
+      ls -1 "$claude_dir/commands/" 2>/dev/null | grep "^${ITEM_PREFIX}-${ORG_PREFIX}-" | sort
     fi
   } > "$host_dir/commands.txt"
 
@@ -453,7 +475,7 @@ write_host_inventory() {
     echo "# Category: agents"
     echo "#"
     if [[ -d "$claude_dir/agents" ]]; then
-      ls -1 "$claude_dir/agents/" 2>/dev/null | grep '^my-bpm-' | sort
+      ls -1 "$claude_dir/agents/" 2>/dev/null | grep "^${ITEM_PREFIX}-${ORG_PREFIX}-" | sort
     fi
   } > "$host_dir/agents.txt"
 

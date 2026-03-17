@@ -12,7 +12,7 @@
 
 ## Notes for Next Iteration
 
-- When modifying scripts, update `checksums.sha256` with: `sha256sum bcgasl lib.sh sync install my-bpm-library-pull my-bpm-library-push > checksums.sha256`
+- When modifying scripts, update `checksums.sha256` with: `sha256sum bcgasl lib.sh sync install c-bpm-cm-library-pull c-bpm-cm-library-push > checksums.sha256`
 - New features should consider whether they belong in `lib.sh` (shared functions)
 - Scripts tested and working: `bash ./bcgasl --version` → v1.0.0
 - All CLI flags implemented: --version, --dry-run, --uninstall, --backup, --verbose, --only-*, --n8n, --all

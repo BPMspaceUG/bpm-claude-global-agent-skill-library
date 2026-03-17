@@ -8,8 +8,8 @@
 
 REPO_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
 LIB_SH="${REPO_ROOT}/lib.sh"
-PULL="${REPO_ROOT}/my-bpm-library-pull"
-PUSH="${REPO_ROOT}/my-bpm-library-push"
+PULL="${REPO_ROOT}/c-bpm-cm-library-pull"
+PUSH="${REPO_ROOT}/c-bpm-cm-library-push"
 
 # ============================================================================
 # Syntax checks
@@ -20,12 +20,12 @@ PUSH="${REPO_ROOT}/my-bpm-library-push"
   [ "$status" -eq 0 ]
 }
 
-@test "bash -n my-bpm-library-pull passes" {
+@test "bash -n c-bpm-cm-library-pull passes" {
   run bash -n "$PULL"
   [ "$status" -eq 0 ]
 }
 
-@test "bash -n my-bpm-library-push passes" {
+@test "bash -n c-bpm-cm-library-push passes" {
   run bash -n "$PUSH"
   [ "$status" -eq 0 ]
 }
@@ -211,14 +211,14 @@ PUSH="${REPO_ROOT}/my-bpm-library-push"
   [ "$output" = "0" ]
 }
 
-@test "pull glob patterns reference ORG_PREFIX variable" {
-  # All glob for-loops should contain ORG_PREFIX
-  count=$(grep -c 'ORG_PREFIX' "$PULL")
+@test "pull glob patterns reference cat_prefix variable" {
+  # All glob for-loops should contain cat_prefix
+  count=$(grep -c 'cat_prefix' "$PULL")
   [ "$count" -ge 4 ]
 }
 
-@test "push glob patterns reference ORG_PREFIX variable" {
-  count=$(grep -c 'ORG_PREFIX' "$PUSH")
+@test "push glob patterns reference cat_prefix variable" {
+  count=$(grep -c 'cat_prefix' "$PUSH")
   [ "$count" -ge 4 ]
 }
 

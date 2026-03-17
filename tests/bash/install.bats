@@ -47,12 +47,12 @@ teardown() {
   [[ "$output" == *"BCGASL_URL="* ]]
 }
 
-@test "--with-my-bpm-library block copies lib.sh in local branch" {
+@test "--with-c-bpm-library block copies lib.sh in local branch" {
   run grep 'sudo cp.*lib.sh.*GLOBAL_BIN/lib.sh' "${INSTALL}"
   [ "$status" -eq 0 ]
 }
 
-@test "--with-my-bpm-library block downloads lib.sh in remote branch" {
+@test "--with-c-bpm-library block downloads lib.sh in remote branch" {
   run grep 'MY_LIB_URL=.*lib.sh' "${INSTALL}"
   [ "$status" -eq 0 ]
   run grep 'curl.*MY_LIB_URL.*lib.sh' "${INSTALL}"
@@ -69,15 +69,15 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
-@test "my-bpm-library-compare conditionally copied in local branch" {
+@test "c-bpm-cm-library-compare conditionally copied in local branch" {
   # Should check if file exists before copying
-  run grep 'if.*-f.*my-bpm-library-compare' "${INSTALL}"
+  run grep 'if.*-f.*c-bpm-cm-library-compare' "${INSTALL}"
   [ "$status" -eq 0 ]
 }
 
-@test "my-bpm-library-compare chown/chmod is conditional" {
+@test "c-bpm-cm-library-compare chown/chmod is conditional" {
   # chown/chmod for compare should be inside an if block
-  run grep -A2 'if.*-f.*GLOBAL_BIN/my-bpm-library-compare' "${INSTALL}"
+  run grep -A2 'if.*-f.*GLOBAL_BIN/c-bpm-cm-library-compare' "${INSTALL}"
   [ "$status" -eq 0 ]
   [[ "$output" == *"chown"* ]]
 }
@@ -99,7 +99,7 @@ teardown() {
   done
 }
 
-@test "usage output mentions my-bpm-library-compare" {
-  run grep 'my-bpm-library-compare' "${INSTALL}"
+@test "usage output mentions c-bpm-cm-library-compare" {
+  run grep 'c-bpm-cm-library-compare' "${INSTALL}"
   [ "$status" -eq 0 ]
 }

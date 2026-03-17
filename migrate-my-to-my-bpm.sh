@@ -2,6 +2,11 @@
 #
 # migrate-my-to-my-bpm.sh - One-time migration for existing bcgasl installations
 #
+# NOTE: This script is OUTDATED. The naming convention has changed from
+# my-bpm-{name} to c-bpm-{type}-{name}. This script only handles the old
+# my-{name} -> my-bpm-{name} rename. A new migration script is needed for
+# the my-bpm-{name} -> c-bpm-{type}-{name} transition.
+#
 # Renames local my-* items to my-bpm-* and patches internal references.
 # Only touches known BPM items (hardcoded list) — other my-* items are untouched.
 #

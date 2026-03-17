@@ -206,7 +206,7 @@ if [[ "$ONLY_SKILLS" -eq 1 ]] || [[ "$ONLY_AGENTS" -eq 1 ]] || [[ "$ONLY_COMMAND
 fi
 
 TARGET_DIR="$(get_target_dir)"
-SYNC_STATE_FILE="$TARGET_DIR/.my-bpm-library-sync"
+SYNC_STATE_FILE="$TARGET_DIR/.c-bpm-library-sync"
 load_sync_state "$SYNC_STATE_FILE"
 
 # Skip git operations (no real repo)
@@ -429,7 +429,7 @@ if [[ "$ONLY_SKILLS" -eq 1 ]] || [[ "$ONLY_AGENTS" -eq 1 ]] || [[ "$ONLY_COMMAND
 fi
 
 SOURCE_DIR="$(get_source_dir)"
-SYNC_STATE_FILE="$SOURCE_DIR/.my-bpm-library-sync"
+SYNC_STATE_FILE="$SOURCE_DIR/.c-bpm-library-sync"
 load_sync_state "$SYNC_STATE_FILE"
 
 NEW_ITEMS=()
@@ -584,7 +584,7 @@ PUSHEOF
 }
 
 # ============================================================
-echo -e "${CYAN}=== my-bpm-library Conflict Detection Test Suite ===${NC}"
+echo -e "${CYAN}=== c-bpm-library Conflict Detection Test Suite ===${NC}"
 echo ""
 
 # ============================================================
@@ -605,8 +605,8 @@ assert_contains "Shows as new" "$OUTPUT" "+ agents/my-test-agent.md (new)"
 assert_contains "Count: 1 new" "$OUTPUT" "new=1"
 assert "File copied to local" "[[ -f '$FAKE_CLAUDE/agents/my-test-agent.md' ]]"
 assert_file_content "Content matches repo" "$FAKE_CLAUDE/agents/my-test-agent.md" "repo content v1"
-assert "Baseline created" "[[ -f '$FAKE_CLAUDE/.my-bpm-library-sync' ]]"
-assert "Baseline has entry" "grep -q 'agents/my-test-agent.md' '$FAKE_CLAUDE/.my-bpm-library-sync'"
+assert "Baseline created" "[[ -f '$FAKE_CLAUDE/.c-bpm-library-sync' ]]"
+assert "Baseline has entry" "grep -q 'agents/my-test-agent.md' '$FAKE_CLAUDE/.c-bpm-library-sync'"
 echo ""
 
 # ----------------------------------------------------------
@@ -620,7 +620,7 @@ OUTPUT=$("$TEST_DIR/test-pull" --only-agents 2>&1)
 assert_contains "Count: 1 unchanged" "$OUTPUT" "unchanged=1"
 assert_not_contains "Not shown as new/modified" "$OUTPUT" "+"
 assert_not_contains "Not shown as modified" "$OUTPUT" "~"
-assert "Baseline recorded" "grep -q 'agents/my-test-agent.md' '$FAKE_CLAUDE/.my-bpm-library-sync'"
+assert "Baseline recorded" "grep -q 'agents/my-test-agent.md' '$FAKE_CLAUDE/.c-bpm-library-sync'"
 echo ""
 
 # ----------------------------------------------------------
@@ -718,7 +718,7 @@ echo "repo content" > "$FAKE_REPO/my/agents/my-test-agent.md"
 OUTPUT=$("$TEST_DIR/test-pull" --only-agents --dry-run 2>&1)
 assert_contains "Shows as new" "$OUTPUT" "+ agents/my-test-agent.md (new)"
 assert "File NOT created" "[[ ! -f '$FAKE_CLAUDE/agents/my-test-agent.md' ]]"
-assert "Sync state NOT created" "[[ ! -f '$FAKE_CLAUDE/.my-bpm-library-sync' ]]"
+assert "Sync state NOT created" "[[ ! -f '$FAKE_CLAUDE/.c-bpm-library-sync' ]]"
 echo ""
 
 # ----------------------------------------------------------
@@ -1011,12 +1011,12 @@ echo "v1" > "$FAKE_REPO/my/agents/my-persist.md"
 echo "v1" > "$FAKE_CLAUDE/agents/my-persist.md"
 # Run 1: establish baseline
 "$TEST_DIR/test-pull" --only-agents > /dev/null 2>&1
-assert "Sync file exists after run 1" "[[ -f '$FAKE_CLAUDE/.my-bpm-library-sync' ]]"
-HASH1=$(grep 'agents/my-persist.md' "$FAKE_CLAUDE/.my-bpm-library-sync" | cut -d' ' -f1)
+assert "Sync file exists after run 1" "[[ -f '$FAKE_CLAUDE/.c-bpm-library-sync' ]]"
+HASH1=$(grep 'agents/my-persist.md' "$FAKE_CLAUDE/.c-bpm-library-sync" | cut -d' ' -f1)
 assert "Hash recorded" "[[ -n '$HASH1' ]]"
 # Run 2: unchanged — baseline should stay
 "$TEST_DIR/test-pull" --only-agents > /dev/null 2>&1
-HASH2=$(grep 'agents/my-persist.md' "$FAKE_CLAUDE/.my-bpm-library-sync" | cut -d' ' -f1)
+HASH2=$(grep 'agents/my-persist.md' "$FAKE_CLAUDE/.c-bpm-library-sync" | cut -d' ' -f1)
 assert "Hash unchanged after run 2" "[[ '$HASH1' == '$HASH2' ]]"
 echo ""
 
@@ -1026,14 +1026,14 @@ setup_environment
 create_test_push
 echo "new" > "$FAKE_CLAUDE/agents/my-drytest.md"
 # Remove sync file if exists
-rm -f "$FAKE_CLAUDE/.my-bpm-library-sync"
+rm -f "$FAKE_CLAUDE/.c-bpm-library-sync"
 
 OUTPUT=$("$TEST_DIR/test-push" --only-agents --dry-run 2>&1)
 assert_contains "Shows as new" "$OUTPUT" "+ agents/my-drytest.md (new)"
 # Sync state should not be created in dry-run... but our script creates it empty
 # Actually save_sync_state returns early on dry-run, so file should not exist
 # unless it existed before
-assert "Sync state NOT created" "[[ ! -f '$FAKE_CLAUDE/.my-bpm-library-sync' ]]"
+assert "Sync state NOT created" "[[ ! -f '$FAKE_CLAUDE/.c-bpm-library-sync' ]]"
 echo ""
 
 # ----------------------------------------------------------
@@ -1043,12 +1043,12 @@ create_test_pull
 echo "v1" > "$FAKE_REPO/my/agents/my-evolve.md"
 # Run 1: new item
 "$TEST_DIR/test-pull" --only-agents > /dev/null 2>&1
-HASH_V1=$(grep 'agents/my-evolve.md' "$FAKE_CLAUDE/.my-bpm-library-sync" | cut -d' ' -f1)
+HASH_V1=$(grep 'agents/my-evolve.md' "$FAKE_CLAUDE/.c-bpm-library-sync" | cut -d' ' -f1)
 # Change repo
 echo "v2" > "$FAKE_REPO/my/agents/my-evolve.md"
 # Run 2: modified
 "$TEST_DIR/test-pull" --only-agents > /dev/null 2>&1
-HASH_V2=$(grep 'agents/my-evolve.md' "$FAKE_CLAUDE/.my-bpm-library-sync" | cut -d' ' -f1)
+HASH_V2=$(grep 'agents/my-evolve.md' "$FAKE_CLAUDE/.c-bpm-library-sync" | cut -d' ' -f1)
 assert "Baseline updated after sync" "[[ '$HASH_V1' != '$HASH_V2' ]]"
 assert_file_content "Local updated to v2" "$FAKE_CLAUDE/agents/my-evolve.md" "v2"
 # Now change repo again
@@ -1087,11 +1087,11 @@ create_test_pull
 echo "original" > "$FAKE_REPO/my/agents/my-skip.md"
 echo "original" > "$FAKE_CLAUDE/agents/my-skip.md"
 "$TEST_DIR/test-pull" --only-agents > /dev/null 2>&1
-HASH_BEFORE=$(grep 'agents/my-skip.md' "$FAKE_CLAUDE/.my-bpm-library-sync" | cut -d' ' -f1)
+HASH_BEFORE=$(grep 'agents/my-skip.md' "$FAKE_CLAUDE/.c-bpm-library-sync" | cut -d' ' -f1)
 echo "repo v2" > "$FAKE_REPO/my/agents/my-skip.md"
 echo "local v2" > "$FAKE_CLAUDE/agents/my-skip.md"
 "$TEST_DIR/test-pull" --only-agents > /dev/null 2>&1
-HASH_AFTER=$(grep 'agents/my-skip.md' "$FAKE_CLAUDE/.my-bpm-library-sync" | cut -d' ' -f1)
+HASH_AFTER=$(grep 'agents/my-skip.md' "$FAKE_CLAUDE/.c-bpm-library-sync" | cut -d' ' -f1)
 assert "Baseline unchanged on conflict skip" "[[ '$HASH_BEFORE' == '$HASH_AFTER' ]]"
 echo ""
 
