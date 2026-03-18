@@ -24,7 +24,7 @@ Activated when the user says:
 - or any variation requesting critical examination of an idea or design
 
 Accepts an optional argument describing the idea or plan to grill. If no argument
-is provided, ask: "Was soll ich grillen? Beschreib mir den Plan oder die Idee."
+is provided, ask: "What should I grill? Describe the plan or idea."
 
 ## Interview Protocol
 
@@ -119,7 +119,6 @@ Use these six archetypes. Rotate through them to ensure thorough coverage:
 - If a question can be answered by code exploration, explore the code instead of
   asking the user
 - Keep a running tally of resolved vs. open branches
-- Speak German for conversational framing, English for technical content
 
 ## Stop Signal
 
@@ -160,7 +159,7 @@ Use `[[wiki-links]]` to connect to related ideas in the vault.
 
 ### Fallback
 
-If bpm-ideas is unavailable, ask: "Soll ich eine lokale MD-Datei erstellen?"
+If bpm-ideas is unavailable, ask: "Should I create a local MD file instead?"
 Create the file in the current working directory using the same format.
 
 ### Continuous Documentation
@@ -175,10 +174,10 @@ When all branches are resolved (or stop signal received):
 1. **Final Branch Status** — display the complete branch tracker with all
    RESOLVED, OPEN, and BLOCKED statuses
 
-2. **Assignment Prompt** — ask: "Soll ich das einem Repo/Projekt zuweisen?"
+2. **Assignment Prompt** — ask: "Should I assign this to a repo/project?"
 
-3. **Issue Griller Handoff** — ask: "Soll der Issue-Griller
-   (c-bpm-sk-grill-me-issue) uebernehmen?" to convert resolved decisions into
+3. **Issue Griller Handoff** — ask: "Should the issue griller
+   (c-bpm-sk-grill-me-issue) take over?" to convert resolved decisions into
    concrete GitHub issues
 
 4. **Codex Devil's Advocate Review** — invoke:

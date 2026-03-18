@@ -145,9 +145,19 @@ Show exactly what will change before executing. For each approved cluster:
 - Update all referrers: find files linking to moved/renamed items and fix their `[[wiki-links]]`
 
 **GitHub issue mutations:**
-- Update issue bodies with cross-references
-- Close duplicates with comment: "Duplicate of #N — see consolidated discussion there"
-- Add labels to group related issues
+```bash
+# Close as duplicate
+gh issue close {number} -c "Duplicate of #{target}" -R {owner}/{repo}
+
+# Update issue body
+gh issue edit {number} --body "..." -R {owner}/{repo}
+
+# Add labels
+gh issue edit {number} --add-label "{label}" -R {owner}/{repo}
+
+# Add comment
+gh issue comment {number} --body "..." -R {owner}/{repo}
+```
 
 ---
 

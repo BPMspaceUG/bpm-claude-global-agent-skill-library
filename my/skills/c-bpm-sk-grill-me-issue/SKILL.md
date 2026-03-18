@@ -142,7 +142,7 @@ When grilling reveals work outside the target issue's scope:
 3. Before creating: mandatory dedup check against all open issues
 4. Use the repo's issue template if one exists (check `.github/ISSUE_TEMPLATE/`)
 5. New issues get milestone `new` and appropriate type label (`bug`/`enhancement`)
-6. **Max 3 new issues per session** — after 3, re-confirm with user before creating more
+6. **Hard limit: 3 new issues per session.** After 3, inform the user the session limit is reached. Suggest starting a new session if more issues are needed. Do NOT create more than 3 regardless of user request.
 
 ## Termination
 
@@ -177,7 +177,6 @@ Both paths execute the full wrap-up protocol.
 - Always check milestones and labels for compliance with repo conventions
 - One focused question at a time — never bundle multiple questions in one message
 - If a question can be answered by reading code, read the code instead of asking
-- Speak German for conversational framing, English for technical content
 - Never modify labels or milestone without asking the user first
 - Keep the original issue body intact — append refined sections below it
 - Track all created issues to avoid exceeding the 3-per-session limit
