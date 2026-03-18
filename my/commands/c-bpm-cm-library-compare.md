@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash, Read, Glob, Grep
-description: Compare local my-bpm items with the Git repository and show differences. Optionally repair (pull missing, push missing) after user confirmation.
+description: Compare local c-bpm items with the Git repository and show differences. Optionally repair (pull missing, push missing) after user confirmation.
 ---
 
 # /c-bpm-cm-library-compare — Compare local vs repo inventory
