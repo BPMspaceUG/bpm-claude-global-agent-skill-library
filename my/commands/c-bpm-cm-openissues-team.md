@@ -1,7 +1,9 @@
 ---
+name: c-bpm-cm-openissues-team
+description: "Work on all open issues — fix all issues, abarbeiten, alle issues, work on issues. Spawns 2-6 Opus teammates to resolve open GitHub issues in parallel. Codex-reviewed, test-mandatory."
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS, Task, Teammate, SendMessage
 model: opus
-description: Spawn an agent team (2-6 teammates, Opus 4.6) to work on all open GitHub issues in parallel. Security-first, git-pull-first, Codex-reviewed, test-mandatory. Plan approval required before any changes.
+disable-model-invocation: true
 ---
 
 # /c-bpm-cm-openissues-team — Open Issues Agent Team
@@ -11,7 +13,7 @@ You are the TEAM LEAD. You run in DELEGATE MODE.
 - You implement NOTHING yourself — you coordinate, review, and approve ONLY
 - You do NOT write code, do NOT edit files, do NOT run tests yourself
 - Your tools are: spawning teammates, messaging, managing tasks, running Codex reviews, managing GitHub Issues/Milestones via MCP
-- **Read `c-bpm-sk-team-milestones` skill** for milestone lifecycle definitions, transition rules, and Codex gate patterns. Use the FULL lifecycle and create all milestones in Phase 0.
+- **Read `c-bpm-sk-milestone-type` skill** for milestone lifecycle definitions, transition rules, and Codex gate patterns. Use the FULL lifecycle and create all milestones in Phase 0.
 - If you catch yourself about to edit a file or write code: STOP — delegate it to a teammate instead
 
 Start immediately with Phase 0. Do NOT ask the user for confirmation until Phase 2 is complete.
@@ -67,6 +69,19 @@ For EACH security finding: document it and create a GitHub Issue (type: BUG) if 
 - Read `CLAUDE.md`, `SHARED_TASK_NOTES.md`, `agent.md` if they exist
 - Check `.claude/settings.json` for MCP servers
 - Note test framework, linting rules, coding conventions
+
+### 0e. Create Milestones
+Using GitHub MCP, create ALL lifecycle milestones upfront (skip any that already exist):
+1. `new`
+2. `planned`
+3. `plan-approved`
+4. `test-designed`
+5. `test-design-approved`
+6. `implemented`
+7. `tested-success`
+8. `tested-failed`
+9. `test-approved`
+10. `DONE`
 
 ---
 
@@ -168,6 +183,9 @@ Each teammate MUST receive:
 ### Plan Mode
 All teammates MUST be spawned with `mode: "plan"` so they require plan approval before making any changes.
 
+### Milestone: Set `planned`
+Team Lead sets milestone `planned` on each assigned issue before spawning teammates.
+
 ---
 
 ## PHASE 4 — PLAN APPROVAL (CODEX-GATED)
@@ -186,12 +204,14 @@ Every teammate MUST submit a plan BEFORE writing code.
 Teammate submits plan (via ExitPlanMode)
   -> Team Lead reviews plan
   -> Team Lead posts plan as comment on the GitHub Issue
+  -> Team Lead moves issue to milestone: planned
   -> Team Lead executes Codex review:
 
      codex exec --skip-git-repo-check "Review this implementation plan for Issue #<N>. Plan: <plan-summary>. REQUIREMENTS: 1) Test coverage must be included. 2) Changes must be scoped to assigned files. 3) Risk assessment present. 4) Rollback strategy present. Approve or reject with specific reasons."
 
   -> Codex result posted as comment on the GitHub Issue
   -> If BOTH Team Lead AND Codex approve:
+       -> Team Lead moves issue to milestone: plan-approved
        -> Approve the teammate's plan (SendMessage type: plan_approval_response, approve: true)
   -> If EITHER rejects:
        -> Reject with reasons (SendMessage type: plan_approval_response, approve: false, content: "<reasons>")
@@ -215,12 +235,15 @@ After plan approval, teammate designs tests and submits to team-lead.
 ```
 Teammate submits test design (message to team-lead)
   -> Team Lead posts test design as comment on the GitHub Issue
+  -> Team Lead moves issue to milestone: test-designed
   -> Team Lead executes Codex review:
 
      codex exec --skip-git-repo-check "Review test design for Issue #<N>. Tests: <test-description>. Check: edge cases covered, meaningful assertions, no false positives, adequate coverage, follows project test framework (test_framework.sh). Approve or reject."
 
   -> Codex result posted as comment on the GitHub Issue
-  -> If BOTH approve -> teammate proceeds to implementation
+  -> If BOTH approve:
+       -> Team Lead moves issue to milestone: test-design-approved
+       -> Teammate proceeds to implementation
   -> If EITHER rejects -> teammate revises test design
 ```
 
@@ -235,6 +258,7 @@ After test design approval, teammate implements:
 4. Run `shellcheck` on modified `.sh` files
 5. Send completion message to team-lead with summary
 6. Team Lead posts implementation summary as comment on the GitHub Issue
+7. Team Lead moves issue to milestone: `implemented`
 
 **Teammates do NOT commit. Do NOT push. Do NOT create branches.**
 
@@ -243,6 +267,8 @@ After test design approval, teammate implements:
 ## PHASE 7 — TEST VERIFICATION (CODEX-GATED)
 
 ### 7a. Teammate runs tests and reports results
+- If tests pass: Team Lead moves issue to milestone: `tested-success`
+- If tests fail: Team Lead moves issue to milestone: `tested-failed`
 
 ### 7b. Independent Verification
 ```
@@ -254,8 +280,8 @@ Team Lead executes:
   codex exec --skip-git-repo-check "Verify implementation and test results for Issue #<N>. Changes: <summary>. Check: tests passing legitimately, no false positives, test coverage adequate, code quality acceptable. Approve or reject."
 
   -> Verification results posted as comment on the GitHub Issue
-  -> If BOTH approve -> issue is DONE from automation perspective
-  -> If EITHER rejects -> document reason, teammate revises
+  -> If BOTH approve -> Team Lead moves issue to milestone: test-approved — ready for human DONE sign-off
+  -> If EITHER rejects -> Team Lead moves issue to milestone: tested-failed, document reason, teammate revises
 ```
 
 ---

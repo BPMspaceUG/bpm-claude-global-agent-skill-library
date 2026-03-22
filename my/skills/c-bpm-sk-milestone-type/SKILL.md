@@ -1,7 +1,10 @@
 ---
 model: opus
 name: c-bpm-sk-milestone-type
-description: Enforce milestone lifecycle AND issue type on every GitHub issue. Ensures milestones exist, every issue has exactly one milestone, and every issue has a type label (bug or enhancement, always lowercase). Use to audit and fix repos for compliance. Successor to c-bpm-sk-team-milestones.
+description: "Milestone and issue type enforcement — audit milestones, fix issue labels, ensure bug/enhancement, compliance check. Ensures every issue has milestone + type label."
+user-invocable: true
+disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Milestone & Type Enforcement

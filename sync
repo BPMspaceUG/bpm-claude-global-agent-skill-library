@@ -281,6 +281,9 @@ if [ -d "$EXTRACTED_DIR/my" ]; then
   else
     echo "   ✅ c-bpm-items updated: $MY_NEW new, $MY_MOD modified, $MY_UNCH unchanged"
   fi
+
+  # Generate/update skill-rules.json for skill discovery
+  generate_skill_rules_json "$TARGET_DIR"
 fi
 
 # Optionally install the n8n skills pack (only if skills directory is being installed)

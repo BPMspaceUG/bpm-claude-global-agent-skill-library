@@ -1,7 +1,10 @@
 ---
 model: opus
 name: c-bpm-sk-linux-archive
-description: Back up and restore host configurations (dotfiles, tool configs, installed-tools manifest) to the host's bpm-{hostname} GitHub repo. Use when installing tools, changing configs, or recovering a host setup.
+description: "Archive host config — backup dotfiles, save tool configs, host backup, restore setup, config snapshot. Backs up to bpm-{hostname} GitHub repo."
+user-invocable: true
+disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Linux Archive — Host Config Backup
@@ -152,6 +155,16 @@ After archiving, update the installed-tools table in MEMORY.md:
 |------|---------|----------|--------|
 | new-tool | x.y.z | `/path/to/bin` | `~/.config/tool/` |
 ```
+
+## Codex Review Gate
+
+Before executing any destructive or irreversible operation (config backup, git commit, git push), submit plan to Codex for review:
+
+```bash
+codex exec --skip-git-repo-check "Review this archive plan: <plan>. Check: no secrets exposed, correct file selection, follows project conventions. Approve or reject."
+```
+
+If Codex is unavailable: STOP and notify the user.
 
 ## Constraints
 

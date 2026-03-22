@@ -81,12 +81,8 @@ COMMANDS=(
 )
 
 AGENTS=(
-  backend-bash-php
-  data-mariadb-redis
-  orchestrator-planner
-  qa-tester
-  security-reviewer
-  workflow-n8n-api
+  # Agent definitions deprecated — unique content merged into skills
+  # (c-bpm-sk-llm-selection, c-bpm-sk-appsec-threatlite)
 )
 
 # No runbooks list provided — discover dynamically

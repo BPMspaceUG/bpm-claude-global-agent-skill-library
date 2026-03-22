@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-bash-secure-script
-description: Pattern for robust, maintainable, and secure Bash scripts. Use when creating new automation scripts, refactoring existing scripts, or reviewing scripts for security and reliability. Derived from S02.
+description: "Secure Bash script — write bash script, shell script, automation script, bash best practices, set -euo pipefail. Robust, maintainable, and secure Bash patterns."
+user-invocable: true
 ---
 
 # Bash Secure Script

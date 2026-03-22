@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-api-contract
-description: Rules for designing and consuming RESTful APIs consistently with predictable endpoints, filtering, pagination, and error handling. Use when designing HTTP endpoints, integrating with APIs, or reviewing API behaviour. Derived from S08a.
+description: "API design rules — REST API contract, endpoint design, pagination, error handling, API review. Predictable endpoints, filtering, and consistent error responses."
+user-invocable: false
 ---
 
 # Generic API Contract

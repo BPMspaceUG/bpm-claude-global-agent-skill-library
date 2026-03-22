@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-n8n-reliability
-description: Patterns for reliable, maintainable, and versionable n8n workflows. Use when creating or modifying n8n workflows, exporting for version control, or preparing for multi-environment deployment. Derived from S06.
+description: "n8n workflow patterns — create n8n workflow, reliable workflow, version n8n, export workflow, multi-env deploy. Maintainable and versionable n8n workflows."
+user-invocable: false
 ---
 
 # n8n Reliability & Versioning

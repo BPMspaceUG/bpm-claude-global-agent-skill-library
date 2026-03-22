@@ -1,10 +1,9 @@
 ---
 model: opus
 name: c-bpm-sk-grill-me
-description: >
-  Generalist idea griller — stress-test plans, designs, and new ideas through
-  relentless questioning. Resolves each branch of the decision tree one-by-one.
-  Use when user says "grill me", wants to stress-test a plan, or explore an idea.
+description: "Stress-test an idea — grill me, challenge my plan, devil's advocate, poke holes, review my design. Resolves each branch of the decision tree one-by-one through relentless questioning."
+user-invocable: true
+disable-model-invocation: true
 argument-hint: "[idea or plan description]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

@@ -1,7 +1,9 @@
 ---
 model: opus
 name: c-bpm-sk-library-manager
-description: Central knowledge hub for the c-bpm- item convention, library management, and push/pull synchronisation. Use when the user asks about the library, wants to sync items, discusses the c-bpm- naming convention, or needs guidance on creating/managing custom items across skills, agents, commands, and runbooks.
+description: "Library management — c-bpm convention, sync items, push pull library, manage skills, library help. Central knowledge hub for c-bpm- item convention and synchronisation."
+user-invocable: false
+allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # Library Manager
@@ -15,7 +17,6 @@ Central knowledge hub for managing `c-bpm-` prefixed custom items across all art
 | Type | Prefix | Location | Format | Example |
 |------|--------|----------|--------|---------|
 | Skills | `c-bpm-sk-` | `~/.claude/skills/c-bpm-sk-<name>/` | Directory with `SKILL.md` | `c-bpm-sk-flightphp-pro/SKILL.md` |
-| Agents | `c-bpm-ag-` | `~/.claude/agents/c-bpm-ag-<name>.md` | Flat .md file | `c-bpm-ag-orchestrator-planner.md` |
 | Commands | `c-bpm-cm-` | `~/.claude/commands/c-bpm-cm-<name>.md` | Flat .md file | `c-bpm-cm-refactor-repo.md` |
 | Runbooks | `c-bpm-rb-` | `~/.claude/runbooks/c-bpm-rb-<name>.md` | Flat .md file | `c-bpm-rb-deployment.md` |
 
@@ -34,7 +35,6 @@ All `c-bpm-` items are versioned in the Git repository under `my/`:
 bpm-claude-global-agent-skill-library/
 ├── my/
 │   ├── skills/          # Directories (c-bpm-sk-<name>/SKILL.md)
-│   ├── agents/          # Flat files (c-bpm-ag-<name>.md)
 │   ├── commands/        # Flat files (c-bpm-cm-<name>.md)
 │   └── runbooks/        # Flat files (c-bpm-rb-<name>.md)
 ├── c-bpm-cm-library-pull      # Pull script
@@ -81,7 +81,7 @@ User wants to create something new?
 ├── Is it a skill?
 │   ├── Does c-bpm-sk-<name> exist? → Use c-bpm-sk-skill-optimizer
 │   └── New? → Use c-bpm-sk-skill-creator (creates with c-bpm-sk- prefix)
-├── Is it an agent/command/runbook?
+├── Is it a command/runbook?
 │   └── Create as c-bpm-{type}-<name>.md in appropriate directory
 └── After creation:
     └── Run c-bpm-cm-library-push to version it
@@ -92,11 +92,6 @@ User wants to create something new?
 ### New Skill
 1. Use `c-bpm-sk-skill-creator` or `c-bpm-sk-skill-optimizer`
 2. Creates `~/.claude/skills/c-bpm-sk-<name>/SKILL.md`
-3. `c-bpm-cm-library-push` to sync to repo
-
-### New Agent
-1. Create `~/.claude/agents/c-bpm-ag-<name>.md`
-2. Follow agent format: Purpose, Responsibilities, Guardrails, Handoff Protocol
 3. `c-bpm-cm-library-push` to sync to repo
 
 ### New Command

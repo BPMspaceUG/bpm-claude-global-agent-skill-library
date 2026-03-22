@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-flightphp-pro
-description: Senior PHP developer expertise for Flight PHP v3 micro-framework. Covers routing, middleware, DI containers, event system, templates, and API development with PHP 8.3+ strict typing, PSR compliance, and modern patterns. Includes agent team orchestration workflow for building and refactoring Flight PHP projects with Codex-reviewed, milestone-tracked parallel development. Use when building or maintaining Flight PHP applications, creating REST APIs with Flight, configuring Flight routing/middleware/DI, writing PHP code targeting the Flight framework, or orchestrating a team to build/refactor a Flight PHP project.
+description: "Flight PHP expert — Flight framework, PHP routing, middleware, DI container, Flight API, PHP 8.3. Senior-level Flight PHP v3 patterns with PSR compliance and agent team orchestration."
+user-invocable: false
 ---
 
 # Flight PHP Pro

@@ -1,8 +1,10 @@
 ---
 model: opus
 name: c-bpm-sk-linux-audit
-description: Audit a Linux host for runtime conflicts, security issues, and system health. Creates one GitHub Issue per finding in the host's tracking repo (bpm-{hostname}). Runs as agent team with Codex-gated approvals, milestone tracking, and issue types (BUG/ENHANCEMENT). Use when onboarding a new server, after major changes, or on a regular schedule.
+description: "Audit Linux host — server audit, security scan, system health check, host review, onboard server. Creates GitHub Issues per finding in bpm-{hostname}. Agent team with Codex gates."
+user-invocable: true
 disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---
 
 # c-bpm-sk-linux-audit
@@ -162,6 +164,7 @@ After plan approval, each teammate creates their issues:
 - **Dedup**: search before create — skip if matching open issue exists
 - **Log**: skipped findings reported as "already tracked: #{issue-number}"
 - **One issue per finding** — never combine multiple findings into one issue
+- See `c-bpm-sk-milestone-type` for full milestone definitions and transition rules
 
 ---
 

@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-appsec-threatlite
-description: Lightweight threat-model and checklist for application security focusing on file handling safety and common vulnerabilities. Use during security reviews of scripts, code, and workflows, or when handling external input/files. Derived from S10a.
+description: "Security review checklist — threat model, appsec review, vulnerability check, file handling safety, auth review, compliance, remediation tracking. Lightweight security review with structured reporting."
+user-invocable: false
 ---
 
 # AppSec & Threat Lite
@@ -19,6 +20,10 @@ Lightweight threat-model and checklist for application security, focusing on fil
 - [ ] Log security events (login attempts, permission changes) with timestamps
 - [ ] Least privilege: scripts and processes run with minimal permissions
 - [ ] Dependencies up to date and free from known vulnerabilities
+- [ ] Review authentication and authorisation in backends and APIs
+- [ ] Review `.env` and configuration files for secrets exposure
+- [ ] Verify TLS and HTTP header configuration (see c-bpm-sk-tls-http-headers)
+- [ ] Consider compliance requirements (GDPR, PCI) where applicable
 
 ## Snippets
 
@@ -48,6 +53,20 @@ extract_safe() {
 - File operations protected against traversal and zip-slip
 - Least privilege consistently applied
 - Security controls included in application design
+
+## Remediation Report
+
+Structure security findings as:
+
+| Field | Content |
+|-------|---------|
+| Finding | Description of the vulnerability |
+| Severity | Critical / High / Medium / Low |
+| File/Component | Affected file paths or workflow names |
+| Recommended Action | Specific fix with best practice reference |
+| Status | Open / In Progress / Resolved |
+
+Track findings to closure — document vulnerabilities, assign to implementers, do not fix silently.
 
 ## Common Failure Modes
 

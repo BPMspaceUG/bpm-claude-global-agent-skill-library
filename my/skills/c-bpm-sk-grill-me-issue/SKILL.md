@@ -1,10 +1,9 @@
 ---
 model: opus
 name: c-bpm-sk-grill-me-issue
-description: >
-  Refine a GitHub Issue through research, dedup detection, milestone validation,
-  and relentless questioning. Issue exists first, then gets grilled. Use when
-  user says "grill issue #N", "refine issue", or references an issue to improve.
+description: "Grill a GitHub Issue — grill issue, refine issue, improve issue, sharpen issue, review issue quality. Researches, dedup-checks, validates milestone, and questions relentlessly."
+user-invocable: true
+disable-model-invocation: true
 argument-hint: "[issue-number or URL]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

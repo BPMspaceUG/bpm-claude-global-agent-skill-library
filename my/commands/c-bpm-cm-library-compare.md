@@ -1,6 +1,7 @@
 ---
+name: c-bpm-cm-library-compare
+description: "Compare skills local vs repo — diff skills, check differences, compare skills, what changed. Shows which c-bpm items differ between ~/.claude/ and Git repo. Optionally repairs."
 allowed-tools: Bash, Read, Glob, Grep
-description: Compare local c-bpm items with the Git repository and show differences. Optionally repair (pull missing, push missing) after user confirmation.
 ---
 
 # /c-bpm-cm-library-compare — Compare local vs repo inventory

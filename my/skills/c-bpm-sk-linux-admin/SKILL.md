@@ -1,8 +1,10 @@
 ---
 model: opus
 name: c-bpm-sk-linux-admin
-description: Debian/Ubuntu Linux expert that implements fixes from audit findings. Works on open issues in a host's tracking repo (bpm-{hostname}). Runs as agent team with Codex-gated plan approval, test design approval, and test verification. Segregation of Duty enforced. Use after c-bpm-sk-linux-audit has created issues.
+description: "Linux admin fixes — fix audit findings, implement server fixes, Debian/Ubuntu admin, host remediation. Works on bpm-{hostname} repo issues. Agent team with Codex gates."
+user-invocable: true
 disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---
 
 # c-bpm-sk-linux-admin
@@ -349,6 +351,8 @@ new → planned → plan-approved → implemented → tested-success → test-ap
 ```
 
 Team Lead manages ALL milestone transitions. Teammates recommend but do not set milestones.
+
+See `c-bpm-sk-milestone-type` for full milestone definitions and transition rules.
 
 ---
 

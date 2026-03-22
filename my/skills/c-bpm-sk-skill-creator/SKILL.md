@@ -1,16 +1,21 @@
 ---
 name: c-bpm-sk-skill-creator
 description: >
-  Create new custom skills with Skills 2.0 features and automatic detection of
-  existing c-bpm-sk- versions. Use when the user wants to create a new skill. If a
-  c-bpm-sk- version already exists, delegates to c-bpm-sk-skill-optimizer instead. Enforces
-  c-bpm- naming convention, segregation of duty, and Codex review. Derived from
-  skill-creator with Skills 2.0 enhancements.
+  This skill should be used when the user asks to "create a skill", "new skill", "make skill",
+  "add skill", "build skill", or wants to create a new Claude Code skill from scratch or fork
+  an existing one. Skills 2.0 features, auto-detects existing c-bpm-sk- versions. Delegates
+  to optimizer if found. Enforces naming and Codex review.
 model: opus
 disable-model-invocation: true
 argument-hint: "[skill-name]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
+
+## Currently Installed Custom Skills
+
+The following c-bpm-sk- skills are installed locally. If the list is empty, no custom skills are currently installed.
+
+!`ls -d ~/.claude/skills/c-bpm-sk-* 2>/dev/null | xargs -I{} basename {} | sort`
 
 # Skill Creator (Custom)
 
@@ -55,6 +60,7 @@ When creating a skill, decide which frontmatter fields to include:
 | Should it run isolated? | `context: fork` + optional `agent: <type>` |
 | Can tool access be restricted? | `allowed-tools: Tool1, Tool2` |
 | Does it need a specific model? | `model: opus` or `model: sonnet` |
+| Should it override effort level? | `effort: high` or `effort: low` |
 | Does it need runtime data? | Use `!`command`` dynamic injection |
 | Does it reference bundled files? | Use `${CLAUDE_SKILL_DIR}` |
 
@@ -140,6 +146,9 @@ After real usage, improvements go through `c-bpm-sk-skill-optimizer`.
 - **NEVER modify non-prefixed skills** unless confirmed user-created
 - Fork first, then modify the `c-bpm-sk-` version
 
+### Issue Lifecycle
+- Follow `c-bpm-sk-milestone-type` for issue lifecycle and type enforcement when creating or tracking issues
+
 ### Progressive Disclosure
 - SKILL.md body under 500 lines
 - Split detailed content into `references/` files
@@ -148,6 +157,13 @@ After real usage, improvements go through `c-bpm-sk-skill-optimizer`.
 ### No Clutter
 - No README.md, CHANGELOG.md, INSTALLATION_GUIDE.md
 - Only SKILL.md + scripts/ + references/ + assets/ as needed
+
+## Upstream Capabilities
+
+The original `skill-creator` (installed via marketplace) includes additional features
+not replicated here: eval/benchmark workflows, description optimization via `run_loop.py`,
+and blind A/B comparison. For these advanced workflows, load the original `skill-creator`
+skill directly.
 
 ## Library Integration
 

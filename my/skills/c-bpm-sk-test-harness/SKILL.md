@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-test-harness
-description: Consistent approach to building and running tests across Bash, PHP, and APIs. Use when creating test suites, expanding test coverage, or integrating tests into CI pipelines. Derived from S11.
+description: "Test harness — write tests, create test suite, test coverage, CI testing, Bash/PHP/API tests. Consistent approach to building and running tests."
+user-invocable: true
 ---
 
 # Test Harness

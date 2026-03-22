@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-bootstrap-ui
-description: Guidance for building UIs with Bootstrap focusing on consistent styling, responsiveness, and accessibility. Use when creating modals, forms, alerts, and responsive layouts with Bootstrap. Derived from S09c.
+description: "Bootstrap UI patterns — build UI, create modal, responsive layout, form design, Bootstrap components. Consistent styling, responsiveness, and accessibility."
+user-invocable: true
 ---
 
 # Bootstrap UI Patterns

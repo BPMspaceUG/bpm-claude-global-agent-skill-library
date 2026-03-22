@@ -1,17 +1,21 @@
 ---
 name: c-bpm-sk-skill-optimizer
 description: >
-  Optimize existing custom skills for Skills 2.0 features and best practices.
-  Use when the user wants to improve, refactor, or upgrade a skill — especially
-  adding frontmatter fields (context, allowed-tools, disable-model-invocation,
-  argument-hint, hooks), supporting files, dynamic context injection, or
-  subagent configuration. Enforces the c-bpm- naming convention. Derived from
-  skill-creator with Skills 2.0 enhancements.
+  This skill should be used when the user asks to "optimize a skill", "improve skill",
+  "refactor skill", "upgrade skill", "enhance skill", "add Skills 2.0 features to a skill",
+  or wants to audit an existing skill against the Skills 2.0 checklist. Adds frontmatter,
+  supporting files, dynamic context, subagent config. Enforces c-bpm- naming.
 model: opus
 disable-model-invocation: true
 argument-hint: "[skill-name]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
+
+## Currently Installed Custom Skills
+
+The following c-bpm-sk- skills are installed locally. If the list is empty, no custom skills are currently installed.
+
+!`ls -d ~/.claude/skills/c-bpm-sk-* 2>/dev/null | xargs -I{} basename {} | sort`
 
 # Skill Optimizer
 
@@ -33,6 +37,7 @@ When optimizing a skill, check whether these features would improve it:
 | `argument-hint` | Skills that accept arguments — show hint in autocomplete |
 | `hooks` | Skills needing lifecycle event handling |
 | `model` | Override model for specific skills (e.g., `opus` for complex tasks) |
+| `effort` | Override model effort level (e.g., `high` for thorough analysis) |
 | `!`command`` | Dynamic context injection — run shell commands before prompt |
 | `${CLAUDE_SKILL_DIR}` | Reference scripts/files bundled with the skill |
 | `${CLAUDE_SESSION_ID}` | Session-specific logging or file creation |
@@ -115,6 +120,8 @@ Skill content: <skill content>"
 
 If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: notify user, do not proceed without independent review. Log which reviewer was used.
 
+Follow `c-bpm-sk-milestone-type` for issue lifecycle and type enforcement when creating or tracking issues.
+
 ### Step 5: Test
 
 Verify the optimized skill:
@@ -127,10 +134,12 @@ Verify the optimized skill:
 
 ```yaml
 ---
-name: my-example-skill
+name: c-bpm-sk-example
 description: >
-  [What it does]. [When to use it — triggers]. Derived from [original].
+  This skill should be used when the user asks to "[trigger phrase 1]", "[trigger phrase 2]".
+  [What it does]. Derived from [original].
 model: opus                        # Optional: override model
+effort: high                       # Optional: override effort level
 disable-model-invocation: true     # Optional: manual-only
 user-invocable: true               # Optional: hide from / menu
 allowed-tools: Read, Grep, Glob    # Optional: tool whitelist

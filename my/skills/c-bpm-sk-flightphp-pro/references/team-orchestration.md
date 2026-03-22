@@ -62,10 +62,9 @@ Skip any milestone that already exists in the repository.
 - Check for Context7 MCP (key-value store for shared state)
 - Note any other available MCP servers
 
-### Check Existing Skills and Agents
+### Check Existing Skills
 
 - List available skills — prefer specialized skills (e.g., `flightphp-pro`) over generic ones
-- Check for existing agent configurations in `.claude/agents/`
 - Note which skills teammates should load
 
 ### Read Project Context

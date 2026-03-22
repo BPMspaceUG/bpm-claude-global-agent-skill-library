@@ -1,7 +1,9 @@
 ---
+name: c-bpm-cm-refactor-repo
+description: "Refactor this repo — refactor, code cleanup, restructure, reorganize codebase. Spawns 2-6 agent teammates for parallel refactoring. Codex-reviewed, test-mandatory, milestone-tracked."
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS, Task, Teammate, SendMessage
 model: opus
-description: Spawn an agent team (2-6 teammates) to refactor the current repo in parallel. Security-first, Codex-reviewed, test-mandatory. Team Lead runs in delegate mode. All work tracked as GitHub Issues with milestone-based lifecycle.
+disable-model-invocation: true
 ---
 
 # /refactor_repo — Agent Team Refactoring
@@ -35,7 +37,7 @@ Do NOT use labels. Do NOT use tags. Issue Type + Milestone is the only tracking 
 - NEVER create multiple issues for the same improvement
 
 ### Milestone-Based Lifecycle
-**Read `c-bpm-sk-team-milestones` skill for full milestone definitions, rules, and Codex gate patterns.**
+**Read `c-bpm-sk-milestone-type` skill for full milestone definitions, rules, and Codex gate patterns.**
 
 Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only).
 
@@ -74,13 +76,12 @@ GitHub MCP is REQUIRED. If not available: STOP and tell the user to connect a Gi
 
 For each other discovered MCP server: note capabilities and relevance.
 
-### 0c. Existing Skills & Agents
-- `/agents` command to list all available agents (built-in, user, project, plugin)
-- Check `.claude/skills/` and `.claude/agents/` in the project
-- Check `~/.claude/skills/` and `~/.claude/agents/` for user-level
+### 0c. Existing Skills
+- Check `.claude/skills/` in the project
+- Check `~/.claude/skills/` for user-level
 - Check for plugins: `.claude/plugins/` or via `/plugins`
 
-If a specialized agent exists (e.g. security reviewer, test writer): PREFER it over a generic teammate.
+If a specialized skill exists (e.g. appsec-threatlite, test-harness): assign it to the relevant teammate.
 
 ### 0d. Project Context
 - Read `CLAUDE.md`, `.claude/settings.json`, project-level config
@@ -136,7 +137,7 @@ Determine team size (min 2, max 6). Each teammate gets an independent area. NO o
 Present to the user:
 - Analysis results
 - All GitHub Issues created/linked (with numbers)
-- Proposed team structure (teammates, their issues, model choice, which skills/agents/MCP each uses)
+- Proposed team structure (teammates, their issues, model choice, which skills/MCP each uses)
 
 WAIT for user confirmation before creating the team.
 
@@ -159,7 +160,7 @@ Descriptive role names: `security-hardener`, `test-writer`, `code-cleaner`, `dep
 - List of GitHub Issue numbers they are responsible for
 - Expected deliverables
 - Which MCP servers to use (if relevant)
-- Which existing skills/agents to load (if relevant)
+- Which existing skills to load (if relevant)
 - Instruction: send PLAN to team-lead BEFORE writing any code
 
 ---
@@ -263,7 +264,7 @@ After all issues reach `test-approved`:
    - PR summary includes: changes per teammate, test coverage delta, Codex approval status
 
 2. Compile final refactoring report:
-   - Discovery summary (MCP servers, skills, agents found and used)
+   - Discovery summary (MCP servers, skills found and used)
    - Existing issues addressed
    - Security findings
    - Changes per area

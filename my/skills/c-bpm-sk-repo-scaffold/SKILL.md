@@ -1,7 +1,10 @@
 ---
 model: opus
 name: c-bpm-sk-repo-scaffold
-description: Consistent starting point for new projects with directory layout, naming conventions, and baseline files. Use when starting a new project, restructuring a repository, or adding asset types (agents, skills, runbooks, templates). Includes Excalidraw diagram generation for visual documentation. Derived from S01.
+description: "Scaffold a repo — new project, project structure, directory layout, init repo, repository template, Excalidraw diagrams. Consistent starting point with baseline files."
+disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
+argument-hint: "[project-name or path]"
 ---
 
 # Repo & Project Scaffold
@@ -37,6 +40,16 @@ Provide a consistent starting point for new projects, ensuring that directory la
 ├── .gitignore
 └── README.md
 ```
+
+## Codex Review Gate
+
+Before executing any destructive or irreversible operation (directory scaffolding, file overwriting, project restructuring), submit plan to Codex for review:
+
+```bash
+codex exec --skip-git-repo-check "Review this scaffold plan: <plan>. Check: correct structure, no breaking changes, follows project conventions. Approve or reject."
+```
+
+If Codex is unavailable: STOP and notify the user.
 
 ## Success Criteria
 

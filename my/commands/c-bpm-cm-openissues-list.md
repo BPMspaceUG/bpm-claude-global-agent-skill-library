@@ -1,6 +1,7 @@
 ---
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep
-description: Show a table of the local repo's open issues with status, type, and milestone. If no milestones exist in the GitHub repo, creates them and adds the mandatory lifecycle section to the local CLAUDE.md.
+name: c-bpm-cm-openissues-list
+description: "List open GitHub issues — show issues, open issues, issue list, what's open, was ist offen. Displays status, type, and milestone table. Creates milestones if missing."
+allowed-tools: Bash, Read, Write, Edit, Grep
 ---
 
 # /c-bpm-cm-openissues-list — Open Issues Dashboard
@@ -140,7 +141,7 @@ All open issues have milestones assigned. Lifecycle is on track.
 ### If ANY issues lack milestones:
 ```
 {K} issue(s) have no milestone assigned.
-Milestones are available — assign them via GitHub or `/c-bpm-sk-team-milestones`.
+Milestones are available — assign them via GitHub or `/c-bpm-sk-milestone-type`.
 ```
 
 ## Notes

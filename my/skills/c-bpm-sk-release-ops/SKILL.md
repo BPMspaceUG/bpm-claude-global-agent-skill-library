@@ -1,7 +1,9 @@
 ---
 model: opus
 name: c-bpm-sk-release-ops
-description: Process for controlled software releases including versioning, CI/CD, artefact packaging, and rollback procedures. Use before cutting releases, setting up CI/CD, or building deployment playbooks. Derived from S12.
+description: "Release operations — cut a release, versioning, CI/CD setup, deployment, rollback, artefact packaging. Controlled release process and deployment playbooks."
+disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Release & Ops (CI/CD, Versioning & Rollback)
@@ -43,6 +45,16 @@ jobs:
           name: release
           path: release.zip
 ```
+
+## Codex Review Gate
+
+Before executing any destructive or irreversible operation (release cut, tag creation, artefact publishing), submit plan to Codex for review:
+
+```bash
+codex exec --skip-git-repo-check "Review this release plan: <plan>. Check: correct versioning, no breaking changes, follows project conventions. Approve or reject."
+```
+
+If Codex is unavailable: STOP and notify the user.
 
 ## Success Criteria
 

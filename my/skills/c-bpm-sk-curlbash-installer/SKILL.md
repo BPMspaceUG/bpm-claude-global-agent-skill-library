@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-curlbash-installer
-description: Pattern for curl|bash installation, update, and uninstall scripts with YYMMDD-HHMM versioning (dirty/draft/clean). Use when distributing CLI tools, creating installers, or building update mechanisms. Derived from S03 with BPMspace versioning from SM2/bcgasl.
+description: "curl|bash installer — create installer, install script, update script, uninstall script, YYMMDD versioning. Distribution pattern for CLI tools."
+user-invocable: true
 ---
 
 # curl|bash Installer with YYMMDD-HHMM Versioning

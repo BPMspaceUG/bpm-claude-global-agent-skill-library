@@ -1,6 +1,7 @@
 ---
+name: c-bpm-cm-library-pull
+description: "Pull skills from repo — pull from repo, sync skills, update skills, download skills. Syncs c-bpm items (skills, agents, commands, runbooks) from Git repo to local ~/.claude/."
 allowed-tools: Bash
-description: Pull my-prefixed items (skills, agents, commands, runbooks) from the Git repository to local ~/.claude/. Supports --dry-run, --only-skills, --only-agents, --only-commands, --only-runbooks, --verbose.
 argument-hint: "[--dry-run] [--force] [--clean] [--only-skills] [--verbose]"
 ---
 

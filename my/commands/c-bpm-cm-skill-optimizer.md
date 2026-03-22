@@ -1,7 +1,13 @@
 ---
-model: opus
 name: c-bpm-cm-skill-optimizer
-description: Create and optimize custom user skills derived from originals or built from scratch. Use when the user wants to create a new custom skill, optimize an existing skill for their workflow, or fork/customize an installed skill. Enforces the my- naming convention to clearly separate custom skills from originals. Includes Codex-reviewed quality gates, segregation of duty, and optional agent team orchestration for complex skill development. Derived from skill-creator.
+description: >
+  This command should be used when the user asks to "optimize a skill", "improve skill",
+  "refine skill", "upgrade skill", "tune skill". Forks, customizes, or enhances existing
+  skills with Codex-reviewed quality gates and c-bpm- naming.
+disable-model-invocation: true
+argument-hint: "[skill-name]"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+model: opus
 ---
 
 # Skill Optimizer
@@ -17,34 +23,34 @@ The most important principle: **original skills are read-only**.
 | Action | Allowed? | How |
 |--------|----------|-----|
 | Read original skill | YES | Read from `plugins/marketplaces/` or `skills/<original-name>/` |
-| Modify original skill | **NEVER** | Fork to `my-` version first |
+| Modify original skill | **NEVER** | Fork to `c-bpm-sk-` version first |
 | Delete original skill | **NEVER** | Uninstall via marketplace only |
-| Create custom skill | YES | Always with `my-` prefix |
-| Fork original to custom | YES | Copy, rename with `my-` prefix, then modify |
+| Create custom skill | YES | Always with `c-bpm-sk-` prefix |
+| Fork original to custom | YES | Copy, rename with `c-bpm-sk-` prefix, then modify |
 
 ### Why
 
 - Originals may be updated upstream — local edits get overwritten
 - Two versions coexist: original for reference, custom for use
-- Clear audit trail: `my-` = user-created or user-modified
-- Rollback is trivial: delete `my-` version, original still works
+- Clear audit trail: `c-bpm-sk-` = user-created or user-modified
+- Rollback is trivial: delete `c-bpm-sk-` version, original still works
 
-## The `my-` Naming Convention
+## The `c-bpm-` Naming Convention
 
-**Custom/optimized skills MUST use the `my-` prefix.**
+**Custom/optimized skills MUST use the `c-bpm-sk-` prefix.**
 
 | Scenario | Name | Example |
 |----------|------|---------|
 | Installed/original skill | Keep original name | `frontend-design`, `n8n-code-javascript` |
-| New custom skill | `my-` + descriptive name | `my-flightphp-pro`, `my-data-pipeline` |
-| Forked/optimized original | `my-` + original name | `my-frontend-design`, `my-skill-creator` |
+| New custom skill | `c-bpm-sk-` + descriptive name | `c-bpm-sk-flightphp-pro`, `c-bpm-sk-data-pipeline` |
+| Forked/optimized original | `c-bpm-sk-` + original name | `c-bpm-sk-frontend-design`, `c-bpm-sk-skill-creator` |
 | Skills-about-skills | `c-bpm-cm-skill-` + function | `c-bpm-cm-skill-optimizer`, `c-bpm-cm-skill-validator` |
 
 ### Identifying Custom vs. Original
 
 - `LICENSE.txt` present -> likely an installed original
 - No `LICENSE.txt` -> likely user-created
-- Directory starts with `my-` -> definitively user-created/optimized
+- Directory starts with `c-bpm-sk-` -> definitively user-created/optimized
 - Located in `plugins/marketplaces/` -> always original, never touch
 
 ## Skill Creation Workflow
@@ -52,15 +58,15 @@ The most important principle: **original skills are read-only**.
 ### From Scratch
 
 1. Read `skill-creator` SKILL.md for the full creation process (Steps 1-6)
-2. Name the skill with `my-` prefix
+2. Name the skill with `c-bpm-sk-` prefix
 3. Follow all skill-creator conventions (frontmatter, structure, progressive disclosure)
 4. Run Codex review before finalizing (see Codex Review below)
 
 ### Forking an Existing Skill
 
 1. Identify the original: `plugins/marketplaces/` or `skills/<name>/`
-2. Copy to new directory: `cp -r original-name my-original-name`
-3. Update `name:` in SKILL.md frontmatter to `my-original-name`
+2. Copy to new directory: `cp -r original-name c-bpm-sk-original-name`
+3. Update `name:` in SKILL.md frontmatter to `c-bpm-sk-original-name`
 4. Update `description:` — add what was changed/optimized and why, include "Derived from <original>"
 5. Remove `LICENSE.txt` if copied (custom skills don't carry original licenses)
 6. Make modifications
@@ -70,7 +76,7 @@ The most important principle: **original skills are read-only**.
 ### Optimizing a Skill
 
 1. **Identify what to improve** — missing patterns, wrong defaults, better examples, missing references
-2. **Fork first** — copy to `my-` prefixed version (never edit in place)
+2. **Fork first** — copy to `c-bpm-sk-` prefixed version (never edit in place)
 3. **Document changes** — note what differs from the original in the SKILL.md body
 4. **Codex review** — submit changes for review
 5. **Test** — verify the optimized skill triggers correctly and provides better guidance
@@ -113,14 +119,16 @@ Skill content: <skill content>"
 | No duplication | Info in one place only | Same info in SKILL.md and references |
 | Examples over explanations | Concrete code/usage examples | Walls of explanatory text |
 | Lean structure | Only necessary files | README.md, CHANGELOG.md, etc. |
-| Naming convention | `my-` prefix for custom | Missing prefix or renamed original |
+| Naming convention | `c-bpm-sk-` prefix for custom | Missing prefix or renamed original |
 
 ## Frontmatter for Custom Skills
 
 ```yaml
 ---
-name: my-example-skill
-description: [What it does]. [When to use it — explicit triggers]. Derived from/inspired by [original-skill-name] with [what's different].
+name: c-bpm-sk-example
+description: >
+  This skill should be used when the user asks to "[trigger 1]", "[trigger 2]".
+  [What it does]. Derived from/inspired by [original-skill-name] with [what's different].
 ---
 ```
 
@@ -133,7 +141,7 @@ Always mention the origin in the description when forking. This helps track prov
 ├── frontend-design/          # Original (installed) — READ ONLY
 ├── n8n-code-javascript/      # Original (installed) — READ ONLY
 ├── skill-creator/            # Original (installed) — READ ONLY
-├── my-flightphp-pro/         # Custom (user-created)
+├── c-bpm-sk-flightphp-pro/   # Custom (user-created)
 ├── c-bpm-cm-skill-optimizer/   # Custom (derived from skill-creator)
 └── ...
 ```
@@ -155,7 +163,7 @@ Read `references/team-orchestration.md` for the complete phased workflow, milest
 
 ## Library Integration
 
-After creating or optimizing a skill, use `my-library-push` to sync it to the Git repository. See `my-library-manager` skill for the full push/pull workflow and conventions for all artefact types (not just skills).
+After creating or optimizing a skill, use `c-bpm-cm-library-push` to sync it to the Git repository. See `c-bpm-sk-library-manager` skill for the full push/pull workflow and conventions for all artefact types (not just skills).
 
 ## Reference Files
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is the **BPMspace** global agents and skills library for Claude Code CLI. It contains reusable role definitions (agents), task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `c-{org}-{type}-{name}` prefix convention (e.g., `c-bpm-sk-`, `c-bpm-ag-`) and are versioned under `my/`.
+This is the **BPMspace** global skills library for Claude Code CLI. It contains task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `c-{org}-{type}-{name}` prefix convention (e.g., `c-bpm-sk-`, `c-bpm-cm-`) and are versioned under `my/`.
 
 ## Architecture
 
@@ -14,7 +14,6 @@ This is the **BPMspace** global agents and skills library for Claude Code CLI. I
 bpm-claude-global-agent-skill-library/
 ├── my/                      # All c-bpm-prefixed custom items
 │   ├── skills/              # Directories (c-bpm-sk-<name>/SKILL.md)
-│   ├── agents/              # Flat files (c-bpm-ag-<name>.md)
 │   ├── commands/            # Flat files (c-bpm-cm-<name>.md)
 │   └── runbooks/            # Flat files (c-bpm-rb-<name>.md)
 ├── runbooks/                # Standard operational guides
@@ -30,32 +29,17 @@ bpm-claude-global-agent-skill-library/
 ### The `c-{org}-{type}-{name}` Naming Convention
 
 Custom items use the `c-{org}-{type}-{name}` pattern:
-- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"` with type codes: `sk` (skills), `ag` (agents), `cm` (commands), `rb` (runbooks)
-- Example: `c-bpm-sk-bash-secure-script` (a skill), `c-bpm-ag-orchestrator-planner` (an agent)
+- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"` with type codes: `sk` (skills), `cm` (commands), `rb` (runbooks)
+- Example: `c-bpm-sk-bash-secure-script` (a skill), `c-bpm-cm-refactor-repo` (a command)
 - This allows multiple organizations' libraries to coexist without conflicts
 - Original/installed items (without `c-` prefix) keep their original name
 - Two versions can coexist: original for reference, custom for use
 
-### Agent Hierarchy
-
-The **Orchestrator** (`c-bpm-ag-orchestrator-planner`) coordinates all work:
-- Discovers MCP server availability and publishes an **MCP Availability Handoff**
-- Decomposes goals into tasks with acceptance criteria
-- Assigns work to implementer agents
-
-Implementer agents:
-- **c-bpm-ag-backend-bash-php** - Bash scripts and PHP (Flight MVC)
-- **c-bpm-ag-workflow-n8n-api** - n8n workflows and REST APIs
-- **c-bpm-ag-data-mariadb-redis** - MariaDB migrations and Redis keyspace
-- **c-bpm-ag-security-reviewer** - AppSec reviews, TLS/HTTP headers
-- **c-bpm-ag-qa-tester** - Test harness development and execution
-
 ### Key Patterns
 
-- Never probe MCP servers independently; rely on Orchestrator's handoff
 - Never hardcode secrets; use `.env` files
 - Scripts must be idempotent
-- Handoff protocols include required context for downstream agents
+- Use skills for domain knowledge (see `c-bpm-sk-llm-selection` for orchestration and MCP discovery)
 
 ## Installation
 
@@ -64,7 +48,7 @@ Implementer agents:
 curl -fsSL .../install | bash -s -- --global --with-c-bpm-library
 
 # Then use
-bcgasl                    # Install/update agents & skills
+bcgasl                    # Install/update skills
 c-bpm-cm-library-pull     # Pull c-bpm-items from repo
 c-bpm-cm-library-push     # Push c-bpm-items to repo
 ```

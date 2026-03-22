@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-mariadb-migrations
-description: Forward-only migration pattern for MariaDB databases with safe schema changes. Use when adding or altering tables, columns, indexes, or constraints, or when deploying data transformations. Derived from S07a.
+description: "MariaDB migration — database migration, alter table, add column, schema change, SQL migration. Forward-only migration pattern with safe schema changes."
+user-invocable: false
 ---
 
 # MariaDB Migrations

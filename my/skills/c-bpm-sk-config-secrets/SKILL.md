@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-config-secrets
-description: Safe configuration and secrets management via .env files across Bash, PHP, and n8n. Use when scripts or applications require API tokens, database credentials, or other sensitive configuration. Derived from S04.
+description: "Secrets management — .env files, API tokens, credentials, config management, secret handling. Safe configuration across Bash, PHP, and n8n."
+user-invocable: false
 ---
 
 # Config & Secrets (Dotenv)

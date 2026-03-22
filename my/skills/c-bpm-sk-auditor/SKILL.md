@@ -1,9 +1,10 @@
 ---
 model: opus
 name: c-bpm-sk-auditor
-description: "Full repository audit with team-based parallel analysis. Triggers: 'audit this repo', 'review this codebase', 'full report on project', 'check code quality/security/performance', due diligence, maintenance handover. Produces [REPONAME]-YYMMDD-HHSS.md report. No issues created."
+description: "Audit this repo — full codebase review, code quality check, security audit, due diligence, maintenance handover, review this codebase. Produces [REPONAME]-YYMMDD-HHSS.md report. No issues created."
 user-invocable: true
 disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---
 
 # /c-bpm-sk-auditor - Repository Audit Skill

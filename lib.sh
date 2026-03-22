@@ -562,6 +562,265 @@ prune_sync_state() {
 
 # --- End sync state ---
 
+# --- Skill rules generation ---
+
+# Parse YAML frontmatter value from a SKILL.md file
+# Usage: value=$(parse_frontmatter_field "/path/to/SKILL.md" "description")
+parse_frontmatter_field() {
+  local file="$1"
+  local field="$2"
+  local in_frontmatter=0
+  local value=""
+
+  while IFS= read -r line; do
+    if [[ "$line" == "---" ]]; then
+      if [[ "$in_frontmatter" -eq 0 ]]; then
+        in_frontmatter=1
+        continue
+      else
+        break
+      fi
+    fi
+    if [[ "$in_frontmatter" -eq 1 ]]; then
+      # Match "field: value" or "field: >", handling optional quotes
+      if [[ "$line" =~ ^${field}:\ *(.*) ]]; then
+        value="${BASH_REMATCH[1]}"
+        # Strip surrounding quotes
+        value="${value#\"}"
+        value="${value%\"}"
+        value="${value#\'}"
+        value="${value%\'}"
+        # If it's a YAML multiline indicator (>), read continuation lines
+        if [[ "$value" == ">" || "$value" == "|" ]]; then
+          value=""
+          while IFS= read -r cont_line; do
+            [[ "$cont_line" == "---" ]] && break
+            # Stop at next field (non-indented line with colon)
+            if [[ "$cont_line" =~ ^[a-zA-Z] ]]; then
+              break
+            fi
+            # Strip leading whitespace and append
+            cont_line="${cont_line#"${cont_line%%[![:space:]]*}"}"
+            if [[ -n "$value" ]]; then
+              value="$value $cont_line"
+            else
+              value="$cont_line"
+            fi
+          done
+        fi
+      fi
+    fi
+  done < "$file"
+
+  echo "$value"
+}
+
+# Generate or update skill-rules.json from installed c-bpm skills and commands
+# Usage: generate_skill_rules_json "/path/to/claude-dir"
+# Scans $claude_dir/skills/c-bpm-sk-*/SKILL.md and $claude_dir/commands/c-bpm-cm-*.md
+# Writes $claude_dir/skills/skill-rules.json
+# All JSON serialization AND keyword generation is handled by Python to prevent
+# injection and encoding bugs.
+generate_skill_rules_json() {
+  local claude_dir="$1"
+  local skills_dir="$claude_dir/skills"
+  local commands_dir="$claude_dir/commands"
+  local rules_file="$skills_dir/skill-rules.json"
+  local skill_count=0
+  local command_count=0
+  local org_prefix="${ORG_PREFIX}"
+
+  [[ -d "$skills_dir" ]] || return 0
+
+  # Collect item data as tab-separated lines: name\tdescription\titem_type
+  # item_type is "skill" or "command" (used by Python for prefix stripping)
+  local item_data=""
+
+  # Scan skills: c-bpm-sk-*/SKILL.md
+  for skill_dir in "$skills_dir"/"${ITEM_PREFIX}-${org_prefix}-sk"-*/; do
+    [[ -d "$skill_dir" ]] || continue
+    local skill_md="$skill_dir/SKILL.md"
+    [[ -f "$skill_md" ]] || continue
+
+    local skill_name
+    skill_name=$(basename "$skill_dir")
+
+    local description
+    description=$(parse_frontmatter_field "$skill_md" "description")
+    [[ -z "$description" ]] && description="Skill: $skill_name"
+
+    item_data+="${skill_name}"$'\t'"${description}"$'\t'"skill"$'\n'
+    ((skill_count++)) || true
+  done
+
+  # Scan commands: c-bpm-cm-*.md
+  if [[ -d "$commands_dir" ]]; then
+    for cmd_file in "$commands_dir"/"${ITEM_PREFIX}-${org_prefix}-cm"-*.md; do
+      [[ -f "$cmd_file" ]] || continue
+
+      local cmd_name
+      cmd_name=$(basename "$cmd_file" .md)
+
+      local description
+      description=$(parse_frontmatter_field "$cmd_file" "description")
+      [[ -z "$description" ]] && description="Command: $cmd_name"
+
+      item_data+="${cmd_name}"$'\t'"${description}"$'\t'"command"$'\n'
+      ((command_count++)) || true
+    done
+  fi
+
+  local total_count=$((skill_count + command_count))
+  if [[ "$total_count" -eq 0 ]]; then
+    log_verbose "No c-bpm skills or commands found to register"
+    return 0
+  fi
+
+  # Write item data to a temp file so Python can read it independently of stdin.
+  local item_data_file
+  item_data_file=$(mktemp) || {
+    echo "ERROR: Failed to create temp file for item data" >&2
+    return 1
+  }
+  # shellcheck disable=SC2064
+  trap "rm -f '$item_data_file'" RETURN
+  printf '%s' "$item_data" > "$item_data_file"
+
+  # Python builds the complete JSON: reads existing rules file (preserving non-c-bpm
+  # entries), generates keywords from name + description, outputs valid JSON.
+  # All paths are passed as sys.argv (not interpolated into Python source).
+  #   sys.argv[1] = rules_file path
+  #   sys.argv[2] = org_prefix for filtering
+  #   sys.argv[3] = item_data_file path
+  local json_output
+  json_output=$(python3 - "$rules_file" "$org_prefix" "$item_data_file" << 'PYEOF'
+import json
+import sys
+import os
+import re
+
+rules_file = sys.argv[1]
+org_prefix = sys.argv[2]
+data_file = sys.argv[3]
+cbpm_sk_prefix = f"c-{org_prefix}-sk-"
+cbpm_cm_prefix = f"c-{org_prefix}-cm-"
+cbpm_prefixes = (cbpm_sk_prefix, cbpm_cm_prefix)
+
+def generate_keywords(name, description, item_type):
+    """Generate keyword list from item name and description.
+
+    Name-derived keywords: split slug on hyphens, keep words >= 3 chars,
+    add spaced version and full name.
+
+    Description-derived keywords: if description contains ' — ' (em-dash),
+    take only text up to the first period, then split on commas to extract trigger phrases.
+    """
+    keywords = []
+
+    # Strip the c-{org}-{type}- prefix to get the short slug
+    if item_type == "skill":
+        short_name = name[len(cbpm_sk_prefix):] if name.startswith(cbpm_sk_prefix) else name
+    else:
+        short_name = name[len(cbpm_cm_prefix):] if name.startswith(cbpm_cm_prefix) else name
+
+    # Split short name on hyphens, keep words >= 3 chars
+    parts = short_name.split("-")
+    for part in parts:
+        if len(part) >= 3:
+            keywords.append(part)
+
+    # Add spaced version of the short name
+    spaced = short_name.replace("-", " ")
+    keywords.append(spaced)
+
+    # Add the full item name (for explicit invocation)
+    keywords.append(name)
+
+    # Extract trigger phrases from description after em-dash
+    if " \u2014 " in description:
+        after_dash = description.split(" \u2014 ", 1)[1]
+        # Take only text up to the first period (ignore explanatory sentences)
+        trigger_segment = after_dash.split(". ", 1)[0]
+        phrases = trigger_segment.split(",")
+        for phrase in phrases:
+            phrase = phrase.strip()
+            if phrase:
+                keywords.append(phrase)
+
+    return keywords
+
+# Load preserved (non-c-bpm) entries from existing rules file
+preserved = {}
+if os.path.isfile(rules_file):
+    try:
+        with open(rules_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        skills = data.get("skills", {})
+        preserved = {
+            k: v for k, v in skills.items()
+            if not any(k.startswith(p) for p in cbpm_prefixes)
+        }
+    except FileNotFoundError:
+        pass
+    except json.JSONDecodeError as exc:
+        print(f"WARNING: Failed to parse existing {rules_file}: {exc}", file=sys.stderr)
+    except OSError as exc:
+        print(f"WARNING: Could not read {rules_file}: {exc}", file=sys.stderr)
+
+# Parse new c-bpm entries from data file (tab-separated: name, description, item_type)
+new_entries = {}
+with open(data_file, "r", encoding="utf-8") as f:
+    for line in f:
+        line = line.rstrip("\n")
+        if not line:
+            continue
+        parts = line.split("\t", 2)
+        if len(parts) != 3:
+            continue
+        name, description, item_type = parts
+        keywords = generate_keywords(name, description, item_type)
+        new_entries[name] = {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": description,
+            "promptTriggers": {
+                "keywords": keywords
+            }
+        }
+
+# Merge: preserved entries first, then new c-bpm entries
+all_skills = {}
+all_skills.update(preserved)
+all_skills.update(new_entries)
+
+output = {
+    "version": "1.0",
+    "description": "Skill activation triggers for Claude Code. Auto-generated by c-bpm-cm-library-pull.",
+    "skills": all_skills,
+    "notes": {
+        "auto_generated": "This file is auto-generated by c-bpm-cm-library-pull. Non-c-bpm entries are preserved on regeneration."
+    }
+}
+
+print(json.dumps(output, indent=4))
+PYEOF
+  ) || {
+    echo "ERROR: Failed to generate skill-rules.json via Python" >&2
+    return 1
+  }
+
+  if [[ "${DRY_RUN:-0}" -eq 0 ]]; then
+    printf '%s\n' "$json_output" > "$rules_file"
+    log_verbose "Generated skill-rules.json with $skill_count skills + $command_count commands"
+    echo "Registered $skill_count c-bpm skills + $command_count commands in skill-rules.json"
+  else
+    echo "[dry-run] Would register $skill_count c-bpm skills + $command_count commands in skill-rules.json"
+  fi
+}
+
+# --- End skill rules generation ---
+
 # Check if a command exists
 # Usage: command_exists "curl"
 command_exists() {

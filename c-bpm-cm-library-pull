@@ -315,6 +315,9 @@ done
 # Save sync state
 save_sync_state "$SYNC_STATE_FILE"
 
+# Generate/update skill-rules.json for skill discovery
+generate_skill_rules_json "$TARGET_DIR"
+
 # Write host inventory
 if [[ "$DRY_RUN" -eq 0 ]]; then
   write_host_inventory "$REPO_DIR" "$TARGET_DIR"

@@ -66,12 +66,7 @@ SKILLS=(
 )
 
 AGENTS=(
-  orchestrator-planner
-  backend-bash-php
-  data-mariadb-redis
-  qa-tester
-  security-reviewer
-  workflow-n8n-api
+  # Agent definitions deprecated — unique content merged into skills
 )
 
 COMMANDS=(

@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-datatables
-description: Standardised DataTables.net usage for tabular data with server-side processing, accessibility, and performance. Use when building front-end pages with tabular data or integrating server-side DataTables. Derived from S09a.
+description: "DataTables.net — build data table, server-side tables, tabular data, sortable table, paginated table. Server-side processing with accessibility and performance."
+user-invocable: true
 ---
 
 # DataTables

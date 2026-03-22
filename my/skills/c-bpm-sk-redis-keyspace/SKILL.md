@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-redis-keyspace
-description: Conventions for Redis key names, TTL policies, locks, and queues. Use when implementing caching, locking, rate limiting, or queues with Redis. Derived from S07b.
+description: "Redis keyspace — Redis keys, caching strategy, TTL policy, distributed lock, rate limiting, Redis queue. Naming conventions and operational patterns."
+user-invocable: false
 ---
 
 # Redis Keyspace & TTL

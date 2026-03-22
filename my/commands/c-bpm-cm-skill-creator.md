@@ -1,7 +1,13 @@
 ---
-model: opus
 name: c-bpm-cm-skill-creator
-description: Create new custom skills with automatic detection of existing my- versions. Use when the user wants to create a new skill or update an existing skill. If a c-bpm-sk- version already exists, delegates to c-bpm-cm-skill-optimizer instead of creating from scratch. Enforces c-bpm- naming convention, segregation of duty, and Codex review. Derived from skill-creator.
+description: >
+  This command should be used when the user asks to "create a skill", "new skill", "make a skill",
+  "add skill", "build skill". Detects existing c-bpm-sk- versions; delegates to optimizer if found.
+  Enforces naming convention and Codex review.
+disable-model-invocation: true
+argument-hint: "[skill-name]"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+model: opus
 ---
 
 # Skill Creator (Custom)
@@ -14,24 +20,24 @@ Create new skills with built-in awareness of existing custom versions. Extends t
 
 ```
 1. User requests: "create/build/make a skill for X"
-2. Determine skill name → my-<name>
-3. Check: does ~/.claude/skills/my-<name>/ already exist?
+2. Determine skill name → c-bpm-sk-<name>
+3. Check: does ~/.claude/skills/c-bpm-sk-<name>/ already exist?
    ├── YES → STOP. Delegate to c-bpm-cm-skill-optimizer (optimize/update existing)
    └── NO  → Continue with creation workflow below
 4. Check: does an original skill exist to fork from?
-   ├── YES → Fork workflow (copy original, rename to my-, modify)
+   ├── YES → Fork workflow (copy original, rename to c-bpm-sk-, modify)
    └── NO  → From-scratch workflow
 ```
 
 ### Existence Check
 
 ```bash
-ls -d ~/.claude/skills/my-<name>/ 2>/dev/null && echo "EXISTS" || echo "NEW"
+ls -d ~/.claude/skills/c-bpm-sk-<name>/ 2>/dev/null && echo "EXISTS" || echo "NEW"
 ```
 
 If the skill already exists:
 - **Do NOT create a new one**
-- **Inform the user**: "A custom version `my-<name>` already exists. Switching to optimization mode."
+- **Inform the user**: "A custom version `c-bpm-sk-<name>` already exists. Switching to optimization mode."
 - **Load `c-bpm-cm-skill-optimizer`** and follow its optimization workflow instead
 
 ## Creation Workflow (New Skills Only)
@@ -57,15 +63,15 @@ Analyze each use case to identify:
 For new skills, use the `skill-creator` init script:
 
 ```bash
-~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/skill-creator/scripts/init_skill.py my-<name> --path ~/.claude/skills/
+~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/skill-creator/scripts/init_skill.py c-bpm-sk-<name> --path ~/.claude/skills/
 ```
 
 For forks, copy the original:
 
 ```bash
-cp -r ~/.claude/skills/<original>/ ~/.claude/skills/my-<original>/
+cp -r ~/.claude/skills/<original>/ ~/.claude/skills/c-bpm-sk-<original>/
 # OR from marketplace:
-cp -r ~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/<original>/ ~/.claude/skills/my-<original>/
+cp -r ~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/<original>/ ~/.claude/skills/c-bpm-sk-<original>/
 ```
 
 ### Step 4: Implement
@@ -73,7 +79,7 @@ cp -r ~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/<original>/ ~
 1. Write/modify SKILL.md with proper frontmatter:
    ```yaml
    ---
-   name: my-<name>
+   name: c-bpm-sk-<name>
    description: [What it does]. [When to use it]. Derived from <original> with <what's different>.
    ---
    ```
@@ -86,7 +92,7 @@ cp -r ~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/<original>/ ~
 
 ```bash
 codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
-1. Frontmatter: name (my- prefix) and description (includes trigger conditions)
+1. Frontmatter: name (c-bpm-sk- prefix) and description (includes trigger conditions)
 2. Progressive disclosure: SKILL.md under 500 lines, references split out
 3. No duplication between SKILL.md and reference files
 4. Examples are concrete and minimal
@@ -105,13 +111,13 @@ After real usage, the user may request improvements. At that point:
 ## Rules
 
 ### Naming
-- ALL custom skills use `my-` prefix — no exceptions
+- ALL custom skills use `c-bpm-sk-` prefix — no exceptions
 - Original skills keep their name — never rename them
 
 ### Segregation of Duty
 - **NEVER modify files in `plugins/marketplaces/`** — these are read-only originals
 - **NEVER modify non-prefixed skills in `skills/`** unless they are confirmed user-created
-- Fork first, then modify the `my-` version
+- Fork first, then modify the `c-bpm-sk-` version
 
 ### GitHub Issue Tracking
 - Plans and progress go in GitHub Issues, not separate plan files
@@ -128,4 +134,4 @@ After real usage, the user may request improvements. At that point:
 
 ## Library Integration
 
-After creating a skill, use `my-library-push` to sync it to the Git repository. See `my-library-manager` skill for the full push/pull workflow and conventions for all artefact types (not just skills).
+After creating a skill, use `c-bpm-cm-library-push` to sync it to the Git repository. See `c-bpm-sk-library-manager` skill for the full push/pull workflow and conventions for all artefact types (not just skills).

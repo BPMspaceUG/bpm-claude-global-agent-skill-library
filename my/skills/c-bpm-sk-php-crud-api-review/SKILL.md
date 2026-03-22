@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-php-crud-api-review
-description: Guidance for reviewing and integrating mevdschee/php-crud-api deployments. Use when evaluating php-crud-api, integrating its endpoints, or performing security reviews. Derived from S08b.
+description: "php-crud-api review — evaluate php-crud-api, API integration review, mevdschee crud, auto-generated REST. Security review and integration guidance."
+user-invocable: true
 ---
 
 # php-crud-api Review

@@ -1,6 +1,7 @@
 ---
+name: c-bpm-cm-library-push
+description: "Push skills to repo — push to repo, upload skills, save skills, publish skills. Syncs c-bpm items from local ~/.claude/ to Git repo. Auto-commits and pushes."
 allowed-tools: Bash
-description: Push local my-prefixed items (skills, agents, commands, runbooks) from ~/.claude/ to the Git repository. Auto-commits and pushes. Supports --dry-run, --message, --only-skills, --only-agents, --only-commands, --only-runbooks, --verbose.
 argument-hint: "[--dry-run] [--force] [--clean] [--message msg] [--only-skills] [--verbose]"
 ---
 

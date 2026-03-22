@@ -1,7 +1,8 @@
 ---
 model: opus
 name: c-bpm-sk-llm-selection
-description: Guide for selecting and delegating tasks to LLMs and resolving conflicts through consensus finding. Use at the start of multi-agent workflows, when assigning tasks to agents, or when consensus is needed between disagreeing agents. Derived from S13.
+description: "LLM selection and orchestration — choose model, assign agent, agent delegation, consensus finding, model selection, MCP discovery, task decomposition. Task-to-LLM matching, orchestration protocol, and conflict resolution."
+user-invocable: false
 ---
 
 # LLM Selection & Consensus
@@ -50,6 +51,35 @@ How the Orchestrator selects and delegates tasks to available LLMs, and how conf
 - Codex: Available
 - Gemini: Available / Not available
 ```
+
+## Orchestration Protocol
+
+### MCP Discovery
+
+At planning start, discover all MCP servers in the current session:
+1. Determine which servers are relevant to the current objective
+2. Publish **MCP Availability Handoff** before delegating tasks
+
+### MCP Availability Handoff
+
+```
+## MCP Availability Handoff
+- Server A: Available (relevant)
+- Server B: Available (not relevant to current task)
+- Server C: Not available
+```
+
+### Task Decomposition
+
+Translate user goals into a structured task plan:
+1. Sequenced task list with acceptance criteria per task
+2. Agent/LLM assignment per task (using delegation rules above)
+3. Scope boundaries — no overlapping or conflicting tasks
+4. Assumptions block — versions, environment, dependencies
+5. Expected completion order
+6. Follow `c-bpm-sk-milestone-type` for issue lifecycle and type enforcement when creating or tracking issues
+
+All implementers MUST rely on Orchestrator handoffs and may not probe MCP servers independently.
 
 ## Success Criteria
 
