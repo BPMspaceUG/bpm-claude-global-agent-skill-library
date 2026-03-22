@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-release-ops
 description: "Release operations — cut a release, versioning, CI/CD setup, deployment, rollback, artefact packaging. Controlled release process and deployment playbooks."
+enforcement: block
+intentPatterns: "cut a release;;release (operations|ops);;(setup|configure) ci/cd;;deployment (playbook|rollback);;artefact packaging"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

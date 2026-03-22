@@ -3,6 +3,8 @@ model: opus
 name: c-bpm-sk-linux-audit
 description: "Audit Linux host — server audit, security scan, system health check, host review, onboard server. Creates GitHub Issues per finding in bpm-{hostname}. Agent team with Codex gates."
 user-invocable: true
+enforcement: block
+intentPatterns: "audit (this |)(linux |)host;;server (security |)audit;;system health check;;onboard (this |new )server;;host (security |)review"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---

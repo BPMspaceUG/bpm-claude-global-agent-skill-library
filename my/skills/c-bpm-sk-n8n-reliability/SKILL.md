@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-n8n-reliability
 description: "n8n workflow patterns — create n8n workflow, reliable workflow, version n8n, export workflow, multi-env deploy. Maintainable and versionable n8n workflows."
+enforcement: block
+intentPatterns: "n8n workflow;;(create|build|design) n8n;;version n8n workflow;;n8n (reliability|export|deploy)"
 user-invocable: false
 ---
 

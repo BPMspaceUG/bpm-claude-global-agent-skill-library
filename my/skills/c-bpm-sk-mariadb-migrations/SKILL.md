@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-mariadb-migrations
 description: "MariaDB migration — database migration, alter table, add column, schema change, SQL migration. Forward-only migration pattern with safe schema changes."
+enforcement: block
+intentPatterns: "mariadb migration;;database migration;;alter table;;schema (change|migration);;add (column|index) (to|migration)"
 user-invocable: false
 ---
 

@@ -6,6 +6,8 @@ description: >
   or wants to audit an existing skill against the Skills 2.0 checklist. Adds frontmatter,
   supporting files, dynamic context, subagent config. Enforces c-bpm- naming.
 model: opus
+enforcement: block
+intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
 disable-model-invocation: true
 user-invocable: true
 argument-hint: "[skill-name]"
@@ -141,6 +143,8 @@ description: >
   [What it does]. Derived from [original].
 model: opus                        # Optional: override model
 effort: high                       # Optional: override effort level
+enforcement: block
+intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
 disable-model-invocation: true     # Optional: manual-only
 user-invocable: true               # Optional: hide from / menu
 allowed-tools: Read, Grep, Glob    # Optional: tool whitelist

@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-bash-secure-script
 description: "Secure Bash script — write bash script, shell script, automation script, bash best practices, set -euo pipefail. Robust, maintainable, and secure Bash patterns."
+enforcement: block
+intentPatterns: "secure bash script;;write (a )?bash script;;shell script (with|using) strict;;set -euo pipefail;;bash (best practice|automation)"
 user-invocable: true
 ---
 

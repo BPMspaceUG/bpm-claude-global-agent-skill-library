@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-php-crud-api-review
 description: "php-crud-api review — evaluate php-crud-api, API integration review, mevdschee crud, auto-generated REST. Security review and integration guidance."
+enforcement: block
+intentPatterns: "php-crud-api;;mevdschee crud;;auto.generated rest api;;review (the )?crud api"
 user-invocable: true
 ---
 

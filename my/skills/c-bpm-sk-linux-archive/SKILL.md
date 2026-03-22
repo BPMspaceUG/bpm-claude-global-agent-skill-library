@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-linux-archive
 description: "Archive host config — backup dotfiles, save tool configs, host backup, restore setup, config snapshot. Backs up to bpm-{hostname} GitHub repo."
+enforcement: block
+intentPatterns: "archive host config;;backup (dotfiles|config);;config snapshot;;backup (my |this )?(host|server) (config|setup)"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

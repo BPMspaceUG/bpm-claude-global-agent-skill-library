@@ -3,6 +3,8 @@ model: opus
 name: c-bpm-sk-auditor
 description: "Audit this repo — full codebase review, code quality check, security audit, due diligence, maintenance handover, review this codebase. Produces [REPONAME]-YYMMDD-HHSS.md report. No issues created."
 user-invocable: true
+enforcement: block
+intentPatterns: "audit this repo;;full codebase (review|audit);;review this codebase;;code quality (check|audit);;maintenance handover"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---

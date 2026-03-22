@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-config-secrets
 description: "Secrets management — .env files, API tokens, credentials, config management, secret handling. Safe configuration across Bash, PHP, and n8n."
+enforcement: block
+intentPatterns: "secrets? management;;manage .env (file|secret);;(api |)credential(s| ) (handling|management);;config(ure)? secrets"
 user-invocable: false
 ---
 

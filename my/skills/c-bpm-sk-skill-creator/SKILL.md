@@ -6,6 +6,8 @@ description: >
   an existing one. Skills 2.0 features, auto-detects existing c-bpm-sk- versions. Delegates
   to optimizer if found. Enforces naming and Codex review.
 model: opus
+enforcement: block
+intentPatterns: "create (a |new )?skill;;new skill;;make (a )?skill;;build (a )?skill;;add (a )?skill"
 disable-model-invocation: true
 user-invocable: true
 argument-hint: "[skill-name]"
@@ -105,6 +107,8 @@ Write SKILL.md with Skills 2.0 frontmatter:
 name: c-bpm-sk-<name>
 description: >
   [What it does]. [When to use it — triggers]. Derived from <original>.
+enforcement: block
+intentPatterns: "create (a |new )?skill;;new skill;;make (a )?skill;;build (a )?skill;;add (a )?skill"
 disable-model-invocation: true     # If task skill
 allowed-tools: Read, Grep, Glob    # If tool restrictions apply
 argument-hint: "[arg]"             # If arguments expected

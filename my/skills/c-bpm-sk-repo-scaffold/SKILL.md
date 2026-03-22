@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-repo-scaffold
 description: "Scaffold a repo — new project, project structure, directory layout, init repo, repository template, Excalidraw diagrams. Consistent starting point with baseline files."
+enforcement: block
+intentPatterns: "scaffold (a |new )?repo;;(new |init )project (structure|scaffold);;directory layout (template|scaffold);;repository template"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 argument-hint: "[project-name or path]"

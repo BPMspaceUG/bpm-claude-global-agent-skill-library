@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-library-manager
 description: "Library management — c-bpm convention, sync items, push pull library, manage skills, library help. Central knowledge hub for c-bpm- item convention and synchronisation."
+enforcement: block
+intentPatterns: "c-bpm (convention|sync|library);;(push|pull) (c-bpm |)library;;library (push|pull|sync);;manage (skills|commands) library"
 user-invocable: false
 allowed-tools: Read, Grep, Glob, Bash
 ---
