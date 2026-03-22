@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-llm-selection
 description: "LLM selection and orchestration — choose model, assign agent, agent delegation, consensus finding, model selection, MCP discovery, task decomposition. Task-to-LLM matching, orchestration protocol, and conflict resolution."
+enforcement: block
+intentPatterns: "choose model;;assign agent;;agent delegation;;consensus finding;;task decomposition"
 user-invocable: false
 ---
 

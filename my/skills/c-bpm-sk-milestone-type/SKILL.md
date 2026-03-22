@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-milestone-type
 description: "Milestone and issue type enforcement — audit milestones, fix issue labels, ensure bug/enhancement, compliance check. Ensures every issue has milestone + type label."
+enforcement: block
+intentPatterns: "audit milestones;;fix issue labels;;milestone.*(enforcement|compliance)"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

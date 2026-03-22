@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-grill-claude-issue
 description: "Codex grills Claude on an issue — grill claude, review claude's work, independent review, codex review issue. Reversed roles: Codex asks questions, Claude researches and answers."
+enforcement: block
+intentPatterns: "grill claude;;codex (review|grill|challenge);;independent review"
 user-invocable: true
 argument-hint: "[issue-number or URL]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, WebSearch, WebFetch

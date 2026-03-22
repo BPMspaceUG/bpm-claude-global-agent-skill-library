@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-curlbash-installer
 description: "curl|bash installer — create installer, install script, update script, uninstall script, YYMMDD versioning. Distribution pattern for CLI tools."
+enforcement: block
+intentPatterns: "create installer;;curl\\|bash;;install script;;update script"
 user-invocable: true
 ---
 

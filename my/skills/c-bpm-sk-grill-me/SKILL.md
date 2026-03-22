@@ -2,6 +2,8 @@
 model: opus
 name: c-bpm-sk-grill-me
 description: "Stress-test an idea — grill me, challenge my plan, devil's advocate, poke holes, review my design. Resolves each branch of the decision tree one-by-one through relentless questioning."
+enforcement: block
+intentPatterns: "grill me;;stress.test (my |this |the )?(idea|plan|design)"
 user-invocable: true
 argument-hint: "[idea or plan description]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit

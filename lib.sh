@@ -632,7 +632,7 @@ generate_skill_rules_json() {
 
   [[ -d "$skills_dir" ]] || return 0
 
-  # Collect item data as tab-separated lines: name\tdescription\titem_type
+  # Collect item data as tab-separated lines: name\tdescription\titem_type\tenforcement\tintentPatterns
   # item_type is "skill" or "command" (used by Python for prefix stripping)
   local item_data=""
 
@@ -649,7 +649,15 @@ generate_skill_rules_json() {
     description=$(parse_frontmatter_field "$skill_md" "description")
     [[ -z "$description" ]] && description="Skill: $skill_name"
 
-    item_data+="${skill_name}"$'\t'"${description}"$'\t'"skill"$'\n'
+    local enforcement
+    enforcement=$(parse_frontmatter_field "$skill_md" "enforcement")
+    [[ -z "$enforcement" ]] && enforcement=""
+
+    local intent_patterns
+    intent_patterns=$(parse_frontmatter_field "$skill_md" "intentPatterns")
+    [[ -z "$intent_patterns" ]] && intent_patterns=""
+
+    item_data+="${skill_name}"$'\t'"${description}"$'\t'"skill"$'\t'"${enforcement}"$'\t'"${intent_patterns}"$'\n'
     ((skill_count++)) || true
   done
 
@@ -665,7 +673,11 @@ generate_skill_rules_json() {
       description=$(parse_frontmatter_field "$cmd_file" "description")
       [[ -z "$description" ]] && description="Command: $cmd_name"
 
-      item_data+="${cmd_name}"$'\t'"${description}"$'\t'"command"$'\n'
+      local enforcement
+      enforcement=$(parse_frontmatter_field "$cmd_file" "enforcement")
+      [[ -z "$enforcement" ]] && enforcement=""
+
+      item_data+="${cmd_name}"$'\t'"${description}"$'\t'"command"$'\t'"${enforcement}"$'\t'$'\n'
       ((command_count++)) || true
     done
   fi
@@ -767,27 +779,44 @@ if os.path.isfile(rules_file):
     except OSError as exc:
         print(f"WARNING: Could not read {rules_file}: {exc}", file=sys.stderr)
 
-# Parse new c-bpm entries from data file (tab-separated: name, description, item_type)
+# Parse new c-bpm entries from data file (tab-separated: name, description, item_type, enforcement, intentPatterns)
 new_entries = {}
 with open(data_file, "r", encoding="utf-8") as f:
     for line in f:
         line = line.rstrip("\n")
         if not line:
             continue
-        parts = line.split("\t", 2)
-        if len(parts) != 3:
+        parts = line.split("\t", 4)
+        if len(parts) < 3:
             continue
-        name, description, item_type = parts
+        name, description, item_type = parts[0], parts[1], parts[2]
+        enforcement_raw = parts[3].strip() if len(parts) > 3 else ""
+        intent_patterns_raw = parts[4].strip() if len(parts) > 4 else ""
+
+        # Enforcement: use frontmatter value if valid, else default "suggest"
+        if enforcement_raw in ("block", "suggest"):
+            enforcement = enforcement_raw
+        else:
+            enforcement = "suggest"
+
+        # Intent patterns: parse ;;-separated string into list
+        intent_patterns = []
+        if intent_patterns_raw:
+            intent_patterns = [p.strip() for p in intent_patterns_raw.split(";;") if p.strip()]
+
         keywords = generate_keywords(name, description, item_type)
-        new_entries[name] = {
+        entry = {
             "type": "domain",
-            "enforcement": "suggest",
+            "enforcement": enforcement,
             "priority": "medium",
             "description": description,
             "promptTriggers": {
                 "keywords": keywords
             }
         }
+        if intent_patterns:
+            entry["promptTriggers"]["intentPatterns"] = intent_patterns
+        new_entries[name] = entry
 
 # Merge: preserved entries first, then new c-bpm entries
 all_skills = {}
