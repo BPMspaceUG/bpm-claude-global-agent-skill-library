@@ -3,7 +3,7 @@ model: opus
 name: c-bpm-sk-test-harness
 description: "Test harness — write tests, create test suite, test coverage, CI testing, Bash/PHP/API tests. Consistent approach to building and running tests."
 enforcement: block
-intentPatterns: "test harness;;(write|create) test (suite|harness);;test coverage (setup|plan);;(bash|php|api) test (suite|framework)"
+intentPatterns: "test harness;;(write|create) (a )?(new )?test (suite|harness);;test coverage (setup|plan);;(bash|php|api) test (suite|framework)"
 user-invocable: true
 ---
 
