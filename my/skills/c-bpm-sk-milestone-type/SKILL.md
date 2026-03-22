@@ -3,7 +3,6 @@ model: opus
 name: c-bpm-sk-milestone-type
 description: "Milestone and issue type enforcement — audit milestones, fix issue labels, ensure bug/enhancement, compliance check. Ensures every issue has milestone + type label."
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 

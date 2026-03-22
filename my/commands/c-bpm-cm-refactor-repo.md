@@ -168,12 +168,12 @@ Before spawning, review ALL available skills (`/skills` or check `~/.claude/skil
 - Bash scripts -> `c-bpm-sk-bash-secure-script`, `c-bpm-sk-curlbash-installer`
 - Testing -> `c-bpm-sk-test-harness`
 - API work -> `c-bpm-sk-api-contract`, `c-bpm-sk-php-crud-api-review`
-- PHP work -> `c-bpm-sk-php-flight-mvc`, `c-bpm-sk-flightphp-pro`
+- PHP work -> `c-bpm-sk-flightphp-pro`
 - Redis -> `c-bpm-sk-redis-keyspace`
 - Database -> `c-bpm-sk-mariadb-migrations`
 - Release/CI -> `c-bpm-sk-release-ops`
 - Repo structure -> `c-bpm-sk-repo-scaffold`
-- UI/Frontend -> `c-bpm-sk-bootstrap-ui`, `c-bpm-sk-jquery-ajax-forms`, `c-bpm-sk-datatables`, `frontend-design`
+- UI/Frontend -> `frontend-design`
 - n8n workflows -> `c-bpm-sk-n8n-reliability`, `n8n-*` skills
 - Documentation -> `document-skills:*`
 

@@ -3,7 +3,6 @@ model: opus
 name: c-bpm-sk-linux-archive
 description: "Archive host config — backup dotfiles, save tool configs, host backup, restore setup, config snapshot. Backs up to bpm-{hostname} GitHub repo."
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 

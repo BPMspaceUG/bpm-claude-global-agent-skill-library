@@ -3,7 +3,6 @@ model: opus
 name: c-bpm-sk-idea-merge
 description: "Cluster and merge ideas — cluster ideas, merge ideas, find duplicates, group similar issues, clean up ideas, deduplicate. Scans repos (Obsidian vaults, GitHub Issues) for clusterable ideas. User approves each action."
 user-invocable: true
-disable-model-invocation: true
 argument-hint: "[repo-path or owner/repo]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

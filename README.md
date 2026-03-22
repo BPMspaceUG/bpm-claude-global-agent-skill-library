@@ -39,11 +39,7 @@ flowchart LR
 
     %% PHP / Web
     subgraph phpweb["PHP / Web"]
-        php-flight-mvc([php-flight-mvc])
         flightphp-pro([flightphp-pro])
-        bootstrap-ui([bootstrap-ui])
-        jquery-ajax-forms([jquery-ajax-forms])
-        datatables([datatables])
         php-crud-api-review([php-crud-api-review])
     end
 
@@ -99,7 +95,6 @@ flowchart LR
 
     %% --- Skill-to-Skill edges ---
     appsec-threatlite -->|"references"| tls-http-headers
-    php-flight-mvc -->|"basis for"| flightphp-pro
     linux-audit -->|"creates findings for"| linux-admin
     linux-archive -->|"shares host pattern"| linux-audit
     linux-archive -->|"shares host pattern"| linux-admin
@@ -130,15 +125,11 @@ flowchart LR
     cm-openissues-team -->|"routes tasks to"| test-harness
     cm-openissues-team -->|"routes tasks to"| api-contract
     cm-openissues-team -->|"routes tasks to"| php-crud-api-review
-    cm-openissues-team -->|"routes tasks to"| php-flight-mvc
     cm-openissues-team -->|"routes tasks to"| flightphp-pro
     cm-openissues-team -->|"routes tasks to"| redis-keyspace
     cm-openissues-team -->|"routes tasks to"| mariadb-migrations
     cm-openissues-team -->|"routes tasks to"| release-ops
     cm-openissues-team -->|"routes tasks to"| repo-scaffold
-    cm-openissues-team -->|"routes tasks to"| bootstrap-ui
-    cm-openissues-team -->|"routes tasks to"| jquery-ajax-forms
-    cm-openissues-team -->|"routes tasks to"| datatables
     cm-openissues-team -->|"routes tasks to"| n8n-reliability
     cm-skill-creator -->|"delegates to"| cm-skill-optimizer
     cm-skill-creator -->|"recommends"| cm-library-push
@@ -162,7 +153,7 @@ flowchart LR
     classDef metaGroup fill:#f5f5f5,stroke:#616161
     classDef cmdGroup fill:#fffde7,stroke:#F9A825
 
-    class api-contract,bash-secure-script,config-secrets,repo-scaffold,test-harness,curlbash-installer,release-ops,php-flight-mvc,flightphp-pro,bootstrap-ui,jquery-ajax-forms,datatables,php-crud-api-review,mariadb-migrations,redis-keyspace,n8n-reliability,appsec-threatlite,tls-http-headers,grill-me,grill-me-issue,grill-claude-issue,idea-merge,auditor,linux-admin,linux-archive,linux-audit,milestone-type,skill-creator,skill-optimizer,library-manager,llm-selection skillNode
+    class api-contract,bash-secure-script,config-secrets,repo-scaffold,test-harness,curlbash-installer,release-ops,flightphp-pro,php-crud-api-review,mariadb-migrations,redis-keyspace,n8n-reliability,appsec-threatlite,tls-http-headers,grill-me,grill-me-issue,grill-claude-issue,idea-merge,auditor,linux-admin,linux-archive,linux-audit,milestone-type,skill-creator,skill-optimizer,library-manager,llm-selection skillNode
     class cm-library-pull,cm-library-push,cm-library-compare,cm-openissues-list,cm-openissues-team,cm-refactor-repo,cm-skill-creator,cm-skill-optimizer cmdNode
     class foundational foundGroup
     class phpweb phpGroup
@@ -176,7 +167,7 @@ flowchart LR
 
 ## Item Inventory
 
-### Skills (31)
+### Skills (27)
 
 | Name | Group | Description | User-invocable | Auto-trigger |
 |------|-------|-------------|:--------------:|:------------:|
@@ -187,11 +178,7 @@ flowchart LR
 | `c-bpm-sk-release-ops` | Foundational | CI/CD setup, versioning, deployment, rollback, artefact packaging | No | No |
 | `c-bpm-sk-repo-scaffold` | Foundational | Project structure, directory layout, repository template | No | No |
 | `c-bpm-sk-test-harness` | Foundational | Write tests, test coverage, CI testing (Bash/PHP/API) | Yes | Yes |
-| `c-bpm-sk-php-flight-mvc` | PHP/Web | Flight microframework MVC structure and conventions | Yes | Yes |
 | `c-bpm-sk-flightphp-pro` | PHP/Web | Senior-level Flight PHP v3 patterns, PSR compliance, agent teams | No | Yes |
-| `c-bpm-sk-bootstrap-ui` | PHP/Web | Bootstrap components, responsive layout, form design | Yes | Yes |
-| `c-bpm-sk-jquery-ajax-forms` | PHP/Web | jQuery AJAX forms, CSRF protection, async requests | Yes | Yes |
-| `c-bpm-sk-datatables` | PHP/Web | DataTables.net server-side processing, accessibility | Yes | Yes |
 | `c-bpm-sk-php-crud-api-review` | PHP/Web | php-crud-api security review and integration guidance | Yes | Yes |
 | `c-bpm-sk-mariadb-migrations` | Data/Infra | Forward-only MariaDB migration pattern, safe schema changes | No | Yes |
 | `c-bpm-sk-redis-keyspace` | Data/Infra | Redis key naming, TTL policies, distributed locks, queues | No | Yes |
@@ -239,13 +226,9 @@ Core conventions and reusable patterns applied across projects. These skills def
 - **test-harness** -- bats (Bash), PHPUnit (PHP), curl (API) testing patterns
 
 ### PHP / Web
-Full-stack web development with the Flight PHP microframework and Bootstrap frontend.
+Flight PHP microframework and API review patterns.
 
-- **php-flight-mvc** -- Base MVC conventions for Flight (controllers, services, repositories)
-- **flightphp-pro** -- Extended Flight PHP v3 patterns with PSR compliance and agent teams (builds on php-flight-mvc)
-- **bootstrap-ui** -- Bootstrap components, responsive grid, accessibility
-- **jquery-ajax-forms** -- AJAX form submission, CSRF protection, user feedback
-- **datatables** -- DataTables.net server-side processing, sorting, pagination
+- **flightphp-pro** -- Senior-level Flight PHP v3 patterns with PSR compliance and agent teams
 - **php-crud-api-review** -- Security review for mevdschee/php-crud-api integrations
 
 ### Data / Infrastructure

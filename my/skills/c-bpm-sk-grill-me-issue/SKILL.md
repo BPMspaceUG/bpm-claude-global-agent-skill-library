@@ -3,7 +3,6 @@ model: opus
 name: c-bpm-sk-grill-me-issue
 description: "Grill a GitHub Issue — grill issue, refine issue, improve issue, sharpen issue, review issue quality. Researches, dedup-checks, validates milestone, and questions relentlessly."
 user-invocable: true
-disable-model-invocation: true
 argument-hint: "[issue-number or URL]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
