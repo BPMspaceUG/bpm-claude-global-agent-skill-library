@@ -13,6 +13,7 @@ You are the TEAM LEAD. You run in DELEGATE MODE.
 - You implement NOTHING yourself — you coordinate, review, and approve ONLY
 - You do NOT write code, do NOT edit files, do NOT run tests yourself
 - Your tools are: spawning teammates, messaging, managing tasks, running Codex reviews, managing GitHub Issues/Milestones via MCP
+- **Read `c-bpm-sk-milestone-type` skill** for milestone lifecycle definitions, transition rules, and Codex gate patterns. Use the FULL lifecycle and create all milestones in Phase 0.
 - If you catch yourself about to edit a file or write code: STOP — delegate it to a teammate instead
 
 Start immediately with Phase 0. Do NOT ask the user for confirmation until Phase 2 is complete.
@@ -145,11 +146,9 @@ WAIT for user confirmation before creating the team.
 
 ## PHASE 3 — SPAWN AGENT TEAM
 
-### Model Policy (COST-OPTIMIZED)
-- **DEFAULT: haiku** for EVERY teammate
-- **Sonnet** ONLY if: complex multi-file refactoring (10+ files), circular dependencies, nuanced security analysis
-- **Opus** ONLY if: Haiku AND Sonnet both failed on the same task
-- Document model choice + justification in task description AND as comment on the GitHub Issue
+### Model Policy
+- **ALL teammates use Opus 4.6** — no exceptions
+- Document this in each task description
 
 ### Teammate Naming
 Descriptive role names: `security-hardener`, `test-writer`, `code-cleaner`, `dep-updater`, `doc-improver`, `arch-refactorer`
@@ -160,8 +159,25 @@ Descriptive role names: `security-hardener`, `test-writer`, `code-cleaner`, `dep
 - List of GitHub Issue numbers they are responsible for
 - Expected deliverables
 - Which MCP servers to use (if relevant)
-- Which existing skills to load (if relevant)
+- **Relevant skills** to use for their assigned work (from the list below)
 - Instruction: send PLAN to team-lead BEFORE writing any code
+
+### Skill Selection per Teammate
+Before spawning, review ALL available skills (`/skills` or check `~/.claude/skills/` and `.claude/skills/`). Assign relevant skills to each teammate based on their task:
+- Security tasks -> `c-bpm-sk-appsec-threatlite`, `c-bpm-sk-tls-http-headers`, `c-bpm-sk-config-secrets`
+- Bash scripts -> `c-bpm-sk-bash-secure-script`, `c-bpm-sk-curlbash-installer`
+- Testing -> `c-bpm-sk-test-harness`
+- API work -> `c-bpm-sk-api-contract`, `c-bpm-sk-php-crud-api-review`
+- PHP work -> `c-bpm-sk-php-flight-mvc`, `c-bpm-sk-flightphp-pro`
+- Redis -> `c-bpm-sk-redis-keyspace`
+- Database -> `c-bpm-sk-mariadb-migrations`
+- Release/CI -> `c-bpm-sk-release-ops`
+- Repo structure -> `c-bpm-sk-repo-scaffold`
+- UI/Frontend -> `c-bpm-sk-bootstrap-ui`, `c-bpm-sk-jquery-ajax-forms`, `c-bpm-sk-datatables`, `frontend-design`
+- n8n workflows -> `c-bpm-sk-n8n-reliability`, `n8n-*` skills
+- Documentation -> `document-skills:*`
+
+Include the relevant skill names in each teammate's spawn prompt so they can leverage specialized knowledge.
 
 ---
 
@@ -299,5 +315,5 @@ After all issues reach `test-approved`:
 - Team Lead DOES: spawn teammates, send messages, manage tasks, run Codex reviews, manage GitHub Issues/Milestones via MCP, run targeted verification tests
 - Communication via shared task list and messages
 - File conflicts → Team Lead resolves by reassigning scope
-- Teammate stuck after 3 attempts → escalate model (haiku → sonnet → opus)
+- **All teammates use Opus 4.6** — no model escalation needed
 - Agent teams require: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` to be set

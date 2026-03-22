@@ -67,7 +67,7 @@ c-bpm-cm-library-pull --dry-run
 c-bpm-cm-library-push --dry-run
 ```
 
-## Technology Stack
+## Target Technology Stack (what skills in this library cover)
 
 - **Bash** - Automation scripts with strict mode (`set -euo pipefail`)
 - **PHP/Flight** - MVC backend framework

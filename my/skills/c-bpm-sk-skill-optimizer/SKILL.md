@@ -7,6 +7,7 @@ description: >
   supporting files, dynamic context, subagent config. Enforces c-bpm- naming.
 model: opus
 disable-model-invocation: true
+user-invocable: true
 argument-hint: "[skill-name]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

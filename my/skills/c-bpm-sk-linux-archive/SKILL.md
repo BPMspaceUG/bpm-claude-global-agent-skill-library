@@ -164,7 +164,7 @@ Before executing any destructive or irreversible operation (config backup, git c
 codex exec --skip-git-repo-check "Review this archive plan: <plan>. Check: no secrets exposed, correct file selection, follows project conventions. Approve or reject."
 ```
 
-If Codex is unavailable: STOP and notify the user.
+If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: STOP and notify the user.
 
 ## Constraints
 

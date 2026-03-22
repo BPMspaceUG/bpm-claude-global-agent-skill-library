@@ -7,6 +7,7 @@ description: >
   to optimizer if found. Enforces naming and Codex review.
 model: opus
 disable-model-invocation: true
+user-invocable: true
 argument-hint: "[skill-name]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---

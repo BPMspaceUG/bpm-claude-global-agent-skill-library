@@ -3,6 +3,7 @@ model: opus
 name: c-bpm-sk-repo-scaffold
 description: "Scaffold a repo — new project, project structure, directory layout, init repo, repository template, Excalidraw diagrams. Consistent starting point with baseline files."
 disable-model-invocation: true
+user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 argument-hint: "[project-name or path]"
 ---
@@ -49,7 +50,7 @@ Before executing any destructive or irreversible operation (directory scaffoldin
 codex exec --skip-git-repo-check "Review this scaffold plan: <plan>. Check: correct structure, no breaking changes, follows project conventions. Approve or reject."
 ```
 
-If Codex is unavailable: STOP and notify the user.
+If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: STOP and notify the user.
 
 ## Success Criteria
 
