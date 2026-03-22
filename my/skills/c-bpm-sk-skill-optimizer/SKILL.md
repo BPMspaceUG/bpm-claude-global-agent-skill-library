@@ -8,7 +8,6 @@ description: >
 model: opus
 enforcement: block
 intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
-disable-model-invocation: true
 user-invocable: true
 argument-hint: "[skill-name]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
@@ -32,7 +31,6 @@ When optimizing a skill, check whether these features would improve it:
 
 | Feature | When to Add |
 |---------|-------------|
-| `disable-model-invocation: true` | Task skills with side effects (deploy, build, commit) |
 | `user-invocable: false` | Background knowledge Claude should auto-load but users should not invoke |
 | `allowed-tools` | Restrict tool access for safety (e.g., read-only skills) |
 | `context: fork` | Skills that should run in an isolated subagent |
@@ -112,7 +110,6 @@ Document what will change and why. Present to user for approval.
 
 ```bash
 codex exec --skip-git-repo-check "Review this Claude Code skill for Skills 2.0 compliance. Check:
-1. Frontmatter: all relevant Skills 2.0 fields present (disable-model-invocation, allowed-tools, context, agent, argument-hint)
 2. SKILL.md under 500 lines, references split out
 3. No duplication between SKILL.md and reference files
 4. Dynamic context injection used where beneficial
@@ -145,7 +142,6 @@ model: opus                        # Optional: override model
 effort: high                       # Optional: override effort level
 enforcement: block
 intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
-disable-model-invocation: true     # Optional: manual-only
 user-invocable: true               # Optional: hide from / menu
 allowed-tools: Read, Grep, Glob    # Optional: tool whitelist
 context: fork                      # Optional: run in subagent

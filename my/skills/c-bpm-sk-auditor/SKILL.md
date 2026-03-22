@@ -5,7 +5,6 @@ description: "Audit this repo — full codebase review, code quality check, secu
 user-invocable: true
 enforcement: block
 intentPatterns: "audit this repo;;full codebase (review|audit);;review this codebase;;code quality (check|audit);;maintenance handover"
-disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---
 

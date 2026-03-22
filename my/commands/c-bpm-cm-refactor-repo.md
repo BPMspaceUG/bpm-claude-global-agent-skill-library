@@ -3,7 +3,6 @@ name: c-bpm-cm-refactor-repo
 description: "Refactor this repo — refactor, code cleanup, restructure, reorganize codebase. Spawns 2-6 agent teammates for parallel refactoring. Codex-reviewed, test-mandatory, milestone-tracked."
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS, Task, Teammate, SendMessage
 model: opus
-disable-model-invocation: true
 ---
 
 # /refactor_repo — Agent Team Refactoring

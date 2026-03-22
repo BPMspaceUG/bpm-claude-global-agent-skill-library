@@ -3,7 +3,6 @@ name: c-bpm-cm-openissues-team
 description: "Work on all open issues — fix all issues, abarbeiten, alle issues, work on issues. Spawns 2-6 Opus teammates to resolve open GitHub issues in parallel. Codex-reviewed, test-mandatory."
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS, Task, Teammate, SendMessage
 model: opus
-disable-model-invocation: true
 ---
 
 # /c-bpm-cm-openissues-team — Open Issues Agent Team

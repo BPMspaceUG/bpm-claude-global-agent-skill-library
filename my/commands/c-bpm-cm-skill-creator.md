@@ -4,7 +4,6 @@ description: >
   This command should be used when the user asks to "create a skill", "new skill", "make a skill",
   "add skill", "build skill". Detects existing c-bpm-sk- versions; delegates to optimizer if found.
   Enforces naming convention and Codex review.
-disable-model-invocation: true
 argument-hint: "[skill-name]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 model: opus

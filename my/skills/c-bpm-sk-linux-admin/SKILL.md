@@ -5,7 +5,6 @@ description: "Linux admin fixes — fix audit findings, implement server fixes, 
 user-invocable: true
 enforcement: block
 intentPatterns: "fix audit findings;;linux admin fix;;server (remediation|fix);;implement (server|host) fixes;;host remediation"
-disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---
 

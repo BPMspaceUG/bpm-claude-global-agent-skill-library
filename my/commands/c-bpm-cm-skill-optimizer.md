@@ -4,7 +4,6 @@ description: >
   This command should be used when the user asks to "optimize a skill", "improve skill",
   "refine skill", "upgrade skill", "tune skill". Forks, customizes, or enhances existing
   skills with Codex-reviewed quality gates and c-bpm- naming.
-disable-model-invocation: true
 argument-hint: "[skill-name]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 model: opus

@@ -5,7 +5,6 @@ description: "Audit Linux host — server audit, security scan, system health ch
 user-invocable: true
 enforcement: block
 intentPatterns: "audit (this |)(linux |)host;;server (security |)audit;;system health check;;onboard (this |new )server;;host (security |)review"
-disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 ---
 

@@ -8,7 +8,6 @@ description: >
 model: opus
 enforcement: block
 intentPatterns: "create (a |new )?skill;;new skill;;make (a )?skill;;build (a )?skill;;add (a )?skill"
-disable-model-invocation: true
 user-invocable: true
 argument-hint: "[skill-name]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
@@ -57,7 +56,6 @@ When creating a skill, decide which frontmatter fields to include:
 
 | Question | If YES → Add |
 |----------|-------------|
-| Should only the user trigger this? | `disable-model-invocation: true` |
 | Should only Claude trigger this? | `user-invocable: false` |
 | Does it accept arguments? | `argument-hint: "[description]"` |
 | Should it run isolated? | `context: fork` + optional `agent: <type>` |
@@ -109,7 +107,6 @@ description: >
   [What it does]. [When to use it — triggers]. Derived from <original>.
 enforcement: block
 intentPatterns: "create (a |new )?skill;;new skill;;make (a )?skill;;build (a )?skill;;add (a )?skill"
-disable-model-invocation: true     # If task skill
 allowed-tools: Read, Grep, Glob    # If tool restrictions apply
 argument-hint: "[arg]"             # If arguments expected
 context: fork                      # If should run isolated
