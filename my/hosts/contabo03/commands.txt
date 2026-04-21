@@ -1,5 +1,12 @@
 # Host: contabo03
-# Updated: 2026-03-17T07:15:13Z (cleared during c-bpm rename)
+# Updated: 2026-04-21T06:18:50Z
 # Category: commands
 #
-# Will be regenerated on next pull from this host
+c-bpm-cm-library-compare.md
+c-bpm-cm-library-pull.md
+c-bpm-cm-library-push.md
+c-bpm-cm-openissues-list.md
+c-bpm-cm-openissues-team.md
+c-bpm-cm-refactor-repo.md
+c-bpm-cm-skill-creator.md
+c-bpm-cm-skill-optimizer.md

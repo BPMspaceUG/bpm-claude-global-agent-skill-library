@@ -1,5 +1,36 @@
 # Host: contabo03
-# Updated: 2026-03-17T07:15:13Z (cleared during c-bpm rename)
+# Updated: 2026-04-21T06:18:50Z
 # Category: skills
 #
-# Will be regenerated on next pull from this host
+c-bpm-sk-api-contract
+c-bpm-sk-appsec-threatlite
+c-bpm-sk-auditor
+c-bpm-sk-bash-secure-script
+c-bpm-sk-bootstrap-ui
+c-bpm-sk-config-secrets
+c-bpm-sk-curlbash-installer
+c-bpm-sk-datatables
+c-bpm-sk-flightphp-pro
+c-bpm-sk-grill-claude-issue
+c-bpm-sk-grill-me
+c-bpm-sk-grill-me-issue
+c-bpm-sk-idea-merge
+c-bpm-sk-jquery-ajax-forms
+c-bpm-sk-library-manager
+c-bpm-sk-linux-admin
+c-bpm-sk-linux-archive
+c-bpm-sk-linux-audit
+c-bpm-sk-llm-selection
+c-bpm-sk-mariadb-migrations
+c-bpm-sk-milestone-type
+c-bpm-sk-n8n-reliability
+c-bpm-sk-php-crud-api-review
+c-bpm-sk-php-flight-mvc
+c-bpm-sk-question-auditor
+c-bpm-sk-redis-keyspace
+c-bpm-sk-release-ops
+c-bpm-sk-repo-scaffold
+c-bpm-sk-skill-creator
+c-bpm-sk-skill-optimizer
+c-bpm-sk-test-harness
+c-bpm-sk-tls-http-headers

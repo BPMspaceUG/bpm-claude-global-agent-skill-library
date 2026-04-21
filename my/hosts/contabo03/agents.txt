@@ -1,5 +1,10 @@
 # Host: contabo03
-# Updated: 2026-03-17T07:15:13Z (cleared during c-bpm rename)
+# Updated: 2026-04-21T06:18:50Z
 # Category: agents
 #
-# Will be regenerated on next pull from this host
+c-bpm-ag-backend-bash-php.md
+c-bpm-ag-data-mariadb-redis.md
+c-bpm-ag-orchestrator-planner.md
+c-bpm-ag-qa-tester.md
+c-bpm-ag-security-reviewer.md
+c-bpm-ag-workflow-n8n-api.md
