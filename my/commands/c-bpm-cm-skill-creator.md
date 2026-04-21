@@ -90,7 +90,7 @@ cp -r ~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/<original>/ ~
 ### Step 5: Codex Review
 
 ```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
+codex exec --skip-git-repo-check -m gpt-5.2 "Review this Claude Code skill for quality. Check for:
 1. Frontmatter: name (c-bpm-sk- prefix) and description (includes trigger conditions)
 2. Progressive disclosure: SKILL.md under 500 lines, references split out
 3. No duplication between SKILL.md and reference files

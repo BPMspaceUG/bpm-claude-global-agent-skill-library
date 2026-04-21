@@ -162,7 +162,7 @@ After archiving, update the installed-tools table in MEMORY.md:
 Before executing any destructive or irreversible operation (config backup, git commit, git push), submit plan to Codex for review:
 
 ```bash
-codex exec --skip-git-repo-check "Review this archive plan: <plan>. Check: no secrets exposed, correct file selection, follows project conventions. Approve or reject."
+codex exec --skip-git-repo-check -m gpt-5.2 "Review this archive plan: <plan>. Check: no secrets exposed, correct file selection, follows project conventions. Approve or reject."
 ```
 
 If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: STOP and notify the user.
