@@ -53,7 +53,7 @@ jobs:
 Before executing any destructive or irreversible operation (release cut, tag creation, artefact publishing), submit plan to Codex for review:
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 "Review this release plan: <plan>. Check: correct versioning, no breaking changes, follows project conventions. Approve or reject."
+codex exec --skip-git-repo-check "Review this release plan: <plan>. Check: correct versioning, no breaking changes, follows project conventions. Approve or reject."
 ```
 
 If Codex is unavailable: STOP and notify the user.

@@ -164,7 +164,7 @@ The teammate posts a plan as a comment on their assigned issue. The plan must in
 1. **Team Lead reviews** — Checks scope, naming convention, segregation of duty
 2. **Codex reviews** — Run:
    ```bash
-   codex exec --skip-git-repo-check -m gpt-5.2 "Review this skill development plan. Check for: naming convention (c-bpm-sk- prefix), segregation of duty (original untouched), frontmatter quality, progressive disclosure, no unnecessary files. Plan: <plan content>"
+   codex exec --skip-git-repo-check "Review this skill development plan. Check for: naming convention (c-bpm-sk- prefix), segregation of duty (original untouched), frontmatter quality, progressive disclosure, no unnecessary files. Plan: <plan content>"
    ```
 
 ### Approval
@@ -201,7 +201,7 @@ When implementation is complete, move issue to milestone: `implemented`.
 ### Codex Skill Review
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 "Review this Claude Code skill for quality. Check for:
+codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
 1. Frontmatter: name and description are clear, description includes trigger conditions
 2. Progressive disclosure: SKILL.md under 500 lines, references split out properly
 3. No duplication between SKILL.md and reference files
@@ -253,7 +253,7 @@ Present a synthesis report to the user:
 Codex is invoked ONLY via:
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 "<review prompt>"
+codex exec --skip-git-repo-check "<review prompt>"
 ```
 
 Never use interactive mode. Never skip independent review at mandatory gates (use fallback chain if Codex unavailable).
@@ -269,7 +269,7 @@ Independent review (Codex → Gemini → other) is required at exactly 2 gates:
 
 Try the fallback chain before stopping:
 
-1. **Primary:** `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"`
+1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
 2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
 3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
 

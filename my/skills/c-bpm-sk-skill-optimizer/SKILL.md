@@ -109,7 +109,7 @@ Document what will change and why. Present to user for approval.
 ### Step 4: Codex Review
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 "Review this Claude Code skill for Skills 2.0 compliance. Check:
+codex exec --skip-git-repo-check "Review this Claude Code skill for Skills 2.0 compliance. Check:
 2. SKILL.md under 500 lines, references split out
 3. No duplication between SKILL.md and reference files
 4. Dynamic context injection used where beneficial

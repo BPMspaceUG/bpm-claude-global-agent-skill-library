@@ -166,7 +166,7 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 - Use Opus 4.6 for all teammates (inherit, never haiku)
 - Include severity ratings for all findings
 - Run existing tests if safe to do so
-- Invoke Codex ONLY via: `codex exec --skip-git-repo-check -m gpt-5.2 [PROMPT]` (if unavailable, use fallback chain)
+- Invoke Codex ONLY via: `codex exec --skip-git-repo-check [PROMPT]` (if unavailable, use fallback chain)
 
 ### MUST NOT
 - Create GitHub issues (report only)

@@ -214,7 +214,7 @@ The teammate posts a plan as a comment on their assigned issue(s). The plan must
 1. **Team Lead reviews** — Checks scope adherence, architectural fit, completeness
 2. **Codex reviews** — Run:
    ```bash
-   codex exec --skip-git-repo-check -m gpt-5.2 "Review this plan for issue #N in a Flight PHP project. Check for: scope creep, missing test coverage, architectural violations, security concerns. Plan: <plan content>"
+   codex exec --skip-git-repo-check "Review this plan for issue #N in a Flight PHP project. Check for: scope creep, missing test coverage, architectural violations, security concerns. Plan: <plan content>"
    ```
 
 ### Approval Criteria
@@ -271,7 +271,7 @@ final class UserControllerTest extends TestCase
 1. **Team Lead reviews** — Checks coverage completeness, edge cases, isolation
 2. **Codex reviews** — Run:
    ```bash
-   codex exec --skip-git-repo-check -m gpt-5.2 "Review this PHPUnit test design for a Flight PHP project. Check for: adequate coverage, proper Engine isolation, missing edge cases, assertion quality. Test design: <test design content>"
+   codex exec --skip-git-repo-check "Review this PHPUnit test design for a Flight PHP project. Check for: adequate coverage, proper Engine isolation, missing edge cases, assertion quality. Test design: <test design content>"
    ```
 
 ### Approval
@@ -333,7 +333,7 @@ Team Lead and Codex independently verify:
 1. **Team Lead** — Pulls the branch, runs tests, reviews code
 2. **Codex** — Run:
    ```bash
-   codex exec --skip-git-repo-check -m gpt-5.2 "Review this implementation for a Flight PHP project. Check: tests pass, code follows Flight conventions, no security issues, no breaking changes. Code diff: <diff content>"
+   codex exec --skip-git-repo-check "Review this implementation for a Flight PHP project. Check: tests pass, code follows Flight conventions, no security issues, no breaking changes. Code diff: <diff content>"
    ```
 
 Both must approve. Move to milestone: `test-approved`.
@@ -383,7 +383,7 @@ Independent review is mandatory for all Claude-generated code (Codex primary, Ge
 Codex is invoked ONLY via:
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 "<review prompt>"
+codex exec --skip-git-repo-check "<review prompt>"
 ```
 
 Never use interactive mode. Never skip independent review at mandatory gates (use fallback chain if Codex unavailable).
@@ -400,7 +400,7 @@ Independent review (Codex → Gemini → other) is required at exactly 3 gates:
 
 Try the fallback chain before stopping:
 
-1. **Primary:** `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"`
+1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
 2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
 3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
 

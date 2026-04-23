@@ -117,7 +117,7 @@ Proposed action: <ACTION_TYPE> — <specific steps>
 Before ANY mutations, invoke Codex for review:
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 \
+codex exec --skip-git-repo-check \
   "Review these proposed changes for [repo]: [cluster summary with proposed actions]. \
    Are groupings warranted? Should any items be split instead? \
    Missing items that belong in a cluster?"
