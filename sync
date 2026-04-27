@@ -98,6 +98,16 @@ if [ "$UNINSTALL" -eq 1 ]; then
       fi
     fi
   done
+  # Hook uninstall must run before exit 0 (sync's main install-hooks block is unreachable here)
+  INSTALL_HOOKS_SCRIPT="$SCRIPT_DIR/install-hooks"
+  if [ -x "$INSTALL_HOOKS_SCRIPT" ]; then
+    echo ""
+    if [ "$DRY_RUN" -eq 1 ]; then
+      "$INSTALL_HOOKS_SCRIPT" --uninstall --dry-run || true
+    else
+      "$INSTALL_HOOKS_SCRIPT" --uninstall || true
+    fi
+  fi
   if [ "$DRY_RUN" -eq 1 ]; then
     echo ""
     echo "DRY RUN - No changes made"
@@ -394,5 +404,19 @@ if [ "$DRY_RUN" -eq 0 ] && [ "$SKILLS_SELECTED" -eq 1 ]; then
   if [ "$ZIP_COUNT" -gt 0 ]; then
     rm -f "$TARGET_DIR/skills"/*.zip
     echo "🧹 Cleaned up $ZIP_COUNT .zip artifact(s)"
+  fi
+fi
+
+# Hook installation: copy dist/*.mjs to ~/.claude/hooks/dist/ and merge
+# PreToolUse entries into both supported settings.json paths. Idempotent.
+INSTALL_HOOKS_SCRIPT="$SCRIPT_DIR/install-hooks"
+if [ -x "$INSTALL_HOOKS_SCRIPT" ]; then
+  echo ""
+  if [ "$UNINSTALL" -eq 1 ]; then
+    "$INSTALL_HOOKS_SCRIPT" --uninstall
+  elif [ "$DRY_RUN" -eq 1 ]; then
+    "$INSTALL_HOOKS_SCRIPT" --dry-run
+  else
+    "$INSTALL_HOOKS_SCRIPT"
   fi
 fi

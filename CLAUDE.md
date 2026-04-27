@@ -75,3 +75,76 @@ c-bpm-cm-library-push --dry-run
 - **Redis** - Caching with namespaced keys and TTL policies
 - **n8n** - Workflow automation
 - **php-crud-api** - REST API generation
+
+## Enforcement: Hooks, Not Wrappers
+
+**Rule:** Cross-machine rules are enforced via Claude Code hooks and GitHub Actions — not via CLI wrappers, shims, or replacement binaries in `/usr/local/bin/`.
+
+**Why:** wrappers are OS-dependent and require installing a separate shim on every machine for every rule. Hook configuration lives in this repo (`my/hooks/`) and is deployed consistently via `bcgasl` / `c-bpm-cm-library-pull`. GitHub Actions live in `.github/workflows/` and run server-side. Both centralise the enforcement logic; only the install-once step is per-machine.
+
+### Required hook layers
+
+| Layer | Mechanism | Catches |
+|---|---|---|
+| Claude Code `SessionStart` hook | `settings.json` → `hooks.SessionStart` (sources distributed via `my/hooks/`) | Loads project rules, host context, and required defaults at the start of every Claude session. |
+| Claude Code `PreToolUse` hook | `hooks.PreToolUse` matchers on `Bash`, `Edit`, `Write`, and MCP tool names | Intercepts every code path that mutates external state — `gh issue create`, `git commit`, `gh api`, `curl`/`python` against GitHub REST/GraphQL, MCP tools that wrap GitHub. Blocks on rule violation. |
+| GitHub Actions | `.github/workflows/*.yml` on `issues.opened`, `pull_request.opened`, `push` | Catches everything created outside Claude Code (web UI, raw API, other agents, other machines). Auto-corrects or comments. |
+
+### Settings.json locations
+
+The repo's install scripts write to **both** of the standard Claude Code settings paths so hooks fire regardless of which path the user's Claude Code build reads first:
+
+- `~/.claude/settings.json`
+- `~/.config/claude/settings.json`
+
+Verify both exist after `bcgasl` / `c-bpm-cm-library-pull`. If only one is populated and the other Claude build is in use on a host, hooks will silently not fire.
+
+### Minimal hook example (issue-create guard)
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/gh-issue-create-guard.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook script reads the tool input (the bash command) from stdin/env, greps for `gh issue create` / `gh api .../issues` / `curl ... /issues` / `mcp__*__create_issue`, and exits non-zero with a clear stderr message if `--milestone` and a type label (`bug` or `enhancement`) are missing. See the authoritative Claude Code hooks docs for exact event names, matcher syntax, and stdin schema before implementing.
+
+### Required coverage for issue creation
+
+Every code path that creates a GitHub Issue must be intercepted:
+
+1. `gh issue create` via Bash — `PreToolUse` on `Bash` matcher
+2. `gh api repos/.../issues -X POST` via Bash — same matcher, broader regex
+3. `curl` / `python` / any direct HTTP client hitting GitHub REST or GraphQL — same matcher, regex on URL
+4. MCP-server issue creation (e.g., `mcp__github__create_issue`) — `PreToolUse` on the MCP tool-name matcher
+5. `git`-trailer-triggered issue creation (rare) — `PreToolUse` + GitHub Action
+6. Web UI / external clients / other agents — GitHub Action on `issues.opened`
+
+If any of these paths can create an issue without milestone + type label, the rule is unenforced.
+
+### Anti-patterns (do not do)
+
+- `/usr/local/bin/gh-issue-create` wrapper script
+- Shell function in `~/.bashrc` overriding `gh`
+- Symlink replacing the real `gh` binary
+- Per-machine install steps for enforcement logic beyond the one-time hook deployment
+- Documentation-only "remember to set milestone" — must be machine-enforced
+
+### When the audit finds a gap
+
+If `/c-bpm-cm-openissues-list` finds a non-compliant issue:
+
+1. Fix the issue immediately (set milestone + type)
+2. File a bug identifying which hook layer was missing — this finding is itself auto-filed per the "every finding becomes an issue" rule (see auto-memory and `c-bpm-sk-milestone-type`)

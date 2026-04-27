@@ -21,4 +21,9 @@ bpm-bootstrap.env
 
 # Build and temp directories
 tmp/
-dist/
+
+# Ignore everything inside dist/ EXCEPT specific committed hook build
+# outputs (committed so cross-machine install-hooks works without a
+# per-host build step). Add new exceptions per hook below as needed.
+dist/*
+!dist/issue-write-gate.mjs

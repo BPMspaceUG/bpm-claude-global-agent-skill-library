@@ -1,0 +1,352 @@
+#!/usr/bin/env bash
+#
+# install-hooks — install dist/*.mjs hooks and register PreToolUse entries
+# in BOTH supported Claude Code settings.json paths. Idempotent.
+#
+# Two install modes (per global CLAUDE.md "Linux System Administration"):
+#
+#   --system  : copy hook .mjs to /usr/local/bin/ (root:root +x). Needs sudo
+#               unless already running as root. Multi-user pattern.
+#   (default) : per-user. Symlink ~/.claude/hooks/dist/<hook> → /usr/local/bin/<hook>
+#               if a system copy exists; otherwise copy the file into
+#               ~/.claude/hooks/dist/ directly. Settings.json always points
+#               at ~/.claude/hooks/dist/<hook> so a per-user run also works
+#               when the system install hasn't happened yet.
+#
+# Usage:
+#   sudo ./install-hooks --system       # one-time, multi-user setup
+#   ./install-hooks                     # per-user install / update (idempotent)
+#   ./install-hooks --dry-run           # preview, no writes
+#   ./install-hooks --uninstall         # remove per-user entries + symlink
+#   sudo ./install-hooks --uninstall --system  # remove /usr/local/bin/*.mjs
+#   ./install-hooks --help
+#
+# Settings paths managed (per-user; both written if either exists):
+#   ~/.claude/settings.json
+#   ~/.config/claude/settings.json
+#
+# Hook registry — single source of truth for what gets installed.
+# Each row: <basename-without-.mjs>|<comma-separated-matchers>|<timeout-seconds>
+# Add a new line here when adding a new hook to dist/.
+
+set -euo pipefail
+
+HOOK_REGISTRY=(
+  "issue-write-gate|Bash,mcp__github__issue_write,mcp__github__create_issue|10"
+)
+
+# ── Args ──────────────────────────────────────────────────────────────────
+
+DRY_RUN=0
+UNINSTALL=0
+SYSTEM=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    --uninstall) UNINSTALL=1 ;;
+    --system) SYSTEM=1 ;;
+    --help|-h)
+      sed -n '2,/^set -e/p' "$0" | sed 's/^#//; s/^ //'
+      exit 0
+      ;;
+    *)
+      echo "Unknown arg: $arg (try --help)" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# ── Paths ─────────────────────────────────────────────────────────────────
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DIST_DIR="${REPO_ROOT}/dist"
+SYSTEM_BIN_DIR="/usr/local/bin"
+USER_HOOKS_DIR="${HOME}/.claude/hooks/dist"
+SETTINGS_PATHS=(
+  "${HOME}/.claude/settings.json"
+  "${HOME}/.config/claude/settings.json"
+)
+
+# In --system mode, sudo may be required for /usr/local/bin writes.
+SUDO=""
+if [[ "${SYSTEM}" -eq 1 ]] && [[ "$(id -u)" -ne 0 ]]; then
+  if command -v sudo >/dev/null 2>&1; then
+    SUDO="sudo"
+  else
+    echo "ERROR: --system requires root or sudo (writes to ${SYSTEM_BIN_DIR})" >&2
+    exit 1
+  fi
+fi
+
+# ── Sanity ────────────────────────────────────────────────────────────────
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || { echo "ERROR: missing required command: $1" >&2; exit 1; }
+}
+require jq
+require node
+
+if [[ ! -d "${DIST_DIR}" ]]; then
+  echo "ERROR: ${DIST_DIR} does not exist; nothing to install" >&2
+  exit 1
+fi
+
+log()  { echo "[install-hooks] $*"; }
+warn() { echo "[install-hooks] WARN: $*" >&2; }
+
+# ── Step 1: install hook .mjs files ───────────────────────────────────────
+#
+# In --system mode: copy src → /usr/local/bin/<name>.mjs (root:root +x).
+# In per-user mode: if /usr/local/bin/<name>.mjs exists, symlink user path
+# to it (CLAUDE.md pattern). Otherwise copy src → ~/.claude/hooks/dist/.
+# Settings.json command path is always the user-local path so the same
+# settings.json works whether the system file exists or not.
+
+install_system_hook() {
+  local src="$1" name="$2"
+  local sysdst="${SYSTEM_BIN_DIR}/${name}.mjs"
+  if [[ -f "${sysdst}" ]] && cmp -s "${src}" "${sysdst}"; then
+    log "  system: unchanged: ${sysdst}"
+    return 0
+  fi
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    log "  system: would copy ${src} → ${sysdst} (root:root +x)"
+    return 0
+  fi
+  ${SUDO} install -o root -g root -m 0755 "${src}" "${sysdst}"
+  log "  system: installed ${sysdst} (root:root +x)"
+}
+
+install_user_hook() {
+  # Per-user install. Prefer symlink to /usr/local/bin/<name>.mjs if present;
+  # else copy the file directly. ~/.claude/hooks/dist/<name>.mjs is the path
+  # referenced by every settings.json command we write.
+  local src="$1" name="$2"
+  local userdst="${USER_HOOKS_DIR}/${name}.mjs"
+  local sysdst="${SYSTEM_BIN_DIR}/${name}.mjs"
+
+  if [[ "${DRY_RUN}" -eq 0 ]]; then
+    mkdir -p "${USER_HOOKS_DIR}"
+  fi
+
+  if [[ -f "${sysdst}" ]]; then
+    # Prefer symlink to system binary.
+    if [[ -L "${userdst}" ]] && [[ "$(readlink "${userdst}")" == "${sysdst}" ]]; then
+      log "  user: unchanged (symlink → ${sysdst})"
+      return 0
+    fi
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+      log "  user: would symlink ${userdst} → ${sysdst}"
+      return 0
+    fi
+    rm -f "${userdst}"
+    ln -s "${sysdst}" "${userdst}"
+    log "  user: symlinked ${userdst} → ${sysdst}"
+    return 0
+  fi
+
+  # Fallback: copy file directly into user dir.
+  if [[ -f "${userdst}" ]] && [[ ! -L "${userdst}" ]] && cmp -s "${src}" "${userdst}"; then
+    log "  user: unchanged (file at ${userdst})"
+    return 0
+  fi
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    log "  user: would copy ${src} → ${userdst} (no system install present)"
+    return 0
+  fi
+  rm -f "${userdst}"   # remove any stale symlink pointing to a missing system file
+  cp "${src}" "${userdst}"
+  chmod +x "${userdst}"
+  log "  user: copied ${userdst} (no system install present)"
+}
+
+copy_hooks() {
+  for entry in "${HOOK_REGISTRY[@]}"; do
+    local name="${entry%%|*}"
+    local src="${DIST_DIR}/${name}.mjs"
+    if [[ ! -f "${src}" ]]; then
+      warn "registry entry '${name}' has no source at ${src}; skipping"
+      continue
+    fi
+    if [[ "${SYSTEM}" -eq 1 ]]; then
+      install_system_hook "${src}" "${name}"
+    else
+      install_user_hook "${src}" "${name}"
+    fi
+  done
+}
+
+remove_hooks() {
+  for entry in "${HOOK_REGISTRY[@]}"; do
+    local name="${entry%%|*}"
+    local userdst="${USER_HOOKS_DIR}/${name}.mjs"
+    local sysdst="${SYSTEM_BIN_DIR}/${name}.mjs"
+
+    if [[ "${SYSTEM}" -eq 1 ]]; then
+      if [[ -f "${sysdst}" ]]; then
+        if [[ "${DRY_RUN}" -eq 1 ]]; then
+          log "  system: would remove ${sysdst}"
+        else
+          ${SUDO} rm -f "${sysdst}"
+          log "  system: removed ${sysdst}"
+        fi
+      fi
+    else
+      if [[ -e "${userdst}" || -L "${userdst}" ]]; then
+        if [[ "${DRY_RUN}" -eq 1 ]]; then
+          log "  user: would remove ${userdst}"
+        else
+          rm -f "${userdst}"
+          log "  user: removed ${userdst}"
+        fi
+      fi
+    fi
+  done
+}
+
+# ── Step 2: merge PreToolUse entries into settings.json ───────────────────
+#
+# Idempotency rule: an entry "exists" if (matcher, command basename) match.
+# We don't compare command paths verbatim because $HOME may differ.
+# Adds the entry only if no existing PreToolUse object has the same matcher
+# AND a hooks[].command containing the registered .mjs basename.
+
+settings_jq_program() {
+  # Args: <matcher> <command> <timeout> <basename> → outputs jq program that
+  # adds the entry only if not already present. Uses substring (contains)
+  # match on the basename, NOT regex, to avoid false matches from `.`.
+  local matcher="$1" command="$2" timeout="$3" basename="$4"
+  cat <<JQ
+.hooks //= {} |
+.hooks.PreToolUse //= [] |
+if any(.hooks.PreToolUse[]?;
+       .matcher == "${matcher}" and
+       any((.hooks // [])[]; (.command // "") | contains("${basename}"))
+   )
+then .
+else .hooks.PreToolUse += [{
+  "matcher": "${matcher}",
+  "hooks": [{
+    "type": "command",
+    "command": "${command}",
+    "timeout": ${timeout}
+  }]
+}]
+end
+JQ
+}
+
+settings_jq_uninstall() {
+  # Removes only matching hook entries from .hooks[] arrays; preserves any
+  # non-matching hooks in the same matcher block. Then drops matcher blocks
+  # whose hooks array became empty.
+  local basename="$1"
+  cat <<JQ
+.hooks.PreToolUse //= [] |
+.hooks.PreToolUse |= map(
+  .hooks = ((.hooks // []) | map(select((.command // "") | contains("${basename}") | not)))
+) |
+.hooks.PreToolUse |= map(select((.hooks // []) | length > 0))
+JQ
+}
+
+apply_to_settings() {
+  local sf="$1"
+  if [[ ! -f "${sf}" ]]; then
+    log "settings ${sf}: not present, skipping (this is fine if Claude Code has not been run on this path)"
+    return 0
+  fi
+  if ! jq -e . "${sf}" >/dev/null 2>&1; then
+    warn "settings ${sf}: not valid JSON; refusing to modify"
+    return 1
+  fi
+
+  local backup="${sf}.bak.$(date +%s)"
+  if [[ "${DRY_RUN}" -eq 0 ]]; then
+    cp "${sf}" "${backup}"
+  fi
+
+  local current="${sf}"
+  local tmp; tmp="$(mktemp)"
+  local changed=0
+
+  for entry in "${HOOK_REGISTRY[@]}"; do
+    local name matchers timeout
+    IFS='|' read -r name matchers timeout <<< "${entry}"
+    local cmd="node ${USER_HOOKS_DIR}/${name}.mjs"
+    local basename="${name}.mjs"
+
+    IFS=',' read -r -a matcher_arr <<< "${matchers}"
+    for matcher in "${matcher_arr[@]}"; do
+      local prog
+      if [[ "${UNINSTALL}" -eq 1 ]]; then
+        prog="$(settings_jq_uninstall "${basename}")"
+      else
+        prog="$(settings_jq_program "${matcher}" "${cmd}" "${timeout}" "${basename}")"
+      fi
+      jq "${prog}" "${current}" > "${tmp}"
+      if ! cmp -s "${current}" "${tmp}"; then
+        changed=1
+        if [[ "${DRY_RUN}" -eq 1 ]]; then
+          if [[ "${UNINSTALL}" -eq 1 ]]; then
+            log "  ${sf}: would REMOVE ${basename} entry (matcher: ${matcher})"
+          else
+            log "  ${sf}: would ADD ${basename} on matcher ${matcher}"
+          fi
+        else
+          cp "${tmp}" "${current}"
+          if [[ "${UNINSTALL}" -eq 1 ]]; then
+            log "  ${sf}: REMOVED ${basename} entry (matcher: ${matcher})"
+          else
+            log "  ${sf}: ADDED ${basename} on matcher ${matcher}"
+          fi
+        fi
+      fi
+    done
+  done
+
+  rm -f "${tmp}"
+
+  if [[ "${changed}" -eq 1 ]]; then
+    [[ "${DRY_RUN}" -eq 0 ]] && log "  ${sf}: backup → ${backup}"
+  else
+    [[ "${DRY_RUN}" -eq 0 ]] && rm -f "${backup}"
+    log "  ${sf}: already up to date"
+  fi
+}
+
+# ── Run ───────────────────────────────────────────────────────────────────
+#
+# Mode matrix:
+#   --system            → only manages /usr/local/bin/<name>.mjs (no settings.json)
+#   (default)           → user dir + per-user settings.json (uses system file via symlink if present)
+#   --uninstall         → per-user uninstall (settings.json + user hooks dir)
+#   --uninstall --system → only removes /usr/local/bin/<name>.mjs
+
+if [[ "${SYSTEM}" -eq 1 ]]; then
+  if [[ "${UNINSTALL}" -eq 1 ]]; then
+    log "system: uninstalling hooks from ${SYSTEM_BIN_DIR} (dry-run=${DRY_RUN})"
+    remove_hooks
+    log "system: uninstall complete (per-user settings.json untouched — run without --system to remove)"
+  else
+    log "system: installing hooks to ${SYSTEM_BIN_DIR} (root:root +x, dry-run=${DRY_RUN})"
+    copy_hooks
+    log "system: install complete. Each user must now run './install-hooks' (without --system) to wire their settings.json."
+  fi
+  exit 0
+fi
+
+# Per-user mode
+if [[ "${UNINSTALL}" -eq 1 ]]; then
+  log "uninstalling hooks (per-user; dry-run=${DRY_RUN})"
+  for sf in "${SETTINGS_PATHS[@]}"; do apply_to_settings "${sf}"; done
+  remove_hooks
+  log "uninstall complete (system files in ${SYSTEM_BIN_DIR} untouched — pass --system to remove those)"
+  exit 0
+fi
+
+log "installing hooks (per-user; dry-run=${DRY_RUN})"
+log "registry: ${#HOOK_REGISTRY[@]} entries"
+copy_hooks
+for sf in "${SETTINGS_PATHS[@]}"; do apply_to_settings "${sf}"; done
+log "install complete. Restart Claude Code session for new hooks to take effect."
