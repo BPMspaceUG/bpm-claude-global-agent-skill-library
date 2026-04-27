@@ -120,7 +120,7 @@ Create scripts, references, assets as identified in Step 2.
 ### Step 5: Codex Review
 
 ```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for Skills 2.0 compliance. Check:
+codex exec --skip-git-repo-check -m gpt-5.2 "Review this Claude Code skill for Skills 2.0 compliance. Check:
 1. Frontmatter: name (c-bpm-sk- prefix), description (triggers), Skills 2.0 fields
 2. Progressive disclosure: SKILL.md under 500 lines, references split out
 3. No duplication between SKILL.md and reference files

@@ -182,7 +182,7 @@ When all branches are resolved (or stop signal received):
 
 4. **Codex Devil's Advocate Review** — invoke:
    ```bash
-   codex exec --skip-git-repo-check "Review this grilled idea documentation: [summary]. Challenge: 1) Are there gaps in the analysis? 2) What assumptions were not questioned? 3) Is the documentation complete enough for someone else to implement? 4) What is the biggest risk that was not addressed?"
+   codex exec --skip-git-repo-check -m gpt-5.2 "Review this grilled idea documentation: [summary]. Challenge: 1) Are there gaps in the analysis? 2) What assumptions were not questioned? 3) Is the documentation complete enough for someone else to implement? 4) What is the biggest risk that was not addressed?"
    ```
    Post the Codex response into the output MD file under a `## Devil's Advocate`
    heading.

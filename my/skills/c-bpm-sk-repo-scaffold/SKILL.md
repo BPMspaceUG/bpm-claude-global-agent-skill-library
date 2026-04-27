@@ -48,7 +48,7 @@ Provide a consistent starting point for new projects, ensuring that directory la
 Before executing any destructive or irreversible operation (directory scaffolding, file overwriting, project restructuring), submit plan to Codex for review:
 
 ```bash
-codex exec --skip-git-repo-check "Review this scaffold plan: <plan>. Check: correct structure, no breaking changes, follows project conventions. Approve or reject."
+codex exec --skip-git-repo-check -m gpt-5.2 "Review this scaffold plan: <plan>. Check: correct structure, no breaking changes, follows project conventions. Approve or reject."
 ```
 
 If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: STOP and notify the user.

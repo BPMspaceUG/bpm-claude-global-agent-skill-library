@@ -213,7 +213,7 @@ Teammate submits plan (via ExitPlanMode)
   → Team Lead updates issue milestone to `planned`
   → Team Lead executes Codex review:
 
-     codex exec --skip-git-repo-check "Review this Linux administration fix plan
+     codex exec --skip-git-repo-check -m gpt-5.2 "Review this Linux administration fix plan
      for Issue #<N> on a Debian/Ubuntu host. Plan: <plan-summary>.
      REQUIREMENTS: 1) Pre-checks verify current state. 2) Commands correct for
      Debian/Ubuntu. 3) Validation confirms fix. 4) Rollback is safe and complete.
@@ -268,7 +268,7 @@ Team Lead:
   → Posts verification results as comment on GitHub Issue
 
 Team Lead executes:
-  codex exec --skip-git-repo-check "Verify this Linux administration fix for
+  codex exec --skip-git-repo-check -m gpt-5.2 "Verify this Linux administration fix for
   Issue #<N>. Fix applied: <summary>. Verification: <evidence>.
   Check: 1) Fix correctly applied. 2) No side effects. 3) Validation genuine.
   4) System in expected state. Approve or reject with reasons."
@@ -294,7 +294,7 @@ After all workable issues are addressed:
 
 3. Final Codex review:
    ```bash
-   codex exec --skip-git-repo-check "Review this Linux administration session
+   codex exec --skip-git-repo-check -m gpt-5.2 "Review this Linux administration session
    report for host {hostname}. Check: 1) All fixes properly verified.
    2) No security regressions. 3) System stability maintained.
    4) Rollback plans documented. Report: {report-content}"
@@ -315,7 +315,7 @@ After all workable issues are addressed:
 ## Codex Rules (NON-NEGOTIABLE)
 
 - Independent review is **MANDATORY** for all fixes (Codex primary, Gemini/other as fallback)
-- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check "<prompt>"` (if unavailable, use fallback chain)
+- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"` (if unavailable, use fallback chain)
 - Independent review is **MANDATORY** at 2 gates (try Codex → Gemini → other): Plan approval (Phase 4), Verification (Phase 6)
 - Log ALL reviewer responses as comments on the corresponding GitHub Issue
 
@@ -323,7 +323,7 @@ After all workable issues are addressed:
 
 Try the fallback chain before stopping:
 
-1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
+1. **Primary:** `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"`
 2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
 3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
 

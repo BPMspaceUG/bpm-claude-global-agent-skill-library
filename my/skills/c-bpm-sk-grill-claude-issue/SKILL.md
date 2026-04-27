@@ -97,7 +97,7 @@ Budgets:
 
 1. **Claude calls Codex** with the structured prompt:
    ```bash
-   codex exec --skip-git-repo-check "<structured prompt with all input fields>"
+   codex exec --skip-git-repo-check -m gpt-5.2 "<structured prompt with all input fields>"
    ```
 2. **Codex returns** a question (or verdict if satisfied on the current branch)
 3. **Claude researches actively** — read code, grep patterns, consult relevant
@@ -199,7 +199,7 @@ Present the summary to the user after posting:
 
 ## Codex Fallback Chain
 
-1. **Primary**: `codex exec --skip-git-repo-check "<prompt>"`
+1. **Primary**: `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"`
 2. **Fallback 1**: `gemini` CLI with equivalent prompt
 3. **Fallback 2**: notify user that devil's advocate must be done manually —
    "Codex and Gemini unavailable. Run the review manually or retry later."

@@ -198,7 +198,7 @@ Teammate submits plan
   → Team Lead moves issue to milestone: planned
   → Team Lead reviews
   → Team Lead executes:
-    codex exec --skip-git-repo-check "Review this refactoring plan for <teammate-name>: <plan-summary>. Assess: completeness, test coverage, risk, safety. Approve or reject with reasons."
+    codex exec --skip-git-repo-check -m gpt-5.2 "Review this refactoring plan for <teammate-name>: <plan-summary>. Assess: completeness, test coverage, risk, safety. Approve or reject with reasons."
   → Codex result added as comment to the GitHub Issue
   → If BOTH approve → move issue to milestone: plan-approved
   → If EITHER rejects → issue stays at planned, rejection reason in comment, teammate revises
@@ -223,7 +223,7 @@ Teammate submits test design
   → Team Lead moves issue to milestone: test-designed
   → Team Lead reviews
   → Team Lead executes:
-    codex exec --skip-git-repo-check "Review test designs for <teammate-name>: <test-file-paths>. Check: edge cases, meaningful assertions, no false positives, adequate coverage. Approve or reject."
+    codex exec --skip-git-repo-check -m gpt-5.2 "Review test designs for <teammate-name>: <test-file-paths>. Check: edge cases, meaningful assertions, no false positives, adequate coverage. Approve or reject."
   → Codex result added as comment to the GitHub Issue
   → If BOTH approve → move issue to milestone: test-design-approved
   → If EITHER rejects → issue stays at test-designed, rejection reason in comment, teammate revises
@@ -261,7 +261,7 @@ Team Lead:
   → Spot-check the test quality: are assertions meaningful? edge cases covered?
 
 Team Lead executes:
-  codex exec --skip-git-repo-check "Verify test results for <teammate-name>. Changes: <summary>. Run tests and review: are tests passing legitimately? Any false positives? Test coverage adequate? Approve or reject."
+  codex exec --skip-git-repo-check -m gpt-5.2 "Verify test results for <teammate-name>. Changes: <summary>. Run tests and review: are tests passing legitimately? Any false positives? Test coverage adequate? Approve or reject."
 
   → Verification results added as comment to the GitHub Issue
   → If BOTH approve → move issue to milestone: test-approved
@@ -300,7 +300,7 @@ After all issues reach `test-approved`:
 ## CODEX RULES
 
 - Codex is the PRIMARY REVIEW AUTHORITY for all Claude-generated code
-- Codex MUST be invoked ONLY via shell: `codex exec --skip-git-repo-check "<review-prompt>"`
+- Codex MUST be invoked ONLY via shell: `codex exec --skip-git-repo-check -m gpt-5.2 "<review-prompt>"`
 - Codex review is MANDATORY at 3 gates: plan approval, test design approval, test verification
 - If Codex is unavailable (command fails): STOP → notify user → do NOT proceed without Codex
 - Log all Codex responses as comments in the corresponding GitHub Issue

@@ -162,7 +162,7 @@ Both paths execute the full wrap-up protocol.
    - New issues created (if any, with links)
 3. **Codex Devil's Advocate** review:
    ```bash
-   codex exec --skip-git-repo-check "Review this refined GitHub Issue #{number}: [title]. Refined content: [summary]. Challenge: 1) Are requirements complete and testable? 2) What edge cases are missing? 3) Is acceptance criteria clear? 4) Any scope creep?"
+   codex exec --skip-git-repo-check -m gpt-5.2 "Review this refined GitHub Issue #{number}: [title]. Refined content: [summary]. Challenge: 1) Are requirements complete and testable? 2) What edge cases are missing? 3) Is acceptance criteria clear? 4) Any scope creep?"
    ```
    Post the Codex response as an issue comment.
 4. **Codex fallback chain**: `codex` -> `gemini` -> notify user that Devil's

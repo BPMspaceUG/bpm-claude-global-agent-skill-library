@@ -14,6 +14,16 @@ Every GitHub issue MUST have:
 1. **Exactly one milestone** — tracking lifecycle state
 2. **Exactly one type label** — `bug` or `enhancement` (always lowercase)
 
+## Machine-Enforcement Layer (issue-write-gate hook)
+
+The rules below are enforced at issue-creation time by the **`issue-write-gate` PreToolUse hook** (`dist/issue-write-gate.mjs`, registered on matchers `Bash`, `mcp__github__issue_write`, `mcp__github__create_issue`). The hook denies any issue-creation tool call missing a valid lifecycle milestone or a single `bug`/`enhancement` type label.
+
+- See issue [#68](https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library/issues/68) for the implementation, fixtures, and test-approval audit trail.
+- Install or update on a new machine: run `./sync` or `./install-hooks` from the repo root (idempotent; writes to both `~/.claude/settings.json` and `~/.config/claude/settings.json`).
+- Documented bypass surface (acknowledged limits): heredoc-quoted commands, `eval`, base64-decoded commands, direct `curl`/`python` HTTP calls. Server-side backstop is the GitHub Action layer (per `CLAUDE.md` Enforcement section).
+
+This skill remains the canonical reference for the rules themselves; the hook turns the rules into machine-enforcement.
+
 ## Issue Type Labels
 
 | Label | Use When |
@@ -213,7 +223,7 @@ Open issues: 12
 ### Gate 1: Plan Approval (planned -> plan-approved)
 
 ```bash
-codex exec --skip-git-repo-check "Review this implementation plan for Issue #<N>. \
+codex exec --skip-git-repo-check -m gpt-5.2 "Review this implementation plan for Issue #<N>. \
 Plan: <plan-summary>. \
 REQUIREMENTS: 1) Test coverage must be included. 2) Changes scoped to assigned files. \
 3) Risk assessment present. 4) Rollback strategy present. \
@@ -223,7 +233,7 @@ Approve or reject with specific reasons."
 ### Gate 2: Test Design Approval (test-designed -> test-design-approved)
 
 ```bash
-codex exec --skip-git-repo-check "Review test design for Issue #<N>. \
+codex exec --skip-git-repo-check -m gpt-5.2 "Review test design for Issue #<N>. \
 Tests: <test-description>. \
 Check: edge cases covered, meaningful assertions, no false positives, \
 adequate coverage, follows project test framework. Approve or reject."
@@ -232,7 +242,7 @@ adequate coverage, follows project test framework. Approve or reject."
 ### Gate 3: Test Verification (tested-success -> test-approved)
 
 ```bash
-codex exec --skip-git-repo-check "Verify implementation and test results for Issue #<N>. \
+codex exec --skip-git-repo-check -m gpt-5.2 "Verify implementation and test results for Issue #<N>. \
 Changes: <summary>. \
 Check: tests passing legitimately, no false positives, test coverage adequate, \
 code quality acceptable. Approve or reject."
@@ -242,7 +252,7 @@ code quality acceptable. Approve or reject."
 
 Try the fallback chain before stopping:
 
-1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
+1. **Primary:** `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"`
 2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
 3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
 
