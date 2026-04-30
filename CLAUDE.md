@@ -6,6 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **BPMspace** global skills library for Claude Code CLI. It contains task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `c-{org}-{type}-{name}` prefix convention (e.g., `c-bpm-sk-`, `c-bpm-cm-`) and are versioned under `my/`.
 
+## Skills Are Absolute
+
+By the convention this library establishes:
+
+- **Skills** under `my/skills/c-bpm-sk-*` and their installed copies in `~/.claude/skills/` are the canonical home for process rules — how the agent works, when Codex is invoked, what gates apply, how phases transition, what the cycle policy is. Skills are versioned, reviewed, and distributed via `bcgasl` / `c-bpm-cm-library-pull`.
+
+- **Memory** under `~/.claude/projects/*/memory/` is the home for user preferences, project facts, references to external systems, and verbatim user statements. By this library's convention, memory does not encode process rules.
+
+- **CLAUDE.md** describes repository architecture and the conventions of this library. It does not redefine process rules; those live in the skills.
+
+The operative Codex review pattern is defined in `c-bpm-sk-llm-selection`; issue #89 tracks correcting that skill to the Producer-LLM ↔ Codex-as-Judge loop with no cycle cap and no user escalation. Enforcement of this convention — write-time blocks on memory directories, install-time audits — is implemented in skills and hooks, not in this file.
+
 ## Architecture
 
 ### Directory Structure
