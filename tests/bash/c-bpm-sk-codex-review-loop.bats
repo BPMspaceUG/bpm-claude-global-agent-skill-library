@@ -26,6 +26,9 @@ IN_SCOPE_FILES=(
   "my/skills/c-bpm-sk-skill-optimizer/SKILL.md"
   "my/skills/c-bpm-sk-skill-optimizer/references/team-orchestration.md"
   "my/commands/c-bpm-cm-openissues-team.md"
+  # Issue #91: grill-claude-issue must stay consistent with the canonical loop
+  # (no deadlock/escalation clause; Producer revises until Codex verdict).
+  "my/skills/c-bpm-sk-grill-claude-issue/SKILL.md"
 )
 
 LLM_SELECTION="${REPO_ROOT}/my/skills/c-bpm-sk-llm-selection/SKILL.md"

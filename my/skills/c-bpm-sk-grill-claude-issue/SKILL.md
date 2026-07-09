@@ -97,7 +97,7 @@ Budgets:
 
 1. **Claude calls Codex** with the structured prompt:
    ```bash
-   codex exec --skip-git-repo-check -m gpt-5.2 "<structured prompt with all input fields>"
+   codex exec --skip-git-repo-check "<structured prompt with all input fields>"
    ```
 2. **Codex returns** a question (or verdict if satisfied on the current branch)
 3. **Claude researches actively** — read code, grep patterns, consult relevant
@@ -115,10 +115,14 @@ Budgets:
 
 ### Handling Disagreement
 
-If Codex and Claude cannot agree after all follow-ups on a branch:
-- Document as "unresolved" with both positions stated
-- Move to the next main question
-- Include in final summary for user decision
+Disagreement is not a terminal state. Per the canonical Codex Review Loop in
+`c-bpm-sk-llm-selection`, the branch stays open until Codex returns a verdict:
+
+- Claude (Producer) revises its answer with additional research and evidence and
+  re-submits to Codex on the same branch.
+- Codex re-reviews and returns either a follow-up question or a verdict.
+- Repeat until Codex issues a verdict. There is no abandonment without a verdict, and
+  never a third model or the user brought in to break a tie.
 
 ## Claude's Answer Behavior
 
@@ -199,7 +203,7 @@ Present the summary to the user after posting:
 
 ## Codex Fallback Chain
 
-1. **Primary**: `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"`
+1. **Primary**: `codex exec --skip-git-repo-check "<prompt>"`
 2. **Fallback 1**: `gemini` CLI with equivalent prompt
 3. **Fallback 2**: notify user that devil's advocate must be done manually —
    "Codex and Gemini unavailable. Run the review manually or retry later."

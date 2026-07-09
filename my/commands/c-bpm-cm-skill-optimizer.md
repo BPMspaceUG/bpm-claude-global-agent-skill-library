@@ -99,7 +99,7 @@ Codex is the review authority for skill quality. All non-trivial skill changes g
 ### Invocation
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 "Review this Claude Code skill for quality. Check for:
+codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
 1. Frontmatter: name and description are clear, description includes trigger conditions
 2. Progressive disclosure: SKILL.md under 500 lines, references split out properly
 3. No duplication between SKILL.md and reference files

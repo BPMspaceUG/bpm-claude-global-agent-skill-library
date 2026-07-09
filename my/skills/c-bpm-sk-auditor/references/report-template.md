@@ -5,7 +5,7 @@ Use this template for the final `[REPONAME]-YYMMDD-HHSS.md` output.
 ```markdown
 # Repository Audit: [REPONAME]
 **Date:** YYYY-MM-DD HH:SS
-**Audited by:** Claude Opus 4.6 + OpenAI Codex (devil's advocate)
+**Audited by:** Claude (newest Opus) + OpenAI Codex (devil's advocate)
 
 ## Executive Summary
 [2-3 paragraph overview with risk rating: LOW / MEDIUM / HIGH / CRITICAL]

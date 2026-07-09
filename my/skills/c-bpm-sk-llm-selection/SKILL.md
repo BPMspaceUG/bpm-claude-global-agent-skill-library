@@ -19,6 +19,21 @@ How the Orchestrator selects and delegates tasks to available LLMs, and how the 
 | **Codex** | Implementer | Fast code generation, completions | Routine code tasks, quick completions, high-volume generation |
 | **Gemini** | Substitute Judge (Codex unreachable only) / Large-Context Reader | Large context, multimodal, alternate Judge when Codex is offline | Large document analysis, image processing, substitute Judge in the review loop ONLY when Codex is unreachable |
 
+## Model Version Policy (single source — referenced everywhere)
+
+This section is the single source of truth for model selection. No other skill or
+command may name a concrete model version; they reference this section.
+
+- **Codex (Judge / implementer):** invoke WITHOUT `-m`. Codex follows its own CLI
+  default model. Never pin a Codex model version flag in any skill or command.
+- **Claude teammates:** always the newest Opus (via `model: opus` / inherit). Never
+  pin a numeric Opus version.
+- **OpenRouter (if installed):** for cross-model validation only, and a substitute
+  Judge ONLY when Codex is unreachable (same rule as Gemini). Never a co-Judge,
+  tiebreaker, or third model in the Producer↔Codex loop. Not for daily work (see #47).
+- **Fable:** not yet adopted for production roles (too new). Revisit later.
+- Every other skill and command references THIS section, never names a version.
+
 ## Rules
 
 ### Orchestrator Selection
@@ -93,6 +108,47 @@ This pattern is referenced by `c-bpm-sk-skill-creator`, `c-bpm-sk-skill-optimize
 `c-bpm-cm-openissues-team`, and every other skill or command that runs a Codex
 review gate. It is the canonical definition; downstream skills must remain
 consistent with it.
+
+## Codex Invocation (shell hygiene)
+
+This is the canonical shell form for invoking the Codex Judge — the form the Team
+Lead uses at review gates and that new skills should adopt. Migrating the existing
+inline `codex exec` examples across the library to this sanitized form is tracked in
+#94 (in progress); until that lands, those call sites remain the plain
+`codex exec --skip-git-repo-check` form.
+
+**Problem it solves (issue #94):** Codex's captured output must contain *only*
+Codex's verdict. When `codex exec` is run from a login/rc-sourcing shell, the
+profile/rc side-effects — `keychain`, `ssh-agent`, `curl` to raw.githubusercontent.com,
+etc. — are emitted into the captured output. Codex then misreads that startup
+chatter as file content under review and returns false-positive rejections
+(observed: three fabricated review failures in a single session). Because
+Codex's own internal shells inherit the parent environment, the fix is to clear
+`BASH_ENV`/`ENV` and disable profile/rc in the invoking shell so nothing
+downstream re-sources them.
+
+**Canonical form** — sanitized, non-login shell, prompt on stdin:
+
+```bash
+env -u BASH_ENV -u ENV bash --noprofile --norc -c \
+  'codex exec --skip-git-repo-check < prompt.md 2>&1'
+```
+
+**Rules**
+
+- **Sanitize the environment.** `env -u BASH_ENV -u ENV` strips the variables
+  that cause non-interactive shells (including Codex's own) to source rc files.
+- **No login/rc shell.** `bash --noprofile --norc` — never `bash -l`, `bash -lc`,
+  or any shell that sources `~/.bash_profile` / `~/.bashrc` / `~/.profile`.
+- **Prompt on stdin.** Pass the review prompt via `< prompt.md`, never as a large
+  inline argv (it hangs).
+- **Verdict-only output.** A clean invocation emits only Codex's review verdict —
+  no `keychain`, `ssh-agent`, or `curl` startup lines.
+
+> The definitive cure for the leak is guarding `keychain` to interactive shells
+> only in the host's shell rc (a `bpm-<host>` dotfiles concern, tracked
+> separately); this sanitized invocation is the library-side mitigation that
+> holds regardless of host dotfile state.
 
 ## LLM Availability Handoff
 
