@@ -113,6 +113,8 @@ Verify both exist after `bcgasl` / `c-bpm-cm-library-pull`. If only one is popul
 
 ### Minimal hook example (issue-create guard)
 
+The issue-create guard is implemented as `my/hooks/issue-write-gate.ts` (built to `dist/issue-write-gate.mjs`) and registered by `install-hooks` on the `Bash`, `mcp__github__issue_write`, and `mcp__github__create_issue` matchers. A minimal single-matcher registration looks like:
+
 ```json
 {
   "hooks": {
@@ -122,7 +124,8 @@ Verify both exist after `bcgasl` / `c-bpm-cm-library-pull`. If only one is popul
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/gh-issue-create-guard.sh"
+            "command": "node ~/.claude/hooks/dist/issue-write-gate.mjs",
+            "timeout": 10
           }
         ]
       }
@@ -131,7 +134,11 @@ Verify both exist after `bcgasl` / `c-bpm-cm-library-pull`. If only one is popul
 }
 ```
 
-The hook script reads the tool input (the bash command) from stdin/env, greps for `gh issue create` / `gh api .../issues` / `curl ... /issues` / `mcp__*__create_issue`, and exits non-zero with a clear stderr message if `--milestone` and a type label (`bug` or `enhancement`) are missing. See the authoritative Claude Code hooks docs for exact event names, matcher syntax, and stdin schema before implementing.
+The hook reads the tool invocation as JSON on **stdin** (`{tool_name, tool_input, cwd}`), matches `gh issue create` / `gh api repos/.../issues` (POST) / `mcp__github__create_issue` / `mcp__github__issue_write`, and returns a **PreToolUse permission decision on stdout** (`deny` with a reason, `allow` otherwise) while **exiting 0** — it does not block via non-zero exit. If `--milestone` or a single `bug`/`enhancement` type label is missing, it denies.
+
+**Verified against** the authoritative Claude Code hooks docs (event names, matcher syntax, `{type, command, timeout}` shape, and the PreToolUse decision/stdin schema):
+- <a href="https://code.claude.com/docs/en/hooks-guide.md" target="_blank">hooks-guide</a>
+- <a href="https://code.claude.com/docs/en/hooks.md" target="_blank">hooks reference</a>
 
 ### Required coverage for issue creation
 

@@ -187,7 +187,7 @@ Workflow phases:
 1. Discovery — scan repo, MCP servers, existing issues
 2. Security — audit dependencies (`composer audit`), scan for secrets
 3. Analysis — assess code quality, architecture, identify improvements
-4. Team spawn — assign issues to teammates (default: Opus 4.6)
+4. Team spawn — assign issues to teammates (default: newest Opus (see `c-bpm-sk-llm-selection`))
 5. Plan approval — dual gate (Team Lead + Codex)
 6. Test design — dual gate (Team Lead + Codex)
 7. Implementation — feature branches, TDD, no breakage

@@ -43,7 +43,7 @@ A single Markdown file: `[REPONAME]-YYMMDD-HHSS.md` in the repo root.
      Discovery  Audit      Analysis     & Quality
 ```
 
-**Minimum 2, maximum 10 teammates. All use Opus 4.6 (inherit, never haiku).**
+**Minimum 2, maximum 10 teammates. All use newest Opus (see `c-bpm-sk-llm-selection`) (inherit, never haiku).**
 
 ## Audit Phases
 
@@ -163,10 +163,10 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 - Produce exactly one `.md` report file
 - Run independent devil's advocate review after EACH phase (Codex primary, Gemini/other as fallback)
 - Spawn at minimum 2 teammates, maximum 10
-- Use Opus 4.6 for all teammates (inherit, never haiku)
+- Use newest Opus (see `c-bpm-sk-llm-selection`) for all teammates (inherit, never haiku)
 - Include severity ratings for all findings
 - Run existing tests if safe to do so
-- Invoke Codex ONLY via: `codex exec --skip-git-repo-check -m gpt-5.2 [PROMPT]` (if unavailable, use fallback chain)
+- Invoke Codex ONLY via: `codex exec --skip-git-repo-check [PROMPT]` (if unavailable, use fallback chain)
 
 ### MUST NOT
 - Create GitHub issues (report only)

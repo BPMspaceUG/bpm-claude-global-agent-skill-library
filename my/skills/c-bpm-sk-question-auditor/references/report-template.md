@@ -15,7 +15,7 @@ Use this template when generating the audit report.
 | Filter | {published / unpublished / all} |
 | Certificate Level | {Foundation / Professional / unknown} |
 | Audit Date | {YYYY-MM-DD HH:MM:SS} |
-| Auditor | Claude Opus 4.6 -- `c-bpm-sk-question-auditor` |
+| Auditor | Claude (newest Opus) -- `c-bpm-sk-question-auditor` |
 | Questions Audited | {total_count} |
 | Previous Report | {filename or "none"} |
 

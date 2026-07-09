@@ -66,7 +66,7 @@ Before proceeding to Phase 1, confirm ALL of these:
 
 ### 1a. Team Structure
 
-Spawn **3 audit teammates** (all Opus 4.6), each responsible for one audit category:
+Spawn **3 audit teammates** (all newest Opus (see `c-bpm-sk-llm-selection`)), each responsible for one audit category:
 
 | Teammate | Category | Scope |
 |---|---|---|
@@ -83,7 +83,7 @@ Show the team plan and **WAIT for confirmation** before spawning.
 ## PHASE 2 — SPAWN AUDIT TEAM
 
 ### Model Policy
-- **ALL teammates use Opus 4.6** — no exceptions
+- **ALL teammates use newest Opus (see `c-bpm-sk-llm-selection`)** — no exceptions
 
 ### Teammate Instructions
 
@@ -125,7 +125,7 @@ Teammate submits plan (via ExitPlanMode)
   → Team Lead reviews findings
   → Team Lead executes Codex review:
 
-    codex exec --skip-git-repo-check -m gpt-5.2 "Review these Linux audit findings for host {hostname}.
+    codex exec --skip-git-repo-check "Review these Linux audit findings for host {hostname}.
     Category: {category}. Findings: {findings-summary}.
     Check: 1) Severity ratings are appropriate. 2) No false positives.
     3) Fix steps are correct and safe. 4) Issue types (BUG vs ENHANCEMENT) are correct.
@@ -209,7 +209,7 @@ Post as a new issue titled "Audit Run {YYYY-MM-DD}":
 ### Codex Final Review
 
 ```bash
-codex exec --skip-git-repo-check -m gpt-5.2 "Review this Linux audit summary for host {hostname}.
+codex exec --skip-git-repo-check "Review this Linux audit summary for host {hostname}.
 Check: 1) All major audit areas covered (runtime, security, health).
 2) Severity ratings consistent. 3) No critical findings missed.
 4) Summary is complete. Summary: {summary-content}"
@@ -277,7 +277,7 @@ No labels. No tags. Issue type + milestone = full lifecycle tracking.
 ## Codex Rules (NON-NEGOTIABLE)
 
 - Independent review is **MANDATORY** for all findings (Codex primary, Gemini/other as fallback)
-- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"` (if unavailable, use fallback chain)
+- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check "<prompt>"` (if unavailable, use fallback chain)
 - Independent review is **MANDATORY** at 2 gates (try Codex → Gemini → other):
   1. Findings approval (Phase 3)
   2. Audit summary review (Phase 5)
@@ -287,7 +287,7 @@ No labels. No tags. Issue type + milestone = full lifecycle tracking.
 
 Try the fallback chain before stopping:
 
-1. **Primary:** `codex exec --skip-git-repo-check -m gpt-5.2 "<prompt>"`
+1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
 2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
 3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
 
@@ -312,5 +312,5 @@ If ALL models in the chain are unavailable:
 
 - Team Lead MUST stay in DELEGATE MODE at all times (except Phase 0 bootstrap)
 - Communication via shared task list and messages
-- **All teammates use Opus 4.6**
+- **All teammates use newest Opus (see `c-bpm-sk-llm-selection`)**
 - Agent teams require: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
