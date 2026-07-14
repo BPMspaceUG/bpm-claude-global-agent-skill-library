@@ -152,14 +152,39 @@ WAIT for user confirmation before creating the team.
 ### Teammate Naming
 Descriptive role names: `security-hardener`, `test-writer`, `code-cleaner`, `dep-updater`, `doc-improver`, `arch-refactorer`
 
-### Spawn Instructions per Teammate
+### Spawn Form (the ONLY permitted form)
+Every teammate is spawned as:
+
+```
+subagent_type: c-bpm-ag-teammate
+isolation: "worktree"
+mode: "plan"
+```
+
+There is no second spawn path. An unrestricted teammate — one holding `Bash`, `gh`, or a
+shared working tree — must not be created for any reason, however urgent the task.
+`c-bpm-ag-teammate` has **no `Bash`**: it cannot run `codex exec`, cannot run `gh`, cannot
+`git push`. The SoD gate is a capability the teammate lacks, not a rule it is asked to obey
+(see #101). `mode: "plan"` remains a convenience, **not** the control — it demonstrably
+failed to block Edit/Write.
+
+### Gate of Record — Lead only
+**A teammate's report is narrative, never state.** "Codex approved", "tests pass" and
+"plan accepted" from a teammate advance *nothing*. The Team Lead runs `codex exec`, runs
+the test suite, and performs every `gh` mutation itself, and posts each verdict as a
+`## GATE` comment carrying a **nonce the Lead generated** (`NONCE=$(openssl rand -hex 8)`)
+before that Codex run. A verdict whose nonce the Lead did not generate is **void**.
+
+### Spawn Prompt Contents
+Each teammate MUST receive, pasted into the prompt (it has no `gh` and no network):
+- The **Issue body and comments**, fetched by the Lead via `gh api`
 - Clear scope (which files/modules they own)
 - Explicit boundaries (what they must NOT touch)
-- List of GitHub Issue numbers they are responsible for
 - Expected deliverables
-- Which MCP servers to use (if relevant)
 - **Relevant skills** to use for their assigned work (from the list below)
 - Instruction: send PLAN to team-lead BEFORE writing any code
+- Instruction: **write the tests; do not run them** — you have no shell. The Team Lead runs
+  the suite and Codex. Ask the Lead if you need a command run.
 
 ### Skill Selection per Teammate
 Before spawning, review ALL available skills (`/skills` or check `~/.claude/skills/` and `.claude/skills/`). Assign relevant skills to each teammate based on their task:

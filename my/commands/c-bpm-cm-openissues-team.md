@@ -166,21 +166,57 @@ Before spawning, review ALL available skills (`/skills` or check `~/.claude/skil
 
 Include the relevant skill names in each teammate's spawn prompt so they can leverage specialized knowledge.
 
-### Spawn Instructions per Teammate
-Each teammate MUST receive:
+### Spawn Form (the ONLY permitted form)
+Every teammate is spawned as:
+
+```
+subagent_type: c-bpm-ag-teammate
+isolation: "worktree"
+mode: "plan"
+```
+
+There is no second spawn path. An unrestricted teammate — one holding `Bash`, `gh`, or a
+shared working tree — must not be created for any reason, however urgent the task.
+
+**Why, and what each part buys (see #101):**
+- `c-bpm-ag-teammate` grants `Read, Write, Edit, Glob, Grep` and **no `Bash`**. The teammate
+  therefore *cannot* run `codex exec`, *cannot* run `gh`, *cannot* `git push`. The SoD gate
+  stops being a rule the teammate is asked to obey and becomes a capability it does not have.
+- `isolation: "worktree"` keeps every edit in the teammate's own worktree. Nothing reaches
+  the shared tree until the Team Lead merges it behind a **passed** Codex gate. This is what
+  prevents the #101 failure where Codex-REJECTED code was already sitting in the tree.
+- `mode: "plan"` remains, but is now a convenience, **not** the control. It failed to block
+  Edit/Write in practice; do not rely on it.
+
+### Gate of Record — Lead only
+**A teammate's report is narrative, never state.** A teammate writing "Codex approved",
+"tests pass", or "plan accepted" advances *nothing*. Only the Team Lead advances state, and
+only on facts the Lead observed itself:
+
+| Fact | Who establishes it |
+|---|---|
+| Codex verdict | Team Lead runs `codex exec`, reads raw stdout |
+| Test result | Team Lead runs `./tests/run_tests.sh` |
+| Milestone / label / comment | Team Lead via `gh` |
+
+Every Codex verdict is posted as a `## GATE` comment carrying a **nonce the Lead generated**
+(`NONCE=$(openssl rand -hex 8)`) before that Codex run. A gate verdict whose nonce the Lead
+did not generate is **void**, however convincing it reads. No phase transition in this
+command may be predicated on teammate-reported approval.
+
+### Spawn Prompt Contents
+Each teammate MUST receive, pasted into the prompt (it has no `gh` and no network):
+- The **Issue body and comments**, fetched by the Lead:
+  `gh api repos/<owner>/<repo>/issues/<n> --jq .body` and `.../issues/<n>/comments`
 - Clear scope: exact file paths they may modify
 - Explicit boundaries: files they must NOT touch
-- List of GitHub Issue numbers they own
 - **Relevant skills** to use for their assigned work (from the list above)
-- Instruction: **Submit a PLAN to team-lead BEFORE writing ANY code**
+- Instruction: **Submit a PLAN before writing ANY code**
 - Instruction: **Plan MUST include test coverage** or it will be auto-rejected
-- Instruction: **Do NOT commit** — automation handles commits
 - Instruction: Follow `set -euo pipefail` safety (avoid `((var++))` with var=0)
-- Instruction: Run `./tests/run_tests.sh` after changes to verify nothing breaks
+- Instruction: **Write the tests; do not run them.** You have no shell. Report what you
+  changed; the Team Lead runs the suite and Codex. Ask the Lead if you need a command run.
 - The project's CLAUDE.md rules and SoD workflow
-
-### Plan Mode
-All teammates MUST be spawned with `mode: "plan"` so they require plan approval before making any changes.
 
 ### Milestone: Set `planned`
 Team Lead sets milestone `planned` on each assigned issue before spawning teammates.
