@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-linux-archive
 description: "Archive host config — backup dotfiles, save tool configs, host backup, restore setup, config snapshot. Backs up to bpm-{hostname} GitHub repo."
 enforcement: block
@@ -157,15 +156,17 @@ After archiving, update the installed-tools table in MEMORY.md:
 | new-tool | x.y.z | `/path/to/bin` | `~/.config/tool/` |
 ```
 
-## Codex Review Gate
+## Judge Review Gate
 
-Before executing any destructive or irreversible operation (config backup, git commit, git push), submit plan to Codex for review:
+Before executing any destructive or irreversible operation (config backup, git
+commit, git push), run the review via `c-bpm-sk-devils-advocate` (Codex primary;
+OpenRouter fallback per `c-bpm-sk-llm-selection`), asking the Judge:
 
-```bash
-codex exec --skip-git-repo-check "Review this archive plan: <plan>. Check: no secrets exposed, correct file selection, follows project conventions. Approve or reject."
-```
+> Review this archive plan: `<plan>`. Check: no secrets exposed, correct file
+> selection, follows project conventions. Approve or reject.
 
-If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: STOP and notify the user.
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder when Codex is
+unreachable. If ALL tiers are unreachable: STOP and notify the user.
 
 ## Constraints
 

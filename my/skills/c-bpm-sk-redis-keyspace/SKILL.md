@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-redis-keyspace
 description: "Redis keyspace — Redis keys, caching strategy, TTL policy, distributed lock, rate limiting, Redis queue. Naming conventions and operational patterns."
 enforcement: block

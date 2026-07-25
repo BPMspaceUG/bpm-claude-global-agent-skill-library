@@ -119,13 +119,15 @@ For every question, check:
 - Question must test knowledge someone needs to know for the certification
 - Obscure trivia or unrelated knowledge = IRRELEVANT
 
-### Step 6: Codex Escalation
+### Step 6: Judge Escalation
 
-For ambiguous cases (especially answer correctness):
+For ambiguous cases (especially answer correctness), run the review via
+`c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback per
+`c-bpm-sk-llm-selection`), asking the Judge:
 
-```bash
-codex exec --skip-git-repo-check "Evaluate this exam question. Is the answer marking correct? Question: ${Q_TEXT} Answer: ${A_TEXT} Marked as: ${IS_CORRECT}. Topic context: ${TOPIC_NAME}. Respond: CORRECT, INCORRECT, or AMBIGUOUS with evidence."
-```
+> Evaluate this exam question. Is the answer marking correct? Question: `${Q_TEXT}`
+> Answer: `${A_TEXT}` Marked as: `${IS_CORRECT}`. Topic context: `${TOPIC_NAME}`.
+> Respond: CORRECT, INCORRECT, or AMBIGUOUS with evidence.
 
 ### Step 7: Generate Report
 

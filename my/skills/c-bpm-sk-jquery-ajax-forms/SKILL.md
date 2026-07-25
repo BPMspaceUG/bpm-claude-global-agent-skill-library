@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-jquery-ajax-forms
 description: Patterns for safe jQuery form submissions and AJAX requests with CSRF protection, error handling, and user feedback. Use when submitting forms without page reload or performing async UI updates. Derived from S09b.
 ---

@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-curlbash-installer
 description: "curl|bash installer — create installer, install script, update script, uninstall script, YYMMDD versioning. Distribution pattern for CLI tools."
 enforcement: block

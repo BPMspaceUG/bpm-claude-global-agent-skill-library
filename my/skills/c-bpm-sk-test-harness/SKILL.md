@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-test-harness
 description: "Test harness — write tests, create test suite, test coverage, CI testing, Bash/PHP/API tests. Consistent approach to building and running tests."
 enforcement: block

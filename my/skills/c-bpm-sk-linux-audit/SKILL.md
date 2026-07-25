@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-linux-audit
 description: "Audit Linux host — server audit, security scan, system health check, host review, onboard server. Creates GitHub Issues per finding in bpm-{hostname}. Agent team with Codex gates."
 user-invocable: true
@@ -123,13 +122,11 @@ Each teammate submits their findings list as a plan.
 ```
 Teammate submits plan (via ExitPlanMode)
   → Team Lead reviews findings
-  → Team Lead executes Codex review:
-
-    codex exec --skip-git-repo-check "Review these Linux audit findings for host {hostname}.
-    Category: {category}. Findings: {findings-summary}.
-    Check: 1) Severity ratings are appropriate. 2) No false positives.
+  → Team Lead runs the independent review via `c-bpm-sk-devils-advocate`, asking the
+    Judge to check the findings for host {hostname}, category {category}:
+    1) Severity ratings are appropriate. 2) No false positives.
     3) Fix steps are correct and safe. 4) Issue types (BUG vs ENHANCEMENT) are correct.
-    Approve or reject with reasons."
+    Approve or reject with reasons.
 
   → If BOTH approve → teammate proceeds to create issues
   → If EITHER rejects → teammate revises findings
@@ -206,16 +203,14 @@ Post as a new issue titled "Audit Run {YYYY-MM-DD}":
 - [x] Local clone synced
 ```
 
-### Codex Final Review
+### Final Independent Review
 
-```bash
-codex exec --skip-git-repo-check "Review this Linux audit summary for host {hostname}.
-Check: 1) All major audit areas covered (runtime, security, health).
-2) Severity ratings consistent. 3) No critical findings missed.
-4) Summary is complete. Summary: {summary-content}"
-```
+Run the review via `c-bpm-sk-devils-advocate`, asking the Judge to check the audit
+summary for host {hostname}: 1) All major audit areas covered (runtime, security,
+health). 2) Severity ratings consistent. 3) No critical findings missed.
+4) Summary is complete.
 
-Post Codex review result as comment on the Audit Run issue.
+Post the verdict as a comment on the Audit Run issue.
 
 ---
 
@@ -276,25 +271,21 @@ No labels. No tags. Issue type + milestone = full lifecycle tracking.
 
 ## Codex Rules (NON-NEGOTIABLE)
 
-- Independent review is **MANDATORY** for all findings (Codex primary, Gemini/other as fallback)
-- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check "<prompt>"` (if unavailable, use fallback chain)
-- Independent review is **MANDATORY** at 2 gates (try Codex → Gemini → other):
+- Independent review is **MANDATORY** for all findings
+- The Judge MUST be invoked **only through `c-bpm-sk-devils-advocate`** — that skill
+  owns the live-Issue fetch, the canonical sanitized command, and the ladder
+- Independent review is **MANDATORY** at 2 gates:
   1. Findings approval (Phase 3)
   2. Audit summary review (Phase 5)
 - Log ALL reviewer responses as comments on the Audit Run issue
 
-### If Codex Is Unavailable
+### If the Judge Is Unavailable
 
-Try the fallback chain before stopping:
-
-1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
-2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
-3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
-
-If ALL models in the chain are unavailable:
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder defined in
+`c-bpm-sk-llm-selection`. If every tier is unreachable:
 - **Notify the user** immediately
 - **Do NOT proceed** without at least one independent review
-- Log which reviewer was used (Codex/Gemini/other) in all review comments
+- Log which reviewer was used in all review comments
 
 ---
 

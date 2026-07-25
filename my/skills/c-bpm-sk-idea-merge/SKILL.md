@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-idea-merge
 description: "Cluster and merge ideas — cluster ideas, merge ideas, find duplicates, group similar issues, clean up ideas, deduplicate. Scans repos (Obsidian vaults, GitHub Issues) for clusterable ideas. User approves each action."
 enforcement: block
@@ -112,20 +111,20 @@ Proposed action: <ACTION_TYPE> — <specific steps>
 
 ## Execution (after user approval per cluster)
 
-### Step 1: Codex Gate
+### Step 1: Judge Gate
 
-Before ANY mutations, invoke Codex for review:
+Before ANY mutations, run the review via `c-bpm-sk-devils-advocate` (Codex primary;
+OpenRouter fallback per `c-bpm-sk-llm-selection`), asking the Judge:
 
-```bash
-codex exec --skip-git-repo-check \
-  "Review these proposed changes for [repo]: [cluster summary with proposed actions]. \
-   Are groupings warranted? Should any items be split instead? \
-   Missing items that belong in a cluster?"
-```
+> Review these proposed changes for [repo]: [cluster summary with proposed actions].
+> Are groupings warranted? Should any items be split instead?
+> Missing items that belong in a cluster?
 
-Post the Codex response to the user. Only execute if BOTH user AND Codex approve.
+Post the verdict to the user. Only execute if BOTH user AND Judge approve.
 
-**Codex fallback chain:** codex → gemini → notify user (manual review required).
+**If the Judge is unavailable:** `c-bpm-sk-devils-advocate` descends the
+substitute-Judge ladder. If every tier is unreachable, notify the user (manual
+review required).
 
 ### Step 2: Dry-Run Diff
 

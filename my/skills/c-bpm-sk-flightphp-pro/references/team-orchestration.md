@@ -212,10 +212,12 @@ The teammate posts a plan as a comment on their assigned issue(s). The plan must
 ### Dual Review
 
 1. **Team Lead reviews** — Checks scope adherence, architectural fit, completeness
-2. **Codex reviews** — Run:
-   ```bash
-   codex exec --skip-git-repo-check "Review this plan for issue #N in a Flight PHP project. Check for: scope creep, missing test coverage, architectural violations, security concerns. Plan: <plan content>"
-   ```
+2. **The Judge reviews** — run the review via `c-bpm-sk-devils-advocate` (Codex
+   primary; OpenRouter fallback per `c-bpm-sk-llm-selection`), asking the Judge:
+
+   > Review this plan for issue #N in a Flight PHP project. Check for: scope creep,
+   > missing test coverage, architectural violations, security concerns.
+   > Plan: `<plan content>`
 
 ### Approval Criteria
 
@@ -269,10 +271,12 @@ final class UserControllerTest extends TestCase
 ### Dual Review
 
 1. **Team Lead reviews** — Checks coverage completeness, edge cases, isolation
-2. **Codex reviews** — Run:
-   ```bash
-   codex exec --skip-git-repo-check "Review this PHPUnit test design for a Flight PHP project. Check for: adequate coverage, proper Engine isolation, missing edge cases, assertion quality. Test design: <test design content>"
-   ```
+2. **The Judge reviews** — run the review via `c-bpm-sk-devils-advocate` (Codex
+   primary; OpenRouter fallback per `c-bpm-sk-llm-selection`), asking the Judge:
+
+   > Review this PHPUnit test design for a Flight PHP project. Check for: adequate
+   > coverage, proper Engine isolation, missing edge cases, assertion quality.
+   > Test design: `<test design content>`
 
 ### Approval
 
@@ -331,10 +335,12 @@ If tests fail:
 Team Lead and Codex independently verify:
 
 1. **Team Lead** — Pulls the branch, runs tests, reviews code
-2. **Codex** — Run:
-   ```bash
-   codex exec --skip-git-repo-check "Review this implementation for a Flight PHP project. Check: tests pass, code follows Flight conventions, no security issues, no breaking changes. Code diff: <diff content>"
-   ```
+2. **The Judge** — run the review via `c-bpm-sk-devils-advocate` (Codex primary;
+   OpenRouter fallback per `c-bpm-sk-llm-selection`), asking the Judge:
+
+   > Review this implementation for a Flight PHP project. Check: tests pass, code
+   > follows Flight conventions, no security issues, no breaking changes.
+   > Code diff: `<diff content>`
 
 Both must approve. Move to milestone: `test-approved`.
 
@@ -380,13 +386,12 @@ Independent review is mandatory for all Claude-generated code (Codex primary, Ge
 
 ### Invocation
 
-Codex is invoked ONLY via:
+The Judge is invoked ONLY through `c-bpm-sk-devils-advocate` (Codex primary;
+OpenRouter fallback per `c-bpm-sk-llm-selection`). That skill owns the live-Issue
+fetch, the canonical sanitized command, and the substitute-Judge ladder.
 
-```bash
-codex exec --skip-git-repo-check "<review prompt>"
-```
-
-Never use interactive mode. Never skip independent review at mandatory gates (use fallback chain if Codex unavailable).
+Never use interactive mode. Never skip independent review at mandatory gates (the
+skill descends the ladder if Codex is unreachable).
 
 ### Mandatory Review Gates
 
@@ -396,15 +401,16 @@ Independent review (Codex → Gemini → other) is required at exactly 3 gates:
 2. **Test design approval** (Phase 5) — Reviews the test design
 3. **Test verification** (Phase 7) — Reviews the implementation and test results
 
-### If Codex Is Unavailable
+### If the Judge Is Unavailable
 
-Try the fallback chain before stopping:
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder defined in
+`c-bpm-sk-llm-selection`:
 
-1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
-2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
-3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
+1. **Primary:** Codex
+2. **Fallback 1:** OpenRouter cheap frontier
+3. **Fallback 2:** Gemini, then the next available independent model
 
-If ALL models in the chain are unavailable:
+If ALL tiers in the ladder are unreachable:
 - **Notify the user** immediately
 - **Do NOT proceed** without at least one independent review
 - Log which reviewer was used (Codex/Gemini/other) in all review comments

@@ -5,7 +5,6 @@ description: >
   "add skill", "build skill", or wants to create a new Claude Code skill from scratch or fork
   an existing one. Skills 2.0 features, auto-detects existing c-bpm-sk- versions. Delegates
   to optimizer if found. Enforces naming and Codex review.
-model: opus
 enforcement: block
 intentPatterns: "create (a |new )?skill;;new skill;;make (a )?skill;;build (a )?skill;;add (a )?skill"
 user-invocable: true
@@ -117,21 +116,24 @@ model: opus                        # If specific model needed
 
 Create scripts, references, assets as identified in Step 2.
 
-### Step 5: Codex Review
+### Step 5: Judge Review
 
-```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for Skills 2.0 compliance. Check:
-1. Frontmatter: name (c-bpm-sk- prefix), description (triggers), Skills 2.0 fields
-2. Progressive disclosure: SKILL.md under 500 lines, references split out
-3. No duplication between SKILL.md and reference files
-4. Examples are concrete and minimal
-5. Constraints are actionable (MUST/MUST NOT)
-6. No unnecessary files (README.md, CHANGELOG.md, etc.)
-7. Original skill untouched (if forked)
-Skill content: <skill content>"
-```
+Run the review via `c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback
+per `c-bpm-sk-llm-selection`), asking the Judge to review the skill for Skills 2.0
+compliance:
 
-If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: notify user, do not proceed without independent review. Log which reviewer was used.
+> 1. Frontmatter: name (c-bpm-sk- prefix), description (triggers), Skills 2.0 fields
+> 2. Progressive disclosure: SKILL.md under 500 lines, references split out
+> 3. No duplication between SKILL.md and reference files
+> 4. Examples are concrete and minimal
+> 5. Constraints are actionable (MUST/MUST NOT)
+> 6. No unnecessary files (README.md, CHANGELOG.md, etc.)
+> 7. Original skill untouched (if forked)
+> Skill content: `<skill content>`
+
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder when Codex is
+unreachable. If every tier is unreachable: notify user, do not proceed without
+independent review. Log which Judge produced the verdict.
 
 ### Step 6: Iterate
 

@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-appsec-threatlite
 description: "Security review checklist — threat model, appsec review, vulnerability check, file handling safety, auth review, compliance, remediation tracking. Lightweight security review with structured reporting."
 enforcement: block

@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-linux-admin
 description: "Linux admin fixes — fix audit findings, implement server fixes, Debian/Ubuntu admin, host remediation. Works on bpm-{hostname} repo issues. Agent team with Codex gates."
 user-invocable: true
@@ -211,14 +210,12 @@ Teammate submits plan (via ExitPlanMode)
   → Team Lead reviews plan for safety, completeness, correctness
   → Team Lead posts plan as comment on the GitHub Issue
   → Team Lead updates issue milestone to `planned`
-  → Team Lead executes Codex review:
-
-     codex exec --skip-git-repo-check "Review this Linux administration fix plan
-     for Issue #<N> on a Debian/Ubuntu host. Plan: <plan-summary>.
-     REQUIREMENTS: 1) Pre-checks verify current state. 2) Commands correct for
-     Debian/Ubuntu. 3) Validation confirms fix. 4) Rollback is safe and complete.
+  → Team Lead runs the independent review via `c-bpm-sk-devils-advocate`
+    (Issue #<N>), asking the Judge to check:
+     1) Pre-checks verify current state. 2) Commands correct for Debian/Ubuntu.
+     3) Validation confirms fix. 4) Rollback is safe and complete.
      5) No risk of SSH lockout, data loss, or service disruption.
-     Approve or reject with specific reasons."
+     Approve or reject with specific reasons.
 
   → Codex result posted as comment on the GitHub Issue
   → If BOTH approve → milestone to `plan-approved`, approve teammate's plan
@@ -267,11 +264,10 @@ Team Lead:
   → May run read-only verification commands (exception to delegate mode)
   → Posts verification results as comment on GitHub Issue
 
-Team Lead executes:
-  codex exec --skip-git-repo-check "Verify this Linux administration fix for
-  Issue #<N>. Fix applied: <summary>. Verification: <evidence>.
-  Check: 1) Fix correctly applied. 2) No side effects. 3) Validation genuine.
-  4) System in expected state. Approve or reject with reasons."
+Team Lead runs the independent review via `c-bpm-sk-devils-advocate` (Issue #<N>),
+  asking the Judge to verify the applied fix and the verification evidence:
+  1) Fix correctly applied. 2) No side effects. 3) Validation genuine.
+  4) System in expected state. Approve or reject with reasons.
 
   → If BOTH approve → milestone to `tested-success` → `test-approved` → close issue
   → If EITHER rejects → milestone to `tested-failed`, teammate revises
@@ -292,13 +288,10 @@ After all workable issues are addressed:
 
 2. Post report as comment on the latest Audit Run issue (if one exists)
 
-3. Final Codex review:
-   ```bash
-   codex exec --skip-git-repo-check "Review this Linux administration session
-   report for host {hostname}. Check: 1) All fixes properly verified.
+3. Final independent review via `c-bpm-sk-devils-advocate` — ask the Judge to review
+   the session report for host {hostname}: 1) All fixes properly verified.
    2) No security regressions. 3) System stability maintained.
-   4) Rollback plans documented. Report: {report-content}"
-   ```
+   4) Rollback plans documented.
 
 4. Present final report to user
 
@@ -314,23 +307,19 @@ After all workable issues are addressed:
 
 ## Codex Rules (NON-NEGOTIABLE)
 
-- Independent review is **MANDATORY** for all fixes (Codex primary, Gemini/other as fallback)
-- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check "<prompt>"` (if unavailable, use fallback chain)
-- Independent review is **MANDATORY** at 2 gates (try Codex → Gemini → other): Plan approval (Phase 4), Verification (Phase 6)
+- Independent review is **MANDATORY** for all fixes
+- The Judge MUST be invoked **only through `c-bpm-sk-devils-advocate`** — that skill
+  owns the live-Issue fetch, the canonical sanitized command, and the ladder
+- Independent review is **MANDATORY** at 2 gates: Plan approval (Phase 4), Verification (Phase 6)
 - Log ALL reviewer responses as comments on the corresponding GitHub Issue
 
-### If Codex Is Unavailable
+### If the Judge Is Unavailable
 
-Try the fallback chain before stopping:
-
-1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
-2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
-3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
-
-If ALL models in the chain are unavailable:
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder defined in
+`c-bpm-sk-llm-selection`. If every tier is unreachable:
 - **Notify the user** immediately
 - **Do NOT proceed** without at least one independent review
-- Log which reviewer was used (Codex/Gemini/other) in all review comments
+- Log which reviewer was used in all review comments
 
 ---
 

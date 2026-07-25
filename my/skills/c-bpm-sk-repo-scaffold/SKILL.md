@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-repo-scaffold
 description: "Scaffold a repo — new project, project structure, directory layout, init repo, repository template, Excalidraw diagrams. Consistent starting point with baseline files."
 enforcement: block
@@ -43,15 +42,18 @@ Provide a consistent starting point for new projects, ensuring that directory la
 └── README.md
 ```
 
-## Codex Review Gate
+## Judge Review Gate
 
-Before executing any destructive or irreversible operation (directory scaffolding, file overwriting, project restructuring), submit plan to Codex for review:
+Before executing any destructive or irreversible operation (directory scaffolding,
+file overwriting, project restructuring), run the review via
+`c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback per
+`c-bpm-sk-llm-selection`), asking the Judge:
 
-```bash
-codex exec --skip-git-repo-check "Review this scaffold plan: <plan>. Check: correct structure, no breaking changes, follows project conventions. Approve or reject."
-```
+> Review this scaffold plan: `<plan>`. Check: correct structure, no breaking
+> changes, follows project conventions. Approve or reject.
 
-If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: STOP and notify the user.
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder when Codex is
+unreachable. If ALL tiers are unreachable: STOP and notify the user.
 
 ## Success Criteria
 

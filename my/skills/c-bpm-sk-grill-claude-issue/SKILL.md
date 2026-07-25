@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-grill-claude-issue
 description: "Codex grills Claude on an issue — grill claude, review claude's work, independent review, codex review issue. Reversed roles: Codex asks questions, Claude researches and answers."
 enforcement: block
@@ -95,10 +94,8 @@ Budgets:
 
 ### Per-Round Protocol
 
-1. **Claude calls Codex** with the structured prompt:
-   ```bash
-   codex exec --skip-git-repo-check "<structured prompt with all input fields>"
-   ```
+1. **Claude calls the Judge** through `c-bpm-sk-devils-advocate`, passing the
+   structured prompt with all input fields
 2. **Codex returns** a question (or verdict if satisfied on the current branch)
 3. **Claude researches actively** — read code, grep patterns, consult relevant
    skills, run web searches. Use all available tools: Read, Grep, Glob, Bash,
@@ -201,15 +198,14 @@ Present the summary to the user after posting:
    `c-bpm-sk-grill-me-issue` for disputed points where the user gets grilled
    directly on those branches
 
-## Codex Fallback Chain
+## Judge Availability
 
-1. **Primary**: `codex exec --skip-git-repo-check "<prompt>"`
-2. **Fallback 1**: `gemini` CLI with equivalent prompt
-3. **Fallback 2**: notify user that devil's advocate must be done manually —
-   "Codex and Gemini unavailable. Run the review manually or retry later."
+Invocation and the substitute-Judge ladder belong to `c-bpm-sk-devils-advocate`
+(policy in `c-bpm-sk-llm-selection`). If every tier is unreachable, notify the user
+that the devil's advocate round must be run manually or retried later.
 
-Test availability at session start. If primary fails, switch to fallback
-immediately — do not retry the failed tool on subsequent rounds.
+Test availability at session start. If the primary Judge fails, the ladder switches
+tier immediately — do not retry the failed tool on subsequent rounds.
 
 ## Rules
 

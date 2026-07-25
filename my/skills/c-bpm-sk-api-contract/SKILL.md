@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-api-contract
 description: "API design rules — REST API contract, endpoint design, pagination, error handling, API review. Predictable endpoints, filtering, and consistent error responses."
 enforcement: block

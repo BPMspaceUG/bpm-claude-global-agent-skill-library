@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-auditor
 description: "Audit this repo — full codebase review, code quality check, security audit, due diligence, maintenance handover, review this codebase. Produces [REPONAME]-YYMMDD-HHSS.md report. No issues created."
 user-invocable: true
@@ -155,7 +154,7 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 ## References
 
 - `references/report-template.md` — Full report Markdown template
-- `references/codex-prompts.md` — Per-phase Codex devil's advocate prompts
+- `references/codex-prompts.md` — Per-phase devil's advocate review prompts (run via `c-bpm-sk-devils-advocate`)
 
 ## Constraints
 
@@ -166,7 +165,7 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 - Use newest Opus (see `c-bpm-sk-llm-selection`) for all teammates (inherit, never haiku)
 - Include severity ratings for all findings
 - Run existing tests if safe to do so
-- Invoke Codex ONLY via: `codex exec --skip-git-repo-check [PROMPT]` (if unavailable, use fallback chain)
+- Run the review via `c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback per `c-bpm-sk-llm-selection`) — never a review CLI directly
 
 ### MUST NOT
 - Create GitHub issues (report only)

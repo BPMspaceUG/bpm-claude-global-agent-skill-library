@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-milestone-type
 description: "Milestone and issue type enforcement — audit milestones, fix issue labels, ensure bug/enhancement, compliance check. Ensures every issue has milestone + type label."
 enforcement: block
@@ -218,48 +217,38 @@ Open issues: 12
 7. **Audit trail** — every reviewer response (Codex/Gemini/other) posted as comment on the GitHub Issue
 8. **Check existing issues** before creating new ones to avoid duplicates
 
-## Codex Gate Patterns
+## Judge Gate Patterns
+
+Every gate below is run through `c-bpm-sk-devils-advocate` — it fetches the live
+Issue and invokes the Judge with the canonical sanitized command. The gate owner
+supplies only what the Judge must check.
 
 ### Gate 1: Plan Approval (planned -> plan-approved)
 
-```bash
-codex exec --skip-git-repo-check "Review this implementation plan for Issue #<N>. \
-Plan: <plan-summary>. \
-REQUIREMENTS: 1) Test coverage must be included. 2) Changes scoped to assigned files. \
-3) Risk assessment present. 4) Rollback strategy present. \
-Approve or reject with specific reasons."
-```
+Ask the Judge to review the implementation plan for Issue #<N>:
+1) Test coverage must be included. 2) Changes scoped to assigned files.
+3) Risk assessment present. 4) Rollback strategy present.
+Approve or reject with specific reasons.
 
 ### Gate 2: Test Design Approval (test-designed -> test-design-approved)
 
-```bash
-codex exec --skip-git-repo-check "Review test design for Issue #<N>. \
-Tests: <test-description>. \
-Check: edge cases covered, meaningful assertions, no false positives, \
-adequate coverage, follows project test framework. Approve or reject."
-```
+Ask the Judge to review the test design for Issue #<N>: edge cases covered,
+meaningful assertions, no false positives, adequate coverage, follows the project
+test framework. Approve or reject.
 
 ### Gate 3: Test Verification (tested-success -> test-approved)
 
-```bash
-codex exec --skip-git-repo-check "Verify implementation and test results for Issue #<N>. \
-Changes: <summary>. \
-Check: tests passing legitimately, no false positives, test coverage adequate, \
-code quality acceptable. Approve or reject."
-```
+Ask the Judge to verify implementation and test results for Issue #<N>: tests
+passing legitimately, no false positives, test coverage adequate, code quality
+acceptable. Approve or reject.
 
-### If Codex Is Unavailable
+### If the Judge Is Unavailable
 
-Try the fallback chain before stopping:
-
-1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
-2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
-3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
-
-If ALL models in the chain are unavailable:
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder defined in
+`c-bpm-sk-llm-selection`. If every tier is unreachable:
 - **Notify the user** immediately
 - **Do NOT proceed** without at least one independent review
-- Log which reviewer was used (Codex/Gemini/other) in all review comments
+- Log which reviewer was used in all review comments
 
 ## Milestone Transitions via GitHub MCP
 

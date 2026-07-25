@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-llm-selection
 description: "LLM selection and orchestration — choose model, assign agent, agent delegation, consensus finding, model selection, MCP discovery, task decomposition. Task-to-LLM matching, orchestration protocol, and conflict resolution."
 enforcement: block
@@ -17,7 +16,8 @@ How the Orchestrator selects and delegates tasks to available LLMs, and how the 
 |-----|------|-----------|---------|
 | **Claude** | Orchestrator, Primary | Complex reasoning, planning, code review | Orchestration (required), complex tasks, quality-critical work |
 | **Codex** | Implementer | Fast code generation, completions | Routine code tasks, quick completions, high-volume generation |
-| **Gemini** | Substitute Judge (Codex unreachable only) / Large-Context Reader | Large context, multimodal, alternate Judge when Codex is offline | Large document analysis, image processing, substitute Judge in the review loop ONLY when Codex is unreachable |
+| **OpenRouter** | First substitute Judge (Codex unreachable only) | Cheap frontier families (GLM, DeepSeek, Kimi), independent of the Codex account | Substitute Judge in the review loop ONLY when Codex is unreachable — invoked through `c-bpm-sk-devils-advocate` |
+| **Gemini** | Second substitute Judge (Codex and OpenRouter unreachable only) / Large-Context Reader | Large context, multimodal, alternate Judge when Codex is offline | Large document analysis, image processing, substitute Judge in the review loop ONLY when Codex is unreachable |
 
 ## Model Version Policy (single source — referenced everywhere)
 
@@ -26,12 +26,10 @@ command may name a concrete model version; they reference this section.
 
 - **Codex (Judge / implementer):** invoke WITHOUT `-m`. Codex follows its own CLI
   default model. Never pin a Codex model version flag in any skill or command.
-- **Claude teammates:** always the newest Opus (via `model: opus` / inherit). Never
-  pin a numeric Opus version.
-- **OpenRouter (if installed):** for cross-model validation only, and a substitute
-  Judge ONLY when Codex is unreachable (same rule as Gemini). Never a co-Judge,
-  tiebreaker, or third model in the Producer↔Codex loop. Not for daily work (see #47).
-- **Fable:** not yet adopted for production roles (too new). Revisit later.
+- **Claude roles (#112):** Fable is the default Producer and teammate model. Opus is used only where Fable is not a fit — long-horizon orchestration and deep multi-file reasoning. Codex stays the Judge; Producer and Judge are never the same model.
+- **No `model:` key in frontmatter.** Skills and commands do not pin a model in their frontmatter; they inherit the session model and follow THIS section. Model policy is prose here, never a key there.
+- **OpenRouter (first substitute-Judge tier):** when Codex is unreachable, the cheap frontier families on OpenRouter — GLM, DeepSeek, Kimi — take the Judge seat before Gemini. Resolve the newest slug at invocation time from the live catalog (`/api/v1/models`); never pin a numeric version. Never a co-Judge, tiebreaker, or third model in the Producer↔Codex loop.
+- **`OPENROUTER_API_KEY` source:** the user-level `~/.env` exclusively — never a project-level `.env`, never a repo file, never inline in a skill or command.
 - Every other skill and command references THIS section, never names a version.
 
 ## Rules
@@ -44,7 +42,8 @@ command may name a concrete model version; they reference this section.
 ### Task Delegation
 1. **Default to Claude** for complex, quality-critical, or ambiguous tasks
 2. **Use Codex** for straightforward code generation when speed matters
-3. **Use Gemini** for large-context or multimodal tasks, or as the substitute Judge in the Producer↔Codex review loop ONLY when Codex is unreachable (network outage, auth failure, binary missing). Never as a co-Judge alongside Codex. Never as a tiebreaker.
+3. **Use Gemini** for large-context or multimodal tasks, or as the substitute Judge in the Producer↔Codex review loop ONLY when Codex and OpenRouter are both unreachable (network outage, auth failure, binary missing). Never as a co-Judge alongside Codex. Never as a tiebreaker.
+4. **Invoke the Judge only through `c-bpm-sk-devils-advocate`** — that skill owns the live-Issue fetch, the canonical sanitized command, and the substitute-Judge ladder. No other skill or command calls the Judge CLI itself.
 
 ## Codex Review Loop (Producer ↔ Judge)
 
@@ -85,7 +84,7 @@ This is the canonical review pattern for every artifact produced in this library
 
 **Non-Codex Judge — guard rails**
 
-The fallback chain (Codex → Gemini → next available independent model) exists
+The fallback chain (Codex → OpenRouter cheap frontier → Gemini → next available independent model) exists
 ONLY for the case where Codex itself cannot be reached. The following rules are
 absolute and must not be relaxed:
 
@@ -94,8 +93,9 @@ absolute and must not be relaxed:
   service down. It substitutes for Codex in the Judge role; it is never run
   alongside Codex as a second opinion or co-reviewer.
 - **One Judge at a time.** The fallback chain runs sequentially: try Codex; if
-  Codex is unreachable, try Gemini; if Gemini is unreachable, try the next
-  available independent model. At any given step there is exactly one active
+  Codex is unreachable, try OpenRouter (cheap frontier); if OpenRouter is
+  unreachable, try Gemini; if Gemini is unreachable, try the next available
+  independent model. At any given step there is exactly one active
   Judge. Never two Judges concurrently.
 - **Never a tiebreaker.** A non-Codex Judge is NEVER invoked to break a deadlock
   between Producer and Codex. If Codex is reachable and rejects, the Producer
@@ -111,11 +111,10 @@ consistent with it.
 
 ## Codex Invocation (shell hygiene)
 
-This is the canonical shell form for invoking the Codex Judge — the form the Team
-Lead uses at review gates and that new skills should adopt. Migrating the existing
-inline `codex exec` examples across the library to this sanitized form is tracked in
-#94 (in progress); until that lands, those call sites remain the plain
-`codex exec --skip-git-repo-check` form.
+This is the canonical shell form for invoking the Codex Judge. Since #113 it lives
+in exactly two places — this section (the policy) and `c-bpm-sk-devils-advocate`
+(the operational skill that every gate calls). No other skill or command carries an
+inline invocation; they delegate to `c-bpm-sk-devils-advocate` instead.
 
 **Problem it solves (issue #94):** Codex's captured output must contain *only*
 Codex's verdict. When `codex exec` is run from a login/rc-sourcing shell, the
@@ -127,11 +126,14 @@ Codex's own internal shells inherit the parent environment, the fix is to clear
 `BASH_ENV`/`ENV` and disable profile/rc in the invoking shell so nothing
 downstream re-sources them.
 
-**Canonical form** — sanitized, non-login shell, prompt on stdin:
+**Canonical form** — sanitized, non-login shell, network-enabled workspace
+sandbox, Issue-sourced prompt on stdin:
 
 ```bash
-env -u BASH_ENV -u ENV bash --noprofile --norc -c \
-  'codex exec --skip-git-repo-check < prompt.md 2>&1'
+{ gh api repos/${OWNER}/${REPO}/issues/${N} --jq .body
+  gh api repos/${OWNER}/${REPO}/issues/${N}/comments --jq '.[].body'
+} | env -u BASH_ENV -u ENV bash --noprofile --norc -c \
+  'codex exec --skip-git-repo-check -s workspace-write -c sandbox_workspace_write.network_access=true 2>&1'
 ```
 
 **Rules**
@@ -140,8 +142,15 @@ env -u BASH_ENV -u ENV bash --noprofile --norc -c \
   that cause non-interactive shells (including Codex's own) to source rc files.
 - **No login/rc shell.** `bash --noprofile --norc` — never `bash -l`, `bash -lc`,
   or any shell that sources `~/.bash_profile` / `~/.bashrc` / `~/.profile`.
-- **Prompt on stdin.** Pass the review prompt via `< prompt.md`, never as a large
-  inline argv (it hangs).
+- **Sandbox with network (issue #117).** `-s workspace-write` plus
+  `-c sandbox_workspace_write.network_access=true` — the read-only default sandbox
+  makes the Judge unable to read the workspace or reach the network, which it
+  reports as an inability to review. `danger-full-access` is never sanctioned;
+  workspace-write is the ceiling.
+- **Token order is load-bearing.** `codex exec --skip-git-repo-check` stays
+  contiguous and the sandbox flags follow it, so the guard suites keep matching.
+- **Prompt on stdin, Issue-sourced.** Pipe the Issue body and its comments in on
+  stdin — never a large inline argv (it hangs), and never an authored `.md`.
 - **Verdict-only output.** A clean invocation emits only Codex's review verdict —
   no `keychain`, `ssh-agent`, or `curl` startup lines.
 

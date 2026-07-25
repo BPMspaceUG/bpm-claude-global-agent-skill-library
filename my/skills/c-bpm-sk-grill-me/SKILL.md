@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-grill-me
 description: "Stress-test an idea — grill me, challenge my plan, devil's advocate, poke holes, review my design. Resolves each branch of the decision tree one-by-one through relentless questioning."
 enforcement: block
@@ -180,15 +179,16 @@ When all branches are resolved (or stop signal received):
    (c-bpm-sk-grill-me-issue) take over?" to convert resolved decisions into
    concrete GitHub issues
 
-4. **Codex Devil's Advocate Review** — invoke:
-   ```bash
-   codex exec --skip-git-repo-check "Review this grilled idea documentation: [summary]. Challenge: 1) Are there gaps in the analysis? 2) What assumptions were not questioned? 3) Is the documentation complete enough for someone else to implement? 4) What is the biggest risk that was not addressed?"
-   ```
-   Post the Codex response into the output MD file under a `## Devil's Advocate`
-   heading.
+4. **Devil's Advocate Review** — run it through `c-bpm-sk-devils-advocate`, asking
+   the Judge to challenge the grilled idea documentation: 1) Are there gaps in the
+   analysis? 2) What assumptions were not questioned? 3) Is the documentation
+   complete enough for someone else to implement? 4) What is the biggest risk that
+   was not addressed?
+   Post the verdict into the output MD file under a `## Devil's Advocate` heading.
 
-5. **Codex Fallback Chain** — if `codex` is unavailable, try `gemini`. If both
-   fail, notify the user that the Devil's Advocate review must be done manually.
+5. **Judge availability** — `c-bpm-sk-devils-advocate` descends the substitute-Judge
+   ladder. If every tier is unreachable, notify the user that the Devil's Advocate
+   review must be done manually.
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only

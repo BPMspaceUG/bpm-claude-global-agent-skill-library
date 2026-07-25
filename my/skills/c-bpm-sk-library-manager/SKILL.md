@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-library-manager
 description: "Library management — c-bpm convention, sync items, push pull library, manage skills, library help. Central knowledge hub for c-bpm- item convention and synchronisation."
 enforcement: block

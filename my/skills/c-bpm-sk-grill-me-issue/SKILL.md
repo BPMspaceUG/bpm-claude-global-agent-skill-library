@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-grill-me-issue
 description: "Grill a GitHub Issue — grill issue, refine issue, improve issue, sharpen issue, review issue quality. Researches, dedup-checks, validates milestone, and questions relentlessly."
 enforcement: block
@@ -160,13 +159,13 @@ Both paths execute the full wrap-up protocol.
    - Branches resolved (count + list)
    - Branches unresolved (count + list)
    - New issues created (if any, with links)
-3. **Codex Devil's Advocate** review:
-   ```bash
-   codex exec --skip-git-repo-check "Review this refined GitHub Issue #{number}: [title]. Refined content: [summary]. Challenge: 1) Are requirements complete and testable? 2) What edge cases are missing? 3) Is acceptance criteria clear? 4) Any scope creep?"
-   ```
-   Post the Codex response as an issue comment.
-4. **Codex fallback chain**: `codex` -> `gemini` -> notify user that Devil's
-   Advocate review must be done manually.
+3. **Devil's Advocate** review via `c-bpm-sk-devils-advocate` — ask the Judge to
+   challenge the refined Issue #{number}: 1) Are requirements complete and testable?
+   2) What edge cases are missing? 3) Is acceptance criteria clear? 4) Any scope creep?
+   Post the verdict as an issue comment.
+4. **Judge availability**: `c-bpm-sk-devils-advocate` descends the substitute-Judge
+   ladder; if every tier is unreachable, notify the user that the Devil's Advocate
+   review must be done manually.
 
 ## Rules
 

@@ -5,7 +5,6 @@ description: >
   "refactor skill", "upgrade skill", "enhance skill", "add Skills 2.0 features to a skill",
   or wants to audit an existing skill against the Skills 2.0 checklist. Adds frontmatter,
   supporting files, dynamic context, subagent config. Enforces c-bpm- naming.
-model: opus
 enforcement: block
 intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
 user-invocable: true
@@ -106,19 +105,22 @@ Document what will change and why. Present to user for approval.
 4. Move large sections to supporting files if needed
 5. Add scripts to `scripts/` if `${CLAUDE_SKILL_DIR}` references needed
 
-### Step 4: Codex Review
+### Step 4: Judge Review
 
-```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for Skills 2.0 compliance. Check:
-2. SKILL.md under 500 lines, references split out
-3. No duplication between SKILL.md and reference files
-4. Dynamic context injection used where beneficial
-5. Supporting files properly referenced
-6. Naming convention (c-bpm-sk- prefix for custom skills)
-Skill content: <skill content>"
-```
+Run the review via `c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback
+per `c-bpm-sk-llm-selection`), asking the Judge to review the skill for Skills 2.0
+compliance:
 
-If Codex is unavailable, try the fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: notify user, do not proceed without independent review. Log which reviewer was used.
+> 2. SKILL.md under 500 lines, references split out
+> 3. No duplication between SKILL.md and reference files
+> 4. Dynamic context injection used where beneficial
+> 5. Supporting files properly referenced
+> 6. Naming convention (c-bpm-sk- prefix for custom skills)
+> Skill content: `<skill content>`
+
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder when Codex is
+unreachable. If every tier is unreachable: notify user, do not proceed without
+independent review. Log which Judge produced the verdict.
 
 Follow `c-bpm-sk-milestone-type` for issue lifecycle and type enforcement when creating or tracking issues.
 

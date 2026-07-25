@@ -162,10 +162,12 @@ The teammate posts a plan as a comment on their assigned issue. The plan must in
 ### Dual Review
 
 1. **Team Lead reviews** — Checks scope, naming convention, segregation of duty
-2. **Codex reviews** — Run:
-   ```bash
-   codex exec --skip-git-repo-check "Review this skill development plan. Check for: naming convention (c-bpm-sk- prefix), segregation of duty (original untouched), frontmatter quality, progressive disclosure, no unnecessary files. Plan: <plan content>"
-   ```
+2. **The Judge reviews** — run the review via `c-bpm-sk-devils-advocate` (Codex
+   primary; OpenRouter fallback per `c-bpm-sk-llm-selection`), asking the Judge:
+
+   > Review this skill development plan. Check for: naming convention (c-bpm-sk-
+   > prefix), segregation of duty (original untouched), frontmatter quality,
+   > progressive disclosure, no unnecessary files. Plan: `<plan content>`
 
 ### Approval
 
@@ -198,20 +200,20 @@ When implementation is complete, move issue to milestone: `implemented`.
 
 ## Phase 5 — Codex Review & Verification
 
-### Codex Skill Review
+### Judge Skill Review
 
-```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
-1. Frontmatter: name and description are clear, description includes trigger conditions
-2. Progressive disclosure: SKILL.md under 500 lines, references split out properly
-3. No duplication between SKILL.md and reference files
-4. Examples are concrete and minimal, not verbose explanations
-5. Constraints are actionable (MUST/MUST NOT), not vague guidelines
-6. No unnecessary files (README.md, CHANGELOG.md, etc.)
-7. Naming convention: c-bpm-sk- prefix for custom skills
-8. Segregation: original skill untouched
-Skill content: <skill content>"
-```
+Run the review via `c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback
+per `c-bpm-sk-llm-selection`), asking the Judge to review the skill for quality:
+
+> 1. Frontmatter: name and description are clear, description includes trigger conditions
+> 2. Progressive disclosure: SKILL.md under 500 lines, references split out properly
+> 3. No duplication between SKILL.md and reference files
+> 4. Examples are concrete and minimal, not verbose explanations
+> 5. Constraints are actionable (MUST/MUST NOT), not vague guidelines
+> 6. No unnecessary files (README.md, CHANGELOG.md, etc.)
+> 7. Naming convention: c-bpm-sk- prefix for custom skills
+> 8. Segregation: original skill untouched
+> Skill content: `<skill content>`
 
 ### Verification Checks
 
@@ -250,13 +252,12 @@ Present a synthesis report to the user:
 
 ### Invocation
 
-Codex is invoked ONLY via:
+The Judge is invoked ONLY through `c-bpm-sk-devils-advocate` (Codex primary;
+OpenRouter fallback per `c-bpm-sk-llm-selection`). That skill owns the live-Issue
+fetch, the canonical sanitized command, and the substitute-Judge ladder.
 
-```bash
-codex exec --skip-git-repo-check "<review prompt>"
-```
-
-Never use interactive mode. Never skip independent review at mandatory gates (use fallback chain if Codex unavailable).
+Never use interactive mode. Never skip independent review at mandatory gates (the
+skill descends the ladder if Codex is unreachable).
 
 ### Mandatory Review Gates
 
@@ -265,15 +266,16 @@ Independent review (Codex → Gemini → other) is required at exactly 2 gates:
 1. **Plan approval** (Phase 3) — Reviews the development plan
 2. **Skill review** (Phase 5) — Reviews the implemented skill
 
-### If Codex Is Unavailable
+### If the Judge Is Unavailable
 
-Try the fallback chain before stopping:
+`c-bpm-sk-devils-advocate` descends the substitute-Judge ladder defined in
+`c-bpm-sk-llm-selection`:
 
-1. **Primary:** `codex exec --skip-git-repo-check "<prompt>"`
-2. **Fallback 1:** `gemini "<prompt>"` (Gemini CLI)
-3. **Fallback 2:** Any available model that can serve as devil's advocate reviewer
+1. **Primary:** Codex
+2. **Fallback 1:** OpenRouter cheap frontier
+3. **Fallback 2:** Gemini, then the next available independent model
 
-If ALL models in the chain are unavailable:
+If ALL tiers in the ladder are unreachable:
 - **Notify the user** immediately
 - **Do NOT proceed** without at least one independent review
 - Log which reviewer was used (Codex/Gemini/other) in all review comments

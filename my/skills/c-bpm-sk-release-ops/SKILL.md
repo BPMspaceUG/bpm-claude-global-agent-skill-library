@@ -1,5 +1,4 @@
 ---
-model: opus
 name: c-bpm-sk-release-ops
 description: "Release operations — cut a release, versioning, CI/CD setup, deployment, rollback, artefact packaging. Controlled release process and deployment playbooks."
 enforcement: block
@@ -48,15 +47,16 @@ jobs:
           path: release.zip
 ```
 
-## Codex Review Gate
+## Judge Review Gate
 
-Before executing any destructive or irreversible operation (release cut, tag creation, artefact publishing), submit plan to Codex for review:
+Before executing any destructive or irreversible operation (release cut, tag
+creation, artefact publishing), run the review via `c-bpm-sk-devils-advocate`
+(Codex primary; OpenRouter fallback per `c-bpm-sk-llm-selection`), asking the Judge:
 
-```bash
-codex exec --skip-git-repo-check "Review this release plan: <plan>. Check: correct versioning, no breaking changes, follows project conventions. Approve or reject."
-```
+> Review this release plan: `<plan>`. Check: correct versioning, no breaking
+> changes, follows project conventions. Approve or reject.
 
-If Codex is unavailable: STOP and notify the user.
+If every tier of the substitute-Judge ladder is unreachable: STOP and notify the user.
 
 ## Success Criteria
 
