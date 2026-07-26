@@ -3,11 +3,17 @@
 //
 // Blocks GitHub issue creation when --milestone or a single bug|enhancement
 // type label is missing. Gates: Bash (`gh issue create`, `gh api ... POST
-// .../issues`) and MCP (`mcp__github__issue_write` create, `mcp__github__create_issue`).
+// .../issues`, curl/python HTTP clients hitting the GitHub issues API) and
+// MCP (`mcp__github__issue_write` create, `mcp__github__create_issue`).
+//
+// HAND-MAINTAINED BUILD ARTIFACT. There is no build step in this repo; this
+// file and my/hooks/issue-write-gate.ts must be edited together. Parity is
+// enforced by tests/bash/c-bpm-sk-issue-write-gate.bats ("ts/dist parity").
 //
 // Contract:
 //   stdin:  JSON {tool_name, tool_input, cwd, ...}
-//   stdout: JSON {permissionDecision: 'allow'|'deny', permissionDecisionReason: <string>}
+//   stdout: JSON {hookSpecificOutput: {hookEventName, permissionDecision,
+//                permissionDecisionReason}, ...legacy flat mirror}
 //   exit:   always 0 (decision in stdout); non-zero exits are hook bugs
 //
 // Test mode env vars (used by tests/bash/c-bpm-sk-issue-write-gate.bats):
@@ -32,10 +38,63 @@ const MCP_CREATE_TOOLS = new Set([
   'mcp__github__create_issue'
 ]);
 
+// Shell operators that end one command and start another (#71): `true && gh
+// issue create ...` must be gated, not waved through because argv[0] != gh.
+const OPERATORS = new Set(['&&', '||', ';', '|', '&']);
+
+// Known shell runners (#71). NOT the trigger for unwrapping — that is
+// shape-based, see decideSegment (#133). This set only picks the unwrap start
+// point when a known runner sits mid-segment, carries `eval`'s join-the-rest
+// semantics, and marks a payload as definitely-a-command for fail-closed
+// tokenisation.
+const SHELL_RUNNERS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'eval']);
+
+const GH_COMMAND = new Set(['gh']);
+
+// #136: tools whose `-c` is NOT a command payload. `grep -c PATTERN` is a
+// count, `sort -c` a check, `git -c k=v` a config override — re-gating their
+// argument denied `grep -c "gh issue create" notes.txt`, i.e. the gate blocked
+// anyone auditing this repo for that very pattern.
+//
+// This is a NARROW, name-based EXCEPTION to the shape-based unwrap, and it is
+// deliberately the only name-based trust in the path: a name NOT on this list
+// is still unwrapped and inspected, so unknown heads can never fail open (see
+// decideSegment). Consulted only for the word that OWNS the flag (see
+// shellPayloads), never for any word merely present in the segment — otherwise
+// `mysh -c "gh issue create" grep` would disable its own unwrap.
+const NON_SHELL_C_FLAG = new Set([
+  'grep', 'egrep', 'fgrep', 'rg', 'ag', 'ack', 'sort', 'uniq', 'awk',
+  'tar', 'cpio', 'git', 'docker', 'podman', 'systemctl', 'cmake'
+]);
+
+// Max recursion through nested shell runners before failing closed (#71).
+const MAX_DEPTH = 5;
+
+// Top-level tokenise failure denies only when the command looks like an issue
+// write. Inner payloads always fail closed — see decideBash().
+const SUSPECT = /\bgh\s+(issue\s+create|api\b)|api\.github\.com/;
+
+// GitHub REST issues collection endpoint (create target). The lookahead rejects
+// .../issues/123 and .../issues/comments — those are not creates.
+const GH_REST_ISSUES = /api\.github\.com\/repos\/([^/\s'"?]+)\/([^/\s'"?]+)\/issues(?![/\w])/;
+const GH_GRAPHQL = /api\.github\.com\/graphql/;
+const POST_HINT = /-X\s*POST|--request\s+POST|--data|--json|\s-d\s|requests\.post|session\.post|\.post\(|http\.client|urlopen|method\s*[:=]\s*['"]POST['"]/i;
+const GQL_CREATE = /createIssue|create_issue/i;
+
 // ── Output helpers ────────────────────────────────────────────────────────
 
 function emit(decision, reason = '') {
   process.stdout.write(JSON.stringify({
+    // Authoritative shape per current Claude Code hook docs (#99).
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: decision,
+      permissionDecisionReason: reason
+    },
+    // ponytail: legacy flat mirror, one transition release only. Older builds
+    // read these top-level keys; without them the gate would silently fail
+    // OPEN. Remove once the minimum supported Claude Code build is confirmed
+    // to read hookSpecificOutput.
     permissionDecision: decision,
     permissionDecisionReason: reason
   }));
@@ -76,17 +135,66 @@ function tokenise(cmd) {
   return out;
 }
 
-// ── Strip leading prefixes (env VAR=val, command, exec) ───────────────────
+// ── Command-word helpers ──────────────────────────────────────────────────
 
-function stripPrefixes(argv) {
-  let i = 0;
-  while (i < argv.length) {
-    const t = argv[i];
-    if (t === 'command' || t === 'exec' || t === 'env') { i++; continue; }
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) { i++; continue; }
-    break;
+// #70: `/usr/bin/gh issue create` is the same command as `gh issue create`.
+function basename(tok) {
+  const i = tok.lastIndexOf('/');
+  return i < 0 ? tok : tok.slice(i + 1);
+}
+
+function splitSegments(argv) {
+  const segs = [];
+  let cur = [];
+  for (const tok of argv) {
+    if (OPERATORS.has(tok)) { segs.push(cur); cur = []; continue; }
+    cur.push(tok);
   }
-  return argv.slice(i);
+  segs.push(cur);
+  return segs;
+}
+
+// #71: replaces the old prefix-stripping whitelist (command|exec|env). Any
+// wrapper chain — sudo -u X, timeout 30, nohup, stdbuf -oL, env FOO=1,
+// /usr/bin/env — is handled generically by locating the command word itself
+// ANYWHERE in the segment, so no wrapper needs to be enumerated. Checking only
+// the segment head let `sudo bash -lc "gh issue create"` through, because the
+// head was `sudo` and the `gh` was inside a quoted payload.
+//
+// GUARANTEE, precisely (#133): this finds a name from `names` wherever it sits,
+// so no wrapper needs enumerating. It does NOT make unknown names safe — a name
+// absent from `names` is simply not found. That is why the payload unwrap in
+// decideSegment triggers on shape rather than on this lookup.
+function findCommandIndex(seg, names) {
+  for (let i = 0; i < seg.length; i++) {
+    if (names.has(basename(seg[i]))) return i;
+  }
+  return -1;
+}
+
+// Payloads handed to a shell runner, for recursive re-gating.
+//
+// #136: `owner` tracks the last non-flag word before the `-c` flag — the tool
+// the flag actually belongs to. `sudo grep -c pat f` → grep, `mysh -c "cmd" x`
+// → mysh. Only that word is checked against NON_SHELL_C_FLAG, so a trailing
+// operand cannot be used to suppress the unwrap.
+function shellPayloads(head, seg) {
+  if (head === 'eval') {
+    const rest = seg.slice(1);
+    return rest.length ? [rest.join(' ')] : [];
+  }
+  let owner = head;
+  for (let i = 1; i < seg.length; i++) {
+    const t = seg[i];
+    if (t.startsWith('--')) continue;
+    if (t.startsWith('-')) {
+      if (!t.includes('c')) continue;
+      if (NON_SHELL_C_FLAG.has(basename(owner))) return [];
+      return i + 1 < seg.length ? [seg[i + 1]] : [];
+    }
+    owner = t;
+  }
+  return [];
 }
 
 // ── Generic flag extraction (long, short, equals, repeated, comma-split) ──
@@ -104,19 +212,21 @@ function extractFlags(argv, specs) {
       const short = spec.short;
       const key = longFlag.replace(/^--/, '');
       if (tok.startsWith(longFlag + '=')) {
-        push(result, key, tok.slice(longFlag.length + 1), spec.multi);
+        pushFlag(result, key, tok.slice(longFlag.length + 1), spec.multi);
         matched = true; break;
       }
       if (tok === longFlag) {
-        if (i + 1 < argv.length) { push(result, key, argv[++i], spec.multi); }
+        if (i + 1 < argv.length) { pushFlag(result, key, argv[++i], spec.multi); }
         matched = true; break;
       }
       if (short && tok === short) {
-        if (i + 1 < argv.length) { push(result, key, argv[++i], spec.multi); }
+        if (i + 1 < argv.length) { pushFlag(result, key, argv[++i], spec.multi); }
         matched = true; break;
       }
       if (short && tok.startsWith(short) && tok.length > short.length && !tok.startsWith('--')) {
-        push(result, key, tok.slice(short.length), spec.multi);
+        // #73: `-l=bug` / `-m=new` — drop the separator, else the value parses
+        // as the literal "=bug" and a compliant command is wrongly denied.
+        pushFlag(result, key, tok.slice(short.length).replace(/^=/, ''), spec.multi);
         matched = true; break;
       }
     }
@@ -126,7 +236,7 @@ function extractFlags(argv, specs) {
   return result;
 }
 
-function push(obj, key, val, multi) {
+function pushFlag(obj, key, val, multi) {
   if (multi) {
     obj[key] = obj[key] || [];
     for (const part of val.split(',')) obj[key].push(part);
@@ -137,10 +247,14 @@ function push(obj, key, val, multi) {
 
 // ── gh api detection ──────────────────────────────────────────────────────
 
-function isGhApiIssueCreate(argv) {
+// Bias (#72): a missed create is worse than a false positive. Explicit
+// -X/--method wins; otherwise body fields on the issues collection mean CREATE.
+// GET is inferred only from an explicit method or the absence of body fields.
+function ghApiCreateKind(argv) {
   const args = argv.slice(2);
   let method = null;
   let hasFields = false;
+  let hasInput = false;
   let urlIsIssuesCreate = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -151,6 +265,8 @@ function isGhApiIssueCreate(argv) {
       method = t.slice(t.startsWith('-X=') ? 3 : 2).toUpperCase();
       continue;
     }
+    if (t === '--input') { hasInput = true; i++; continue; }
+    if (t.startsWith('--input=')) { hasInput = true; continue; }
     if (t === '-f' || t === '-F' || t === '--field' || t === '--raw-field') { hasFields = true; i++; continue; }
     if (t.startsWith('--field=') || t.startsWith('--raw-field=')) { hasFields = true; continue; }
     if ((t.startsWith('-f') || t.startsWith('-F')) && t.length > 2) { hasFields = true; continue; }
@@ -162,10 +278,10 @@ function isGhApiIssueCreate(argv) {
     }
   }
 
-  if (!urlIsIssuesCreate) return false;
-  if (method === 'POST') return true;
-  if (method !== null) return false;          // GET / PUT / PATCH / DELETE
-  return hasFields;                            // default-POST inferred when fields present
+  if (!urlIsIssuesCreate) return 'none';
+  if (method !== null) return method === 'POST' ? (hasInput ? 'opaque' : 'create') : 'none';
+  if (hasInput) return 'opaque';               // body in a file/stdin — cannot inspect
+  return hasFields ? 'create' : 'none';        // default-POST inferred when fields present
 }
 
 function extractGhApiFields(argv) {
@@ -224,6 +340,14 @@ function resolveRepo(cwd) {
   } catch {
     return null;
   }
+}
+
+// #69: an explicit --repo/-R overrides git resolution, so a compliant command
+// run outside a git checkout is no longer a false positive.
+function normaliseRepoFlag(val) {
+  if (typeof val !== 'string') return null;
+  if (hasInterpolation(val)) return null;
+  return /^[^/\s]+\/[^/\s]+$/.test(val) ? val : null;
 }
 
 // ── Repo milestone catalog (cached per process) ───────────────────────────
@@ -327,6 +451,140 @@ function validate(milestone, labels, repo) {
   return null;
 }
 
+// ── Raw HTTP client path (#74: curl / python / any client) ────────────────
+
+// SCOPE LIMIT (#74), stated so it is not mistaken for full coverage: this is
+// heuristic INLINE string inspection of the Bash command itself. It catches
+// `curl ... api.github.com/repos/o/r/issues` and
+// `python3 -c "...requests.post(...)"`. It does NOT and cannot catch issue
+// creation inside a script FILE — `python3 create_issue.py`, `./release.sh` —
+// because the hook never sees that file's contents. Script-file invocation is
+// out of scope for this layer and belongs to the GitHub Actions layer
+// (issues.opened), which catches anything created outside Claude Code.
+// Tracked as issue #131 — do not "fix" it here; the recommendation there is to
+// enforce server-side rather than grow more inline heuristics.
+function checkHttpClient(cmd) {
+  const isGraphql = GH_GRAPHQL.test(cmd);
+  const rest = cmd.match(GH_REST_ISSUES);
+  if (!isGraphql && !rest) return null;
+  if (!POST_HINT.test(cmd)) return null;      // read-only call
+
+  if (isGraphql) {
+    return GQL_CREATE.test(cmd)
+      ? 'GraphQL createIssue mutation detected; milestone and type label cannot be validated here. Use `gh issue create --milestone <lifecycle> --label bug|enhancement`.'
+      : null;
+  }
+
+  const repo = `${rest[1]}/${rest[2]}`;
+  const ms = cmd.match(/["']milestone["']\s*:\s*"?([^",}\s]+)"?/);
+  const block = cmd.match(/["']labels["']\s*:\s*\[([^\]]*)\]/);
+  const labels = block
+    ? [...block[1].matchAll(/["']([^"']+)["']/g)].map((m) => m[1])
+    : undefined;
+  return validate(ms ? ms[1] : undefined, labels, repo);
+}
+
+// ── Bash decision (recursive) ─────────────────────────────────────────────
+
+function decideGh(argv, cwd) {
+  if (argv[1] === 'issue' && argv[2] === 'create') {
+    const flags = extractFlags(argv.slice(3), {
+      '--milestone': { short: '-m', multi: false },
+      '--label':     { short: '-l', multi: true  },
+      '--repo':      { short: '-R', multi: false }
+    });
+    const repo = normaliseRepoFlag(flags.repo) || resolveRepo(cwd);
+    return validate(flags.milestone, flags.label, repo);
+  }
+
+  if (argv[1] === 'api') {
+    if (argv.slice(2).some((t) => t === 'graphql') && GQL_CREATE.test(argv.join(' '))) {
+      return 'GraphQL createIssue mutation detected; milestone and type label cannot be validated here. Use `gh issue create --milestone <lifecycle> --label bug|enhancement`.';
+    }
+    const kind = ghApiCreateKind(argv);
+    if (kind === 'opaque') {
+      return 'gh api issue create with --input (body from file/stdin) cannot be inspected for milestone and type label. Fail-closed — use `gh issue create` or inline -f fields.';
+    }
+    if (kind === 'create') {
+      const fields = extractGhApiFields(argv);
+      const repo = repoFromGhApiUrl(argv) || resolveRepo(cwd);
+      return validate(fields.milestone, fields.labels, repo);
+    }
+  }
+
+  return null;
+}
+
+function decideSegment(seg, cwd, depth) {
+  if (!seg.length) return null;
+
+  // #71: a shell runner can sit behind any wrapper chain — `sudo bash -lc
+  // "..."`, `env bash -lc "..."`, `sudo env bash -lc "..."`. Scanning the whole
+  // segment instead of only seg[0] makes wrapper-stripping and runner-detection
+  // compose without enumerating wrappers.
+  //
+  // #133: the unwrap used to fire only when a KNOWN shell name was found, which
+  // failed open on every unknown one — `rbash`, `/opt/bin/mysh`, any shell
+  // shipped tomorrow. An allowlist deciding WHAT TO INSPECT is the wrong shape
+  // for a fail-closed gate, so the trigger is now SHAPE: any segment carrying a
+  // `-c`/`-lc`/`-ic`-style flag with a payload gets that payload re-gated,
+  // whatever the head is called.
+  //
+  // #136: the earlier claim here — that a non-shell `-c` consumer merely costs
+  // "one redundant inspection ... which finds no issue-create" — was FALSE. It
+  // held only while the argument contained no issue-create text: `grep -c "gh
+  // issue create" notes.txt` was re-gated as if it were an invocation and
+  // DENIED, so the gate blocked auditing itself. What the code guarantees now,
+  // precisely: the argument of a `-c` flag is re-gated UNLESS the word owning
+  // the flag is one of the few tools listed in NON_SHELL_C_FLAG. Every other
+  // head — including every unknown one — is still unwrapped and inspected, so
+  // this exception adds no fail-open path. Its cost is the opposite direction:
+  // an unlisted tool whose `-c` argument literally contains an issue-create
+  // command line is denied. That is the safe direction, and the deliberate one.
+  const r = findCommandIndex(seg, SHELL_RUNNERS);
+  const start = r >= 0 ? r : 0;
+  for (const payload of shellPayloads(basename(seg[start]), seg.slice(start))) {
+    // strict = known runner: its payload is definitely a command, so an
+    // unparsable one fails closed. A shape-only unwrap falls back to SUSPECT so
+    // `grep -c "it's" f` is not denied while `rbash -c "gh issue create 'x"` is.
+    const reason = decideBash(payload, cwd, depth + 1, r >= 0);
+    if (reason) return reason;
+  }
+
+  // Independent fallback: a `gh` word visible in this segment, however it got
+  // there. Runs regardless of the runner scan, so neither path can mask the
+  // other.
+  const j = findCommandIndex(seg, GH_COMMAND);
+  if (j < 0) return null;
+  return decideGh(seg.slice(j), cwd);
+}
+
+function decideBash(cmd, cwd, depth, strict = false) {
+  if (depth > MAX_DEPTH) {
+    return `nested shell wrappers exceed depth ${MAX_DEPTH}; command cannot be inspected. Fail-closed.`;
+  }
+
+  const http = checkHttpClient(cmd);
+  if (http) return http;
+
+  let argv;
+  try {
+    argv = tokenise(cmd);
+  } catch {
+    // #71: a payload handed to a known shell runner that will not tokenise is
+    // always fail-closed — it was already established as a wrapped command.
+    if (strict) return 'wrapped command payload failed to parse (unbalanced quotes?). Fail-closed.';
+    if (SUSPECT.test(cmd)) return 'command parse failed (unbalanced quotes?). Manual review required.';
+    return null;
+  }
+
+  for (const seg of splitSegments(argv)) {
+    const reason = decideSegment(seg, cwd, depth);
+    if (reason) return reason;
+  }
+  return null;
+}
+
 // ── Main entry ────────────────────────────────────────────────────────────
 
 function main() {
@@ -358,35 +616,8 @@ function main() {
   const cmd = (ti.command || '').toString();
   if (!cmd) return allow('empty command');
 
-  let argv;
-  try { argv = tokenise(cmd); } catch {
-    if (/\bgh\s+(issue\s+create|api\b)/.test(cmd)) {
-      return deny('command parse failed (unbalanced quotes?). Manual review required.');
-    }
-    return allow('non-parsable but not gh issue create');
-  }
-
-  const stripped = stripPrefixes(argv);
-  if (stripped[0] !== 'gh') return allow('non-gh command');
-
-  if (stripped[1] === 'issue' && stripped[2] === 'create') {
-    const flags = extractFlags(stripped.slice(3), {
-      '--milestone': { short: '-m', multi: false },
-      '--label':     { short: '-l', multi: true  }
-    });
-    const repo = resolveRepo(cwd);
-    const reason = validate(flags.milestone, flags.label, repo);
-    return reason ? deny(reason) : allow();
-  }
-
-  if (stripped[1] === 'api' && isGhApiIssueCreate(stripped)) {
-    const fields = extractGhApiFields(stripped);
-    const repo = repoFromGhApiUrl(stripped) || resolveRepo(cwd);
-    const reason = validate(fields.milestone, fields.labels, repo);
-    return reason ? deny(reason) : allow();
-  }
-
-  return allow('non-issue gh subcommand');
+  const reason = decideBash(cmd, cwd, 0);
+  return reason ? deny(reason) : allow();
 }
 
 main();

@@ -1,182 +1,1016 @@
 {
   "_doc": "Test fixtures for issue-write-gate.mjs PreToolUse hook (issue #68). Each fixture is a Claude Code hook input JSON object piped to the hook on stdin. Hook contract: ALWAYS exits 0; the decision is communicated via stdout JSON {permissionDecision: 'allow'|'deny', permissionDecisionReason: <string>}. Non-zero exit indicates a hook bug. Repo state for milestone resolution is mocked via FIXTURE_MILESTONES env var. When cwd is set to /tmp/repo (a non-git path), the hook reads FIXTURE_REPO env var (defaults to 'o/r') in test mode; this lets us test repo-resolution failure by leaving the env var unset and cwd outside any git repo.",
-  "_lifecycle": ["new", "planned", "plan-approved", "test-designed", "test-design-approved", "implemented", "tested-success", "tested-failed", "test-approved", "reviewed", "review-approved", "investigating", "resolved"],
+  "_lifecycle": [
+    "new",
+    "planned",
+    "plan-approved",
+    "test-designed",
+    "test-design-approved",
+    "implemented",
+    "tested-success",
+    "tested-failed",
+    "test-approved",
+    "reviewed",
+    "review-approved",
+    "investigating",
+    "resolved"
+  ],
   "_done_creation_allowed": false,
+  "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/issue-write-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/issue-write-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/issue-write-gate.ts dist/issue-write-gate.mjs and update _parity below.",
+  "_parity": {
+    "my/hooks/issue-write-gate.ts": "e6a84f920e6c58f510b9e45d1b17171612871549f17c4b91d06dd287509cfaf1",
+    "dist/issue-write-gate.mjs": "4b5163e62e5273388efdefb1f09f1d5a89ebba6ba413f0cd806611d45fc5d34d"
+  },
   "fixtures": [
     {
       "id": 1,
       "description": "no milestone, no label",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --title x --body y"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "milestone"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --body y"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
     },
     {
       "id": 2,
       "description": "milestone but no type label",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --title x --body y --milestone new"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "type label"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --body y --milestone new"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "type label"
+      }
     },
     {
       "id": 3,
       "description": "milestone + bug label = ALLOW",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --title x --body y --milestone new --label bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --body y --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 4,
       "description": "uppercase Bug label = DENY",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --title x --body y --milestone new --label Bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "lowercase"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --body y --milestone new --label Bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "lowercase"
+      }
     },
     {
       "id": 5,
       "description": "milestone not in lifecycle",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --title x --body y --milestone nonexistent --label bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "milestone"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --body y --milestone nonexistent --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
     },
     {
       "id": 6,
       "description": "MCP create with milestone number + enhancement label",
-      "input": {"tool_name": "mcp__github__issue_write", "tool_input": {"method": "create", "owner": "o", "repo": "r", "milestone": 1, "labels": ["enhancement"]}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "mcp__github__issue_write",
+        "tool_input": {
+          "method": "create",
+          "owner": "o",
+          "repo": "r",
+          "milestone": 1,
+          "labels": [
+            "enhancement"
+          ]
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 7,
       "description": "MCP update method (not create) = ALLOW (passthrough)",
-      "input": {"tool_name": "mcp__github__issue_write", "tool_input": {"method": "update", "issue_number": 1, "title": "edit"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "mcp__github__issue_write",
+        "tool_input": {
+          "method": "update",
+          "issue_number": 1,
+          "title": "edit"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 8,
       "description": "non-issue command = ALLOW (passthrough)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh pr list"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh pr list"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 9,
       "description": "short flags -m + -l",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create -m new -l bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create -m new -l bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 10,
       "description": "equals form --milestone=new --label=bug",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --milestone=new --label=bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone=new --label=bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 11,
       "description": "BOTH bug AND enhancement = DENY (exactly-one rule)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --milestone new --label bug --label enhancement"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "exactly one"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone new --label bug --label enhancement"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "exactly one"
+      }
     },
     {
       "id": 12,
       "description": "comma-separated label includes type + extra label",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --milestone new --label bug,help-wanted"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone new --label bug,help-wanted"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 13,
       "description": "non-type label only (help-wanted) = DENY",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --milestone new --label help-wanted"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "type label"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone new --label help-wanted"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "type label"
+      }
     },
     {
       "id": 14,
       "description": "echo \"gh issue create...\" = ALLOW (argv[0]=echo, not gh)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "echo \"gh issue create --milestone new --label bug\""}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "echo \"gh issue create --milestone new --label bug\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 15,
       "description": "gh api POST repos/.../issues with milestone=1",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh api -X POST repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api -X POST repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 16,
       "description": "DONE milestone = DENY (human-only, not creation-allowed)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --milestone DONE --label bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "DONE"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone DONE --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "DONE"
+      }
     },
     {
       "id": 17,
       "description": "-XPOST (no space)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh api -XPOST repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api -XPOST repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 18,
       "description": "--method=POST equals form",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh api --method=POST repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api --method=POST repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 19,
       "description": "gh api -X GET with -f fields = ALLOW (read-only)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh api -X GET repos/o/r/issues -f milestone=1"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api -X GET repos/o/r/issues -f milestone=1"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 20,
       "description": "gh api with -F (field with type cast), default-POST inferred",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh api -F title=x -F milestone=1 -F labels[]=bug repos/o/r/issues"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api -F title=x -F milestone=1 -F labels[]=bug repos/o/r/issues"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 21,
       "description": "alternate MCP tool name mcp__github__create_issue",
-      "input": {"tool_name": "mcp__github__create_issue", "tool_input": {"owner": "o", "repo": "r", "milestone": 1, "labels": ["bug"]}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "mcp__github__create_issue",
+        "tool_input": {
+          "owner": "o",
+          "repo": "r",
+          "milestone": 1,
+          "labels": [
+            "bug"
+          ]
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 22,
       "description": "mcp__github__update_issue (any non-create MCP) = ALLOW",
-      "input": {"tool_name": "mcp__github__update_issue", "tool_input": {"issue_number": 1}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "mcp__github__update_issue",
+        "tool_input": {
+          "issue_number": 1
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 23,
       "description": "lowercase post in --method=post = ALLOW (case-insensitive)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh api --method=post repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api --method=post repos/o/r/issues -f title=x -f milestone=1 -f labels[]=bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 24,
       "description": "command prefix is stripped before argv[0] check",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "command gh issue create --milestone new --label bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "command gh issue create --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 25,
       "description": "variable interpolation in --milestone = DENY (cannot evaluate, fail-closed)",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --milestone $MS --label bug"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "interpolation"}
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone $MS --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "interpolation"
+      }
     },
     {
       "id": 26,
       "description": "MCP create with uppercase Bug label = DENY",
-      "input": {"tool_name": "mcp__github__issue_write", "tool_input": {"method": "create", "owner": "o", "repo": "r", "milestone": 1, "labels": ["Bug"]}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "lowercase"}
+      "input": {
+        "tool_name": "mcp__github__issue_write",
+        "tool_input": {
+          "method": "create",
+          "owner": "o",
+          "repo": "r",
+          "milestone": 1,
+          "labels": [
+            "Bug"
+          ]
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "lowercase"
+      }
     },
     {
       "id": 27,
       "description": "MCP create with milestone number that doesn't exist in repo = DENY",
-      "input": {"tool_name": "mcp__github__issue_write", "tool_input": {"method": "create", "owner": "o", "repo": "r", "milestone": 999, "labels": ["bug"]}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "deny", "reason_contains": "milestone"}
+      "input": {
+        "tool_name": "mcp__github__issue_write",
+        "tool_input": {
+          "method": "create",
+          "owner": "o",
+          "repo": "r",
+          "milestone": 999,
+          "labels": [
+            "bug"
+          ]
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
     },
     {
       "id": 28,
       "description": "non-Bash, non-MCP-github tool = ALLOW (passthrough)",
-      "input": {"tool_name": "Read", "tool_input": {"file_path": "/tmp/foo"}, "cwd": "/tmp/repo"},
-      "expected": {"decision": "allow"}
+      "input": {
+        "tool_name": "Read",
+        "tool_input": {
+          "file_path": "/tmp/foo"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 29,
       "description": "repo cannot be resolved (cwd outside git, no env mock) = DENY (fail-closed)",
       "_test_setup": "this fixture must be run with FIXTURE_REPO unset AND cwd outside any git repo; bats runner sets FIXTURE_REPO_RESOLVE=fail to simulate",
-      "input": {"tool_name": "Bash", "tool_input": {"command": "gh issue create --milestone new --label bug"}, "cwd": "/nonexistent"},
-      "expected": {"decision": "deny", "reason_contains": "repo"}
+      "env": [
+        "FIXTURE_REPO_RESOLVE=fail"
+      ],
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone new --label bug"
+        },
+        "cwd": "/nonexistent"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "repo"
+      }
+    },
+    {
+      "id": 30,
+      "_issue": 70,
+      "description": "absolute-path gh with milestone + type label = ALLOW (basename detection)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "/usr/bin/gh issue create --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 31,
+      "_issue": 70,
+      "description": "absolute-path gh without milestone = DENY (was the bypass)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "/usr/bin/gh issue create --title x --body y"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 32,
+      "_issue": 69,
+      "description": "non-git cwd + explicit --repo o/r + milestone + type label = ALLOW (--repo overrides git resolution)",
+      "env": [
+        "FIXTURE_REPO_RESOLVE=fail"
+      ],
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --repo o/r --milestone new --label bug --title x"
+        },
+        "cwd": "/nonexistent"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 33,
+      "_issue": 73,
+      "description": "short-flag-equals -m=new -l=bug = ALLOW (was parsed as literal =new / =bug)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create -m=new -l=bug --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 34,
+      "_issue": 72,
+      "description": "gh api .../issues --input body.json = DENY (opaque body, fail-closed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api repos/o/r/issues --input body.json"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "--input"
+      }
+    },
+    {
+      "id": 35,
+      "_issue": 72,
+      "description": "gh api --raw-field create form without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api --raw-field title=x repos/o/r/issues"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 36,
+      "_issue": 72,
+      "description": "gh api --field create form with milestone + type label = ALLOW",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api --field title=x --field milestone=1 --field labels[]=bug repos/o/r/issues"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 37,
+      "_issue": 71,
+      "description": "wrapper chain sudo -u / timeout / env VAR= / absolute gh without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sudo -u rob timeout 30 env FOO=1 /usr/bin/gh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 38,
+      "_issue": 71,
+      "description": "wrapper chain nohup + stdbuf with compliant flags = ALLOW",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "nohup stdbuf -oL gh issue create --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 39,
+      "_issue": 71,
+      "description": "eval \"gh issue create ...\" without milestone = DENY (recursive unwrap)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "eval \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 40,
+      "_issue": 71,
+      "description": "bash -lc \"gh issue create ...\" compliant = ALLOW (recursive unwrap, no false positive)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "bash -lc \"gh issue create --milestone new --label bug\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 41,
+      "_issue": 71,
+      "description": "nested wrappers deeper than MAX_DEPTH = DENY (recursion-depth guard, fail-closed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "eval eval eval eval eval eval gh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "exceed depth"
+      }
+    },
+    {
+      "id": 42,
+      "_issue": 71,
+      "description": "inner payload that will not tokenise = DENY (fail-closed, not deny-only-on-regex-hit)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "bash -c \"gh issue create --title 'x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "Fail-closed"
+      }
+    },
+    {
+      "id": 43,
+      "_issue": 74,
+      "description": "curl POST to REST issues endpoint without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "curl -X POST -H \"Accept: application/vnd.github+json\" https://api.github.com/repos/o/r/issues -d '{\"title\":\"x\"}'"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 44,
+      "_issue": 74,
+      "description": "python requests.post to REST issues endpoint without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "python3 -c \"import requests; requests.post('https://api.github.com/repos/o/r/issues', json={'title':'x'})\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 45,
+      "_issue": 74,
+      "description": "curl POST with milestone + type label = ALLOW (no false positive)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "curl -X POST https://api.github.com/repos/o/r/issues -d '{\"title\":\"x\",\"milestone\":\"new\",\"labels\":[\"bug\"]}'"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 46,
+      "_issue": 71,
+      "description": "gh issue create after a shell operator = DENY (segment scan, argv[0] is not gh)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "true && gh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 47,
+      "_issue": 72,
+      "description": "gh api graphql createIssue mutation = DENY (milestone/type not validatable)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh api graphql -f query='mutation { createIssue(input: {repositoryId: \"x\"}) { issue { number } } }'"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "GraphQL"
+      }
+    },
+    {
+      "id": 48,
+      "_issue": 71,
+      "_regression": "LIVE BYPASS found by Codex verification: returned ALLOW before the fix. Shell runner sat behind a wrapper, so head-only runner detection never unwrapped it, and the fallback gh scan could not see `gh` inside the quoted payload.",
+      "description": "sudo + bash -lc wrapping gh issue create without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sudo bash -lc \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 49,
+      "_issue": 71,
+      "_regression": "LIVE BYPASS found by Codex verification: returned ALLOW before the fix.",
+      "description": "env + bash -lc wrapping gh issue create without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "env bash -lc \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 50,
+      "_issue": 71,
+      "_regression": "LIVE BYPASS found by Codex verification: returned ALLOW before the fix. Double-wrapped form — wrapper stripping and runner detection must compose, not run once.",
+      "description": "sudo + env + bash -lc double wrapper = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sudo env bash -lc \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 51,
+      "_issue": 71,
+      "description": "sudo + bash -lc wrapping a COMPLIANT gh issue create = ALLOW (fix must not over-block)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sudo bash -lc \"gh issue create --milestone new --label bug\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 52,
+      "_issue": 71,
+      "description": "wrapped payload that will not tokenise = DENY (fail-closed now reachable behind a wrapper)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sudo env bash -lc \"gh issue create --title 'x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "Fail-closed"
+      }
+    },
+    {
+      "id": 53,
+      "_issue": 133,
+      "_regression": "LIVE BYPASS found by Codex verification: returned ALLOW before the shape-based unwrap. `rbash` is not in SHELL_RUNNERS, so the payload was never unwrapped, and the fallback gh scan could not see `gh` inside the quoted string.",
+      "description": "unknown shell name rbash -lc wrapping gh issue create without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "rbash -lc \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 54,
+      "_issue": 133,
+      "_regression": "LIVE BYPASS: returned ALLOW before the fix. Path-qualified unknown shell — basename `mysh` is in no allowlist.",
+      "description": "path-qualified unknown shell /opt/bin/mysh -c wrapping gh issue create = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "/opt/bin/mysh -c \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 55,
+      "_issue": 133,
+      "_regression": "Already DENY before the fix (the mid-segment `sh` was found by the runner scan). Pinned so the shape-based unwrap does not regress the multi-call-shell form.",
+      "description": "busybox sh -c wrapping gh issue create without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "busybox sh -c \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 56,
+      "_issue": 133,
+      "description": "unknown shell name wrapping a COMPLIANT gh issue create = ALLOW (shape-based unwrap must not over-block)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "rbash -lc \"gh issue create --title x --milestone new --label bug\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 57,
+      "_issue": 133,
+      "description": "over-block control: bare quoted MENTION of gh issue create, no -c flag = ALLOW",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "echo \"gh issue create\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 58,
+      "_issue": 133,
+      "description": "over-block control: grep pattern containing gh issue create = ALLOW (a mention is not an invocation)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "grep \"gh issue create\" notes.txt"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 59,
+      "_issue": 133,
+      "_regression": "LIVE BYPASS: returned ALLOW before the fix. busybox multi-call applet `ash` is a real shell absent from SHELL_RUNNERS — the `sh` applet happened to be covered, `ash` was not. This is the fixture 55 case with the allowlist coincidence removed.",
+      "description": "busybox ash -c wrapping gh issue create without milestone = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "busybox ash -c \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 60,
+      "_issue": 136,
+      "_regression": "LIVE FALSE POSITIVE found by Codex verification: returned DENY before the owner-scoped NON_SHELL_C_FLAG check. grep's -c is a COUNT flag, but the shape-based unwrap re-gated its PATTERN as a command, so the gate blocked the exact command an auditor of this repo would type.",
+      "description": "grep -c \"gh issue create\" notes.txt = ALLOW (count flag, not a shell payload)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "grep -c \"gh issue create\" notes.txt"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 61,
+      "_issue": 136,
+      "_regression": "Already ALLOW before the fix, but only by accident: the pattern's apostrophe made the payload untokenisable and SUSPECT did not match it. Pinned so the allow now rests on the owner check rather than on a parse failure.",
+      "description": "grep -c \"it's\" file.txt = ALLOW (non-shell -c consumer, harmless pattern)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "grep -c \"it's\" file.txt"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 62,
+      "_issue": 136,
+      "_regression": "LIVE FALSE POSITIVE: returned DENY before the fix. Second non-shell -c consumer, and the TERMINAL-payload shape — no trailing operand exists here, which is why a position-only heuristic could not have fixed this case.",
+      "description": "sort -c \"gh issue create --title x\" = ALLOW (check flag, terminal payload)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sort -c \"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 63,
+      "_issue": 136,
+      "_regression": "BYPASS GUARD for the #136 fix itself: NON_SHELL_C_FLAG is consulted only for the word that OWNS the -c flag. If it were consulted for any word present in the segment, appending a harmless `grep` operand (it becomes $0) would switch the unwrap off and reopen the #133 bypass class.",
+      "description": "unknown shell -c payload with a trailing excluded-tool name = DENY (exception is owner-scoped)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "mysh -c \"gh issue create --title x\" grep"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
     }
   ]
 }
