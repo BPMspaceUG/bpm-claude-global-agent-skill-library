@@ -18,8 +18,8 @@
   "_done_creation_allowed": false,
   "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/issue-write-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/issue-write-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/issue-write-gate.ts dist/issue-write-gate.mjs and update _parity below.",
   "_parity": {
-    "my/hooks/issue-write-gate.ts": "e6a84f920e6c58f510b9e45d1b17171612871549f17c4b91d06dd287509cfaf1",
-    "dist/issue-write-gate.mjs": "4b5163e62e5273388efdefb1f09f1d5a89ebba6ba413f0cd806611d45fc5d34d"
+    "my/hooks/issue-write-gate.ts": "b8d3aace151f9a740831e7141d5bc3de666f4175da16b3a047c138a6b1fd7dc5",
+    "dist/issue-write-gate.mjs": "569422b00c2100baea44d294e6bddf519128c49c3368f47ac9622faee78f9e8a"
   },
   "fixtures": [
     {
@@ -1010,6 +1010,78 @@
       "expected": {
         "decision": "deny",
         "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 64,
+      "_issue": 133,
+      "_regression": "LIVE CRASH: before the fix this exact input exited 1 with EMPTY stdout and a SyntaxError on stderr. No decision reaches the harness, so nothing blocks the non-compliant create — the gate failed OPEN. Asserting exit 0 alone is not enough; the decision must be deny.",
+      "description": "unparseable milestone data = DENY (cannot verify != no milestones)",
+      "env": ["FIXTURE_MILESTONES=NOT-JSON"],
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "Fail-closed"
+      }
+    },
+    {
+      "id": 65,
+      "_issue": 133,
+      "_test_setup": "the bats runner passes PATH=<tmpdir containing only a node symlink>, so `gh` cannot be spawned at all. FIXTURE_MILESTONES is unset so the real gh path runs; FIXTURE_REPO stays set so repo resolution is not the thing under test.",
+      "description": "gh unavailable (not on PATH) = DENY (fail-closed, exit 0)",
+      "env": ["-u", "FIXTURE_MILESTONES", "FIXTURE_REPO=o/r"],
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "Fail-closed"
+      }
+    },
+    {
+      "id": 66,
+      "_issue": 133,
+      "_test_setup": "the bats runner puts a stub `gh` on PATH that prints non-record text and exits 0 — the degraded-environment shape from #94/#130, where login-shell banners land on the same stream. Exit 0 means the try/catch around execFileSync never fires; the output parser itself has to refuse the data.",
+      "description": "gh returns non-JSON / non-record output = DENY (empty catalog is never 'no such milestone')",
+      "env": ["-u", "FIXTURE_MILESTONES", "FIXTURE_REPO=o/r"],
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "Fail-closed"
+      }
+    },
+    {
+      "id": 67,
+      "_issue": 133,
+      "_test_setup": "ISSUE_WRITE_GATE_FORCE_ERROR=1 throws inside main(). Proves the outer fail-closed wrapper itself, not just the two guarded parse sites — any future unguarded throw still yields a decision.",
+      "description": "internal error anywhere in main() = DENY with a diagnosable reason, exit 0",
+      "env": ["ISSUE_WRITE_GATE_FORCE_ERROR=1"],
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh pr list"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "internal error, failing closed"
       }
     }
   ]

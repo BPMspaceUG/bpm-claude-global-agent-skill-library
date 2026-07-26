@@ -14,12 +14,18 @@
 //   stdin:  JSON {tool_name, tool_input, cwd, ...}
 //   stdout: JSON {hookSpecificOutput: {hookEventName, permissionDecision,
 //                permissionDecisionReason}, ...legacy flat mirror}
-//   exit:   always 0 (decision in stdout); non-zero exits are hook bugs
+//   exit:   ALWAYS 0 — including on an internal error, which emits `deny`
+//           (fail-closed). #133: exiting non-zero with empty stdout delivers
+//           NO decision to the harness, i.e. it fails OPEN, and it fails open
+//           exactly when the environment is already degraded (expired auth,
+//           rate limit, DNS failure, gh missing, login-shell banners on the
+//           same stream per #94/#130). Never do that.
 //
 // Test mode env vars (used by tests/bash/c-bpm-sk-issue-write-gate.bats):
 //   FIXTURE_MILESTONES      JSON object {name: number} mocking gh api milestones
 //   FIXTURE_REPO            "owner/repo" string skipping git resolution
 //   FIXTURE_REPO_RESOLVE=fail  forces repo resolution to return null
+//   ISSUE_WRITE_GATE_FORCE_ERROR=1  throws inside main() to prove fail-closed
 
 import { readFileSync } from 'fs';
 import { execFileSync } from 'child_process';
@@ -354,15 +360,26 @@ function normaliseRepoFlag(val) {
 
 let milestoneCache = null;
 
+// Returns null for "cannot verify" — NEVER an empty catalog, which validate()
+// would read as "milestone not present" and could not distinguish from a
+// successful lookup. Every unparseable input lands on null → deny (#133).
 function getRepoMilestones(repo) {
   if (process.env.FIXTURE_MILESTONES) {
-    const map = JSON.parse(process.env.FIXTURE_MILESTONES);
+    let map;
+    // #133: was an unguarded JSON.parse — the single throw that crashed the
+    // whole hook to exit 1 with empty stdout, i.e. fail-OPEN.
+    try {
+      map = JSON.parse(process.env.FIXTURE_MILESTONES);
+    } catch {
+      return null;
+    }
+    if (!map || typeof map !== 'object') return null;
     const byNum = new Map(); const byName = new Set();
     for (const [name, num] of Object.entries(map)) {
       byNum.set(Number(num), name);
       byName.add(name);
     }
-    return { byNum, byName };
+    return byName.size ? { byNum, byName } : null;
   }
   if (milestoneCache && milestoneCache.repo === repo) return milestoneCache;
   try {
@@ -376,10 +393,22 @@ function getRepoMilestones(repo) {
     });
     const byNum = new Map(); const byName = new Set();
     for (const line of out.split('\n')) {
-      if (!line) continue;
-      const [n, t] = line.split('\t');
-      byNum.set(Number(n), t); byName.add(t);
+      // #133: `gh` is not guaranteed to hand back clean `number<TAB>title`
+      // lines. A login shell prepends keychain/curl banners to the same stream
+      // (#94/#130), and a different gh build can reshape the output entirely.
+      // Skip anything that is not a well-formed record instead of admitting
+      // `NaN → undefined` entries into the catalog.
+      const tab = line.indexOf('\t');
+      if (tab < 0) continue;
+      const n = Number(line.slice(0, tab));
+      const t = line.slice(tab + 1);
+      if (!Number.isFinite(n) || !t) continue;
+      byNum.set(n, t); byName.add(t);
     }
+    // Nothing parseable = we did NOT learn the repo's milestones. Returning an
+    // empty catalog here would read downstream as "milestone does not exist",
+    // which is a guess; null means "cannot verify" and denies.
+    if (!byName.size) return null;
     milestoneCache = { repo, byNum, byName };
     return milestoneCache;
   } catch {
@@ -406,7 +435,7 @@ function validate(milestone, labels, repo) {
 
   const ms = getRepoMilestones(repo);
   if (!ms) {
-    return `cannot fetch milestones for repo ${repo} (gh api failed or timed out). Fail-closed.`;
+    return `cannot fetch or parse milestones for repo ${repo} (gh api failed, timed out, or returned unusable output). Fail-closed.`;
   }
 
   let title;
@@ -588,10 +617,20 @@ function decideBash(cmd, cwd, depth, strict = false) {
 // ── Main entry ────────────────────────────────────────────────────────────
 
 function main() {
+  if (process.env.ISSUE_WRITE_GATE_FORCE_ERROR === '1') {
+    throw new Error('forced internal error (test seam)');
+  }
+
   let raw = '';
   try { raw = readFileSync(0, 'utf8'); } catch {}
   let input;
   try { input = JSON.parse(raw); } catch {
+    // NOT an internal error, and deliberately NOT a deny: a payload the harness
+    // itself failed to hand over carries no tool_name and no command, so there
+    // is nothing to classify. Denying it would block every tool call the gate
+    // is not even interested in. Distinct from a throw inside evaluation below,
+    // which means we HAD something to judge and could not — that denies.
+    // Same split as plan-doc-gate, approved for both (#133).
     return allow('hook input not parseable; passing through');
   }
 
@@ -620,4 +659,11 @@ function main() {
   return reason ? deny(reason) : allow();
 }
 
-main();
+// Fail-closed wrapper (#133). Any throw still delivers a valid deny decision
+// on stdout and exits 0; a non-zero exit with empty stdout would fail OPEN.
+try {
+  main();
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  deny(`internal error, failing closed: ${msg}`);
+}

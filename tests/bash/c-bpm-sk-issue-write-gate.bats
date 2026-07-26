@@ -40,8 +40,11 @@ setup() {
 
 # Run a single fixture by id. Pipes the input JSON to the hook on stdin and
 # captures stdout/exit. Returns 0 if observed decision matches expected.
+# $2 (optional): extra `env` assignments contributed by the calling @test, for
+# cases that need a path only known at run time (see the #133 PATH stubs).
 run_fixture() {
   local fid="$1"
+  local runtime_env="${2:-}"
   local input expected_decision expected_reason extra_env
   input="$(jq -c ".fixtures[] | select(.id==${fid}) | .input" "${FIXTURES}")"
   expected_decision="$(jq -r ".fixtures[] | select(.id==${fid}) | .expected.decision" "${FIXTURES}")"
@@ -52,8 +55,10 @@ run_fixture() {
 
   [[ -n "${input}" ]] || { echo "fixture ${fid} not found"; return 1; }
 
+  extra_env="${extra_env} ${runtime_env}"
+
   local out rc
-  if [[ -n "${extra_env}" ]]; then
+  if [[ -n "${extra_env// /}" ]]; then
     out="$(echo "${input}" | env ${extra_env} node "${HOOK}" 2>&1)"
   else
     out="$(echo "${input}" | node "${HOOK}" 2>&1)"
@@ -387,6 +392,52 @@ run_fixture() {
 
 @test "fixture 63 (#136): mysh -c payload + trailing \"grep\" operand -> DENY (owner-scoped)" {
   run_fixture 63
+}
+
+# Fixtures 64-67 (#133) cover the FAIL-OPEN CRASH found by Codex verification.
+# getRepoMilestones() did an unguarded JSON.parse and main() had no outer
+# wrapper, so a single throw exited the hook with code 1 and EMPTY stdout. The
+# harness receives no decision at all in that case, which means the create it
+# was supposed to gate proceeds — the gate failed open, and precisely in the
+# degraded environments (expired auth, rate limit, DNS failure, gh missing,
+# login-shell banners per #94/#130) where enforcement matters most.
+#
+# Every one of these asserts exit 0 AND decision=deny. Exit 0 alone would pass
+# against a hook that silently allowed everything.
+#
+# 64 is the reproduction from the issue. 65/66 exercise the real `gh` path with
+# a PATH that holds only a node symlink — 66 adds a stub `gh` that exits 0 with
+# unusable output, so the execFileSync try/catch never fires and the output
+# parser itself must refuse the data. 67 proves the outer wrapper independently
+# of the two guarded parse sites.
+
+# Builds a PATH directory containing only a `node` symlink, so the hook runs but
+# `gh` cannot be found. $1, if given, is the body of a stub `gh` script.
+stub_path() {
+  local dir="${BATS_TEST_TMPDIR:-${BATS_TMPDIR}}/stub-$$-${RANDOM}"
+  mkdir -p "${dir}"
+  ln -sf "$(command -v node)" "${dir}/node"
+  if [[ -n "${1:-}" ]]; then
+    printf '#!/bin/sh\n%s\n' "$1" > "${dir}/gh"
+    chmod +x "${dir}/gh"
+  fi
+  echo "${dir}"
+}
+
+@test "fixture 64 (#133): malformed milestone JSON -> DENY exit 0 (was crash exit 1)" {
+  run_fixture 64
+}
+
+@test "fixture 65 (#133): gh unavailable -> DENY exit 0 (fail-closed)" {
+  run_fixture 65 "PATH=$(stub_path)"
+}
+
+@test "fixture 66 (#133): gh returns non-JSON output -> DENY exit 0 (fail-closed)" {
+  run_fixture 66 "PATH=$(stub_path 'printf "%s\n" "not json at all"')"
+}
+
+@test "fixture 67 (#133): internal error in main() -> DENY exit 0 (outer wrapper)" {
+  run_fixture 67
 }
 
 # ── ts <-> dist parity ────────────────────────────────────────────────────
