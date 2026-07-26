@@ -1,10 +1,6 @@
 ---
 name: c-bpm-sk-skill-creator
-description: >
-  This skill should be used when the user asks to "create a skill", "new skill", "make skill",
-  "add skill", "build skill", or wants to create a new Claude Code skill from scratch or fork
-  an existing one. Skills 2.0 features, auto-detects existing c-bpm-sk- versions. Delegates
-  to optimizer if found. Enforces naming and Codex review.
+description: "Create a new skill — create skill, new skill, make skill, add skill, build skill, fork skill, scaffold skill. Skills 2.0 features; auto-detects existing c-bpm-sk- versions and delegates to optimizer. Enforces naming and Codex review."
 enforcement: block
 intentPatterns: "create (a |new )?skill;;new skill;;make (a )?skill;;build (a )?skill;;add (a )?skill"
 user-invocable: true
@@ -160,6 +156,29 @@ After real usage, improvements go through `c-bpm-sk-skill-optimizer`.
 - Split detailed content into `references/` files
 - Reference files linked from SKILL.md with clear "Read when:" guidance
 
+### Must-Stay Rule (F3)
+
+New skills are **born compliant**: this content goes in SKILL.md and is never placed in
+`references/`, no matter how long the body gets.
+
+- Frontmatter
+- Skill purpose statement (≤ 3 lines)
+- Trigger conditions / when-to-use
+- Safety constraints / refusal rules
+- Required tool-call order / phase gates
+- Non-obvious defaults
+- Critical fallback chain
+- MVP scope exclusions
+- Cross-skill protocol references (link only)
+
+**May move to `references/`:** detailed examples, long bash blocks, reference tables,
+multi-agent boilerplate, per-tech checklists, historical notes, tutorials.
+
+Verify with the three-check protocol before finishing: the body alone must still answer
+"when do I invoke this?" and "what must I never do here?", and deleting `references/`
+must still leave a safe (if lower-quality) skill. Full protocol and the structural
+scorecard: `c-bpm-sk-library-manager` → `references/skill-audit-policy.md`.
+
 ### No Clutter
 - No README.md, CHANGELOG.md, INSTALLATION_GUIDE.md
 - Only SKILL.md + scripts/ + references/ + assets/ as needed
@@ -174,6 +193,15 @@ skill directly.
 ## Library Integration
 
 After creating a skill, use `c-bpm-cm-library-push` to sync to Git.
+
+## Why this skill is not merged with `c-bpm-sk-skill-optimizer`
+
+The creator/optimizer pair is a **principled split** by lifecycle stage — create →
+optimize — with zero `intentPattern` overlap. This skill's existence check *hands off*
+to the optimizer; merging them would delete the check that stops duplicate skills from
+being created. Do not propose a merge without first refuting that split axis in the
+Issue. Registry of principled splits: `c-bpm-sk-library-manager` →
+"Principled Splits (do not merge)".
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only

@@ -1,6 +1,7 @@
 ---
 name: c-bpm-sk-flightphp-pro
 description: "Flight PHP expert — Flight framework, PHP routing, middleware, DI container, Flight API, PHP 8.3. Senior-level Flight PHP v3 patterns with PSR compliance and agent team orchestration."
+paths: ['**/Flight*.php', '**/*flight*.php']
 enforcement: block
 intentPatterns: "flight (php|framework);;flightphp (route|middleware|controller);;php flight (api|app)"
 user-invocable: false

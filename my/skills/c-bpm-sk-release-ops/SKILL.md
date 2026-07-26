@@ -4,6 +4,7 @@ description: "Release operations — cut a release, versioning, CI/CD setup, dep
 enforcement: block
 intentPatterns: "cut a release;;release (operations|ops);;(setup|configure) ci/cd;;deployment (playbook|rollback);;artefact packaging"
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 

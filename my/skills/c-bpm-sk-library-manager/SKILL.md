@@ -111,6 +111,63 @@ User wants to create something new?
 - **c-bpm-sk-skill-optimizer**: Optimizes existing skills → fork to `c-bpm-sk-` version → push when done
 - **c-bpm-sk-flightphp-pro**: Example of optimized skill derived from original
 
+## Structural Scorecard for `c-bpm-sk-*` Audits (#54)
+
+Every cohesion audit of the skill library scores each skill on six binary dimensions
+and reports a library-wide roll-up. **Threshold for 'well-formed': ≥ 5/6.**
+
+1. **Trigger discoverability** — em-dash description, parses via the `lib.sh` keyword extractor
+2. **Intent coverage** — ≥ 3 distinct `intentPatterns` regexes
+3. **Tool boundary** — `allowed-tools` declared OR `disable-model-invocation: true`
+4. **Argument awareness** — `argument-hint` if `user-invocable: true` AND the body documents `$ARGUMENTS`
+5. **Token efficiency** — SKILL.md ≤ 200 lines OR uses linked `references/*.md`
+6. **No content duplication** — no paragraph > 3 lines repeated verbatim in another skill
+
+Library-wide metrics: description conformance %, frontmatter field-set consistency %,
+trigger collision count, library context budget (bytes), lifecycle coverage %.
+
+**Audits are scored, not impressionistic.** An audit that reports "looks fine" or
+"looks redundant" without the scorecard is not an audit. Measurement detail, scoring
+notes, and the regression rule: [`references/skill-audit-policy.md`](references/skill-audit-policy.md).
+
+## Principled Splits (do not merge) (#55)
+
+Several skill families look redundant to a surface-level review and are deliberate,
+principled splits with **zero `intentPattern` overlap**:
+
+| Family | Members | Split axis |
+|---|---|---|
+| Grill family | `c-bpm-sk-grill-me`, `c-bpm-sk-grill-me-issue`, `c-bpm-sk-grill-claude-issue` | target × asker × output medium |
+| Skill lifecycle pair | `c-bpm-sk-skill-creator`, `c-bpm-sk-skill-optimizer` | lifecycle stage (create → optimize handoff) |
+| Linux trio | `c-bpm-sk-linux-audit`, `c-bpm-sk-linux-admin`, `c-bpm-sk-linux-archive` | lifecycle stage (find → fix → preserve) |
+
+**Rule:** any proposal to merge a pair above must first refute that row's split axis in
+writing, in the Issue. "Looks redundant" is not a refutation. Evidence and the
+per-family rationale: [`references/skill-audit-policy.md`](references/skill-audit-policy.md).
+
+## Must-Stay Rule (F3) (#56)
+
+When refactoring a skill for progressive disclosure, this content **MUST remain in
+SKILL.md** and must never be moved to `references/`:
+
+- Frontmatter
+- Skill purpose statement (≤ 3 lines)
+- Trigger conditions / when-to-use
+- Safety constraints / refusal rules
+- Required tool-call order / phase gates
+- Non-obvious defaults
+- Critical fallback chain
+- MVP scope exclusions
+- Cross-skill protocol references (link only)
+
+**May move to `references/`:** detailed examples, long bash blocks, reference tables,
+multi-agent boilerplate, per-tech checklists, historical notes, tutorials.
+
+Every refactor is verified against the three-check protocol in
+[`references/skill-audit-policy.md`](references/skill-audit-policy.md) — a body that can
+no longer answer "when do I invoke this?" or "what must I never do here?" on its own has
+lost Must-Stay content and must have it moved back.
+
 ## Conflict Handling
 
 - `c-bpm-cm-library-pull` uses `git pull --ff-only` — fails safely on conflicts

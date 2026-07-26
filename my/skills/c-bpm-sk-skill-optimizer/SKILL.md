@@ -1,12 +1,8 @@
 ---
 name: c-bpm-sk-skill-optimizer
-description: >
-  This skill should be used when the user asks to "optimize a skill", "improve skill",
-  "refactor skill", "upgrade skill", "enhance skill", "add Skills 2.0 features to a skill",
-  or wants to audit an existing skill against the Skills 2.0 checklist. Adds frontmatter,
-  supporting files, dynamic context, subagent config. Enforces c-bpm- naming.
+description: "Optimize an existing skill — optimize skill, improve skill, refactor skill, upgrade skill, tune skill, Skills 2.0 checklist. Forks, customizes, or enhances existing c-bpm-sk- skills with Codex-reviewed quality gates."
 enforcement: block
-intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
+intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\\.0 (feature|checklist)"
 user-invocable: true
 argument-hint: "[skill-name]"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
@@ -102,8 +98,37 @@ Document what will change and why. Present to user for approval.
 1. Fork first if modifying a non-`c-bpm-sk-` skill
 2. Update frontmatter with new fields
 3. Refactor content for Skills 2.0 patterns
-4. Move large sections to supporting files if needed
+4. Move large sections to supporting files — **subject to the Must-Stay Rule (F3) below**
 5. Add scripts to `scripts/` if `${CLAUDE_SKILL_DIR}` references needed
+
+#### Must-Stay Rule (F3)
+
+Refactoring for progressive disclosure must **never** move this content out of
+SKILL.md, however long the body is:
+
+- Frontmatter
+- Skill purpose statement (≤ 3 lines)
+- Trigger conditions / when-to-use
+- Safety constraints / refusal rules
+- Required tool-call order / phase gates
+- Non-obvious defaults
+- Critical fallback chain
+- MVP scope exclusions
+- Cross-skill protocol references (link only)
+
+**May move to `references/`:** detailed examples, long bash blocks, reference tables,
+multi-agent boilerplate, per-tech checklists, historical notes, tutorials.
+
+Post-refactor verification (all three must hold):
+
+1. The body still answers "when do I invoke this?" without reading any reference.
+2. The body still answers "what must I never do here?" without reading any reference.
+3. Deleting `references/` entirely and re-running a smoke prompt still yields a **safe**
+   — possibly lower-quality — output.
+
+A failed check means the moved content was Must-Stay content: move it back. Full
+protocol and the structural scorecard used to grade the result:
+`c-bpm-sk-library-manager` → `references/skill-audit-policy.md`.
 
 ### Step 4: Judge Review
 
@@ -170,6 +195,15 @@ prose in `c-bpm-sk-llm-selection`; a frontmatter `model:` key bypasses it.
 ## Library Integration
 
 After optimizing a skill, use `c-bpm-cm-library-push` to sync to Git.
+
+## Why this skill is not merged with `c-bpm-sk-skill-creator`
+
+The creator/optimizer pair is a **principled split** by lifecycle stage — create →
+optimize — with zero `intentPattern` overlap. The creator's existence check *hands off*
+to this skill; merging them would delete the check that stops duplicate skills from
+being created. Do not propose a merge without first refuting that split axis in the
+Issue. Registry of principled splits: `c-bpm-sk-library-manager` →
+"Principled Splits (do not merge)".
 
 ## Reference Files
 

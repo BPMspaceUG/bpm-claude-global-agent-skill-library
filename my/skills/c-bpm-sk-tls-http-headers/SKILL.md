@@ -1,6 +1,7 @@
 ---
 name: c-bpm-sk-tls-http-headers
 description: "TLS and HTTP headers — SSL config, security headers, reverse proxy, HTTPS setup, XSS protection, clickjacking. Baseline TLS and header configuration."
+paths: ['**/nginx.conf', '**/Caddyfile']
 enforcement: block
 intentPatterns: "tls (config|setup);;(security|http) headers;;https (setup|config);;ssl (config|certificate);;(xss|clickjacking) (protection|header)"
 user-invocable: false

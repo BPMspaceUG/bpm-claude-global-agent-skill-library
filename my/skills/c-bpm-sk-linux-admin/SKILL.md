@@ -2,6 +2,7 @@
 name: c-bpm-sk-linux-admin
 description: "Linux admin fixes — fix audit findings, implement server fixes, Debian/Ubuntu admin, host remediation. Works on bpm-{hostname} repo issues. Agent team with Codex gates."
 user-invocable: true
+disable-model-invocation: true
 enforcement: block
 intentPatterns: "fix audit findings;;linux admin fix;;server (remediation|fix);;implement (server|host) fixes;;host remediation"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage

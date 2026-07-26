@@ -4,6 +4,7 @@ description: "Archive host config — backup dotfiles, save tool configs, host b
 enforcement: block
 intentPatterns: "archive host config;;backup (dotfiles|config);;config snapshot;;backup (my |this )?(host|server) (config|setup)"
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
