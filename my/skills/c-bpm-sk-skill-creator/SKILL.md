@@ -55,7 +55,6 @@ When creating a skill, decide which frontmatter fields to include:
 | Does it accept arguments? | `argument-hint: "[description]"` |
 | Should it run isolated? | `context: fork` + optional `agent: <type>` |
 | Can tool access be restricted? | `allowed-tools: Tool1, Tool2` |
-| Does it need a specific model? | `model: opus` or `model: sonnet` |
 | Should it override effort level? | `effort: high` or `effort: low` |
 | Does it need runtime data? | Use `!`command`` dynamic injection |
 | Does it reference bundled files? | Use `${CLAUDE_SKILL_DIR}` |

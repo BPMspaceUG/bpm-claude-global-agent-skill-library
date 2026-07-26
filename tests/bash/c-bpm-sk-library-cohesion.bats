@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 #
-# c-bpm-sk-library-cohesion.bats — guards for issues #50, #51, #52, #54, #55, #56
+# c-bpm-sk-library-cohesion.bats — guards for issues #50, #51, #52, #54, #55, #56,
+#                                  #139, #140
 # Run with: bats tests/bash/c-bpm-sk-library-cohesion.bats
 #
 # Purpose:
@@ -24,6 +25,14 @@
 #       creator/optimizer pair links to it.
 #   #56 The F3 Must-Stay Rule is adopted in skill-creator, skill-optimizer and
 #       library-manager.
+#  #139 The two authoring skills (skill-creator, skill-optimizer) must not TEACH a
+#       frontmatter `model:` key while also forbidding it. They generate other skills,
+#       so a recommendation here propagates a #121 violation into every skill built
+#       from the template. The guard must pass the prohibition prose and fail the
+#       recommendation — both name the key, only the polarity differs.
+#  #140 The fenced YAML template EXAMPLES in those two skills must parse. The #52
+#       parse test below reads each file's real frontmatter and is therefore
+#       structurally blind to a broken sample block.
 #
 #   Every assertion below is exercised against a MUTATED fixture (property removed) to
 #   prove the guard actually fails — a guard that passes either way is worthless.
@@ -248,6 +257,134 @@ if " — " in desc:
     kw += [p.strip() for p in seg.split(",") if p.strip()]
 print(len(kw))
 '
+}
+
+# --- #139 / #140: the authoring skills, whose templates are copied into new skills
+AUTHORING_SKILLS=(
+  c-bpm-sk-skill-creator
+  c-bpm-sk-skill-optimizer
+)
+
+# #139 — template-content guard.
+# Prints "file:line<TAB>reason<TAB>text" for every line of an authoring skill that
+# TEACHES a frontmatter `model:` key. Silence == clean.
+#
+# The hard part is polarity, not detection. Both of these name the key:
+#     | Does it need a specific model? | `model: opus` |     <- teaches it   (violation)
+#     **No `model:` key, ever** (#121).                      <- forbids it   (must pass)
+# A guard that greps for the token alone fires on the prohibition and would force
+# deleting the very rule it exists to protect. So each hit is classified by the
+# polarity of its own line, and only unforbidden references count.
+#
+# Two detection rules:
+#   1. anywhere in the body — a reference to the KEY (`model`, `model:`, `model: x`)
+#      on a line carrying no prohibition marker;
+#   2. inside a fenced ```yaml block — a real YAML key line (`^  model: value`)
+#      UNCONDITIONALLY. A key in a copy-paste template is a key whatever the
+#      surrounding prose says; a YAML comment (`# never a model: key`) is not a key
+#      line and is therefore untouched by this rule.
+#
+# NOT a hit: the English word "model" without the key shape — e.g. the neighbouring
+# row "| `effort` | Override model effort level |" must stay legal.
+_model_teaching_hits() {
+  python3 - "$@" <<'PY'
+import re, sys
+
+KEY_REF = re.compile(r"`model`|(?<![\w-])model[ \t]*:")
+PROHIBITION = re.compile(
+    r"\b(no|never|not|without|forbid|forbids|forbidden|prohibit\w*|bans?|banned|"
+    r"bypass\w*|disallow\w*|reject\w*|remove\w*|strip\w*|violat\w*)\b|#121",
+    re.I)
+FENCE_YAML = re.compile(r"^[ \t]*```[ \t]*ya?ml[ \t]*$", re.I)
+FENCE_ANY = re.compile(r"^[ \t]*```")
+YAML_KEY = re.compile(r"^[ \t]*model[ \t]*:[ \t]*\S")
+
+hits = []
+for path in sys.argv[1:]:
+    in_yaml = False
+    for n, line in enumerate(open(path, encoding="utf-8"), 1):
+        line = line.rstrip("\n")
+        if in_yaml:
+            if FENCE_ANY.match(line):
+                in_yaml = False
+                continue
+            if YAML_KEY.match(line):
+                hits.append((path, n, "model: key in a fenced YAML template block", line))
+                continue
+        elif FENCE_YAML.match(line):
+            in_yaml = True
+            continue
+        if KEY_REF.search(line) and not PROHIBITION.search(line):
+            hits.append((path, n, "teaches a model: key (no prohibition on this line)", line))
+for p, n, why, text in hits:
+    print("%s:%d\t%s\t%s" % (p, n, why, text.strip()))
+PY
+}
+
+# #140 — fenced-YAML template guard.
+# Parses each ```yaml block in the given files. The frontmatter parse test above is
+# STRUCTURALLY BLIND to these: a template example is not the file's frontmatter, so
+# an unparseable sample block ships happily and every skill copied from it is born
+# with frontmatter YAML cannot read. Prints one error per broken block; silence == ok.
+_fenced_yaml_errors() {
+  python3 - "$@" <<'PY'
+import re, sys, yaml
+FENCE = re.compile(r"^[ \t]*```[ \t]*ya?ml[ \t]*\n(.*?)^[ \t]*```[ \t]*$", re.M | re.S | re.I)
+for path in sys.argv[1:]:
+    text = open(path, encoding="utf-8").read()
+    for m in FENCE.finditer(text):
+        block = m.group(1)
+        line = text[:m.start(1)].count("\n") + 1
+        try:
+            docs = list(yaml.safe_load_all(block))
+        except Exception as e:
+            print("%s:%d\t%s: %s" % (path, line, type(e).__name__, str(e).splitlines()[0]))
+            continue
+        if not any(isinstance(d, dict) and d for d in docs):
+            print("%s:%d\tblock parses but yields no mapping" % (path, line))
+PY
+}
+
+# Number of fenced ```yaml blocks found — asserted non-zero so the extraction regex
+# cannot silently stop matching and turn the guard above into a no-op.
+_fenced_yaml_count() {
+  python3 - "$1" <<'PY'
+import re, sys
+FENCE = re.compile(r"^[ \t]*```[ \t]*ya?ml[ \t]*\n(.*?)^[ \t]*```[ \t]*$", re.M | re.S | re.I)
+print(len(FENCE.findall(open(sys.argv[1], encoding="utf-8").read())))
+PY
+}
+
+# Re-break the #140 defect: un-escape the backslash INSIDE the fenced template block
+# only, leaving the file's real frontmatter untouched. That asymmetry is the point of
+# the mutation test — it reproduces exactly the state the old guard could not see.
+_break_template_escape() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+src, dest = sys.argv[1], sys.argv[2]
+text = open(src, encoding="utf-8").read()
+i = text.index("```yaml")
+head, tail = text[:i], text[i:]
+j = tail.index("\n```", 3)
+block, rest = tail[:j], tail[j:]
+broken = block.replace("2\\\\.0", "2\\.0")
+if broken == block:
+    sys.exit("fixture did not change: the template no longer contains the escape")
+open(dest, "w", encoding="utf-8").write(head + broken + rest)
+PY
+}
+
+# Parse ONLY a file's real frontmatter — the pre-existing #52 check, isolated here so
+# a test can demonstrate what it does and does not see.
+_frontmatter_parses() {
+  python3 - "$1" <<'PY'
+import sys, yaml
+t = open(sys.argv[1], encoding="utf-8").read()
+if not t.startswith("---\n"):
+    sys.exit(1)
+d = yaml.safe_load(t[4:t.index("\n---\n", 3) + 1])
+sys.exit(0 if isinstance(d, dict) and d.get("description") else 1)
+PY
 }
 
 # Copy a SKILL.md to a temp file with a frontmatter line removed, for mutation tests.
@@ -630,4 +767,146 @@ PY
     printf '  %s\n' "${hits[@]}"
     return 1
   fi
+}
+
+# =============================================================================
+# #139 — the two authoring skills must not TEACH a model: key
+#
+# These are the skills that generate other skills, so a recommendation here does not
+# stay here: it is copied into every skill authored from the template, propagating a
+# #121 violation past the frontmatter guard above (which only inspects skills that
+# already exist). Both files simultaneously taught `model:` in a decision table and
+# forbade it in prose a few dozen lines later.
+# =============================================================================
+
+@test "[#139] neither authoring skill teaches a frontmatter model: key" {
+  local s f out bad=()
+  for s in "${AUTHORING_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    [[ -f "${f}" ]] || { bad+=("${s}: SKILL.md missing"); continue; }
+    out="$(_model_teaching_hits "${f}")"
+    [[ -z "${out}" ]] || bad+=("${out}")
+  done
+  if (( ${#bad[@]} )); then
+    printf '#139 an authoring skill recommends a model: key (forbidden by #121).\n'
+    printf 'Remove the recommendation — do NOT remove the prohibition prose:\n'
+    printf '  %s\n' "${bad[@]}"
+    return 1
+  fi
+}
+
+@test "[#139] the guard does NOT fire on prohibition prose (polarity, table and list forms)" {
+  local ok="${TMPD}/prohibition-only.md"
+  cat > "${ok}" <<'MD'
+---
+name: c-bpm-sk-x
+description: "X — x."
+---
+
+**No `model:` key, ever** (#121). Model choice is single-source policy and lives as
+prose in `c-bpm-sk-llm-selection`; a frontmatter `model:` key bypasses it.
+
+| Field | Rule |
+|-------|------|
+| `model` | Never add this key — forbidden by #121 |
+| `effort` | Override model effort level (e.g., `high` for thorough analysis) |
+
+- Do not add a `model:` key to generated skills.
+MD
+  local out; out="$(_model_teaching_hits "${ok}")"
+  if [[ -n "${out}" ]]; then
+    printf 'Guard fired on prohibition prose — it cannot tell "add this" from "never add this".\n' >&2
+    printf 'A guard this way round forces deletion of the rule it protects:\n%s\n' "${out}" >&2
+    return 1
+  fi
+}
+
+@test "[#139] the guard fires when a recommendation row is reintroduced (mutation check)" {
+  # The exact rows removed for #139, put back one file at a time. The prohibition prose
+  # stays in the file, so this also proves the guard classifies per line rather than
+  # excusing a whole file that mentions #121 somewhere.
+  local mutated out
+  mutated="${TMPD}/creator-row.md"
+  sed 's#^| Should it override effort level? .*#| Does it need a specific model? | `model: opus` or `model: sonnet` |\n&#' \
+    "${CREATOR}" > "${mutated}"
+  ! diff -q "${CREATOR}" "${mutated}" >/dev/null
+  out="$(_model_teaching_hits "${mutated}")"
+  if [[ -z "${out}" ]]; then
+    printf 'Guard is vacuous: creator decision-table row `model: opus` was accepted.\n' >&2
+    return 1
+  fi
+
+  mutated="${TMPD}/optimizer-row.md"
+  sed 's#^| `effort` | Override model effort level.*#| `model` | Override model for specific skills (e.g., `opus` for complex tasks) |\n&#' \
+    "${OPTIMIZER}" > "${mutated}"
+  ! diff -q "${OPTIMIZER}" "${mutated}" >/dev/null
+  out="$(_model_teaching_hits "${mutated}")"
+  if [[ -z "${out}" ]]; then
+    printf 'Guard is vacuous: optimizer feature-checklist row `model` was accepted.\n' >&2
+    return 1
+  fi
+}
+
+@test "[#139] the guard fires when model: is added to the fenced template frontmatter" {
+  local mutated="${TMPD}/creator-template-model.md" out
+  sed 's#^enforcement: block$#model: opus\n&#' "${CREATOR}" > "${mutated}"
+  ! diff -q "${CREATOR}" "${mutated}" >/dev/null
+  out="$(_model_teaching_hits "${mutated}")"
+  if [[ -z "${out}" ]]; then
+    printf 'Guard is vacuous: a model: key inside the copy-paste template was accepted.\n' >&2
+    return 1
+  fi
+}
+
+# =============================================================================
+# #140 — the fenced YAML template examples must parse
+#
+# `intentPatterns: "... 2\.0 ..."` is invalid YAML: `\.` is not a recognised escape
+# in a double-quoted scalar. It sat in the optimizer's template block, so every skill
+# scaffolded from that template was born with frontmatter that does not load — and
+# the #52 parse test above could not see it, because a fenced example is not
+# frontmatter.
+# =============================================================================
+
+@test "[#140] every fenced YAML template example in the authoring skills parses" {
+  local s f n out bad=()
+  for s in "${AUTHORING_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    [[ -f "${f}" ]] || { bad+=("${s}: SKILL.md missing"); continue; }
+    n="$(_fenced_yaml_count "${f}")"
+    (( n >= 1 )) || { bad+=("${s}: no fenced yaml block found — guard would be a no-op"); continue; }
+    out="$(_fenced_yaml_errors "${f}")"
+    [[ -z "${out}" ]] || bad+=("${out}")
+  done
+  if (( ${#bad[@]} )); then
+    printf '#140 an authoring skill ships a template example that is not valid YAML.\n'
+    printf 'Anyone copying it produces a skill whose frontmatter does not parse:\n'
+    printf '  %s\n' "${bad[@]}"
+    return 1
+  fi
+}
+
+@test "[#140] the guard fires when the template escape is re-broken (mutation check)" {
+  local mutated="${TMPD}/optimizer-broken-template.md" out
+  _break_template_escape "${OPTIMIZER}" "${mutated}"
+  ! diff -q "${OPTIMIZER}" "${mutated}" >/dev/null
+  out="$(_fenced_yaml_errors "${mutated}")"
+  if [[ -z "${out}" ]]; then
+    printf 'Guard is vacuous: the unescaped-backslash template block was accepted.\n' >&2
+    return 1
+  fi
+}
+
+@test "[#140] the pre-existing frontmatter parse test is blind to a broken template block" {
+  # Not a redundant assertion: it pins WHY a second guard is needed. The mutated file
+  # has valid frontmatter and an invalid template example. If this ever starts failing,
+  # the frontmatter test grew to cover fenced blocks and the two guards should be merged
+  # rather than left to drift apart.
+  local mutated="${TMPD}/blindness.md"
+  _break_template_escape "${OPTIMIZER}" "${mutated}"
+  if ! _frontmatter_parses "${mutated}"; then
+    printf 'The frontmatter guard now sees the template defect — reconcile the two guards.\n' >&2
+    return 1
+  fi
+  [[ -n "$(_fenced_yaml_errors "${mutated}")" ]]
 }

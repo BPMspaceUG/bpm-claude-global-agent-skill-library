@@ -32,7 +32,6 @@ When optimizing a skill, check whether these features would improve it:
 | `agent` | Specify subagent type (`Explore`, `Plan`, custom) when using `context: fork` |
 | `argument-hint` | Skills that accept arguments — show hint in autocomplete |
 | `hooks` | Skills needing lifecycle event handling |
-| `model` | Override model for specific skills (e.g., `opus` for complex tasks) |
 | `effort` | Override model effort level (e.g., `high` for thorough analysis) |
 | `!`command`` | Dynamic context injection — run shell commands before prompt |
 | `${CLAUDE_SKILL_DIR}` | Reference scripts/files bundled with the skill |
@@ -167,7 +166,7 @@ description: >
   [What it does]. Derived from [original].
 effort: high                       # Optional: override effort level
 enforcement: block
-intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
+intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\\.0 (feature|checklist)"
 user-invocable: true               # Optional: hide from / menu
 allowed-tools: Read, Grep, Glob    # Optional: tool whitelist
 context: fork                      # Optional: run in subagent
