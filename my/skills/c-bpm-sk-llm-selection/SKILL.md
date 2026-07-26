@@ -151,13 +151,24 @@ sandbox, Issue-sourced prompt on stdin:
   contiguous and the sandbox flags follow it, so the guard suites keep matching.
 - **Prompt on stdin, Issue-sourced.** Pipe the Issue body and its comments in on
   stdin — never a large inline argv (it hangs), and never an authored `.md`.
-- **Verdict-only output.** A clean invocation emits only Codex's review verdict —
-  no `keychain`, `ssh-agent`, or `curl` startup lines.
+- **Inner-shell pollution only — the stream is NOT guaranteed clean.** This form
+  removes profile/rc output from the shell it starts, and nothing more. Startup
+  noise from the **outer launcher/sandbox shell** (`keychain: cannot create …
+  Read-only file system`, `curl: (6) Could not resolve host: …`) is emitted
+  *before* this form takes effect and is **not** suppressed by it — no invocation
+  flag can reach that layer. Verified: `env -u BASH_ENV -u ENV bash --noprofile
+  --norc -c 'printf "INNER_OK\n"'` still shows the banners ahead of `INNER_OK`,
+  while the inner shell itself contributes zero noise lines.
+- **Never treat the first lines of output as the verdict.** Locate the verdict by
+  its marker (`APPROVE` / `REJECT`) and parse from there. Reading from the top of
+  the stream is how wrapper noise gets mistaken for review content — the exact
+  false-positive failure #94 exists to prevent.
 
-> The definitive cure for the leak is guarding `keychain` to interactive shells
-> only in the host's shell rc (a `bpm-<host>` dotfiles concern, tracked
-> separately); this sanitized invocation is the library-side mitigation that
-> holds regardless of host dotfile state.
+> The only cure for the *outer* layer is guarding `keychain` to interactive shells
+> in the host's rc — on this host the culprit is an unguarded `eval $(keychain …)`
+> at `~/.bashrc:2` (a `bpm-<host>` dotfiles concern, tracked in **issue #130**). This
+> invocation is the library-side mitigation for the *inner* shell, which it fixes
+> regardless of host dotfile state; it cannot fix the outer one.
 
 ## LLM Availability Handoff
 

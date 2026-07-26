@@ -22,6 +22,12 @@ bpm-bootstrap.env
 # Build and temp directories
 tmp/
 
+# Portainer MCP tool manifest — machine-local artefact dropped in the repo root
+# by the Portainer MCP server; not part of this library. Anchored to the repo
+# root on purpose: a bare `tools.yaml` would also hide an intentionally added
+# manifest in a subdirectory.
+/tools.yaml
+
 # Ignore everything inside dist/ EXCEPT specific committed hook build
 # outputs (committed so cross-machine install-hooks works without a
 # per-host build step). Add new exceptions per hook below as needed.
