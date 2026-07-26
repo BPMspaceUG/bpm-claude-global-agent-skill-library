@@ -33,3 +33,4 @@ tmp/
 # per-host build step). Add new exceptions per hook below as needed.
 dist/*
 !dist/issue-write-gate.mjs
+!dist/plan-doc-gate.mjs

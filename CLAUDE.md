@@ -16,6 +16,8 @@ By the convention this library establishes:
 
 - **CLAUDE.md** describes repository architecture and the conventions of this library. It does not redefine process rules; those live in the skills.
 
+- **agent.md** carries *only* Codex-specific deltas — the reviewer's role, its input contract, and what it needs to know to review this repo. Everything common stays here in CLAUDE.md and is never copied into `agent.md`; a duplicated block is drift waiting to happen (#114). There is deliberately no `gemini.md` or `vibe.md`: only `CLAUDE.md`, `SHARED_TASK_NOTES.md` and `agent.md` are loaded (`my/commands/c-bpm-cm-openissues-team.md`, Phase 0d). The split is pinned by `tests/bash/c-bpm-agent-md-drift.bats`.
+
 The operative Codex review pattern is defined in `c-bpm-sk-llm-selection`; issue #89 tracks correcting that skill to the Producer-LLM ↔ Codex-as-Judge loop with no cycle cap and no user escalation. Enforcement of this convention — write-time blocks on memory directories, install-time audits — is implemented in skills and hooks, not in this file.
 
 ## Architecture

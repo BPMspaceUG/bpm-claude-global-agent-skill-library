@@ -46,6 +46,7 @@ set -euo pipefail
 
 HOOK_REGISTRY=(
   "issue-write-gate|Bash,mcp__github__issue_write,mcp__github__create_issue|10"
+  "plan-doc-gate|Write,Edit,MultiEdit,NotebookEdit|10"
 )
 
 # ── Args ──────────────────────────────────────────────────────────────────

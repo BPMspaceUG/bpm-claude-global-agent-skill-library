@@ -1,0 +1,337 @@
+{
+  "_doc": "Test fixtures for plan-doc-gate.mjs PreToolUse hook (issue #105, enforcing #104 at runtime). Each fixture is a Claude Code hook input JSON object piped to the hook on stdin. Hook contract: ALWAYS exits 0; the decision is communicated via stdout JSON, both as hookSpecificOutput.{permissionDecision,permissionDecisionReason} and as a flat top-level mirror. Non-zero exit indicates a hook bug — see #133, where a non-zero exit with empty stdout made the sibling hook fail OPEN.",
+  "_classification_doc": "The gate is PATH-BASED ONLY. It never reads the target file and never inspects tool_input.content / new_string / old_string, so nothing is blocked for 'looking like a plan' (fixtures 30-31 prove this). Order of evaluation: (1) tool must be Write/Edit/MultiEdit/NotebookEdit; (2) target must end in .md/.markdown/.txt; (3) maintained-doc basename allowlist (CLAUDE.md, agent.md, README.md, SKILL.md, SHARED_TASK_NOTES.md, ...); (4) allowlisted directory segments (tests, __tests__, fixtures, templates, dist, node_modules, .git, vendor); (5) deny set — any file under a .claude/plans/ directory, or a basename stem that is exactly plan|plans|prompt|prompts|scratch|scratchpad, or ends in -plan/_plan, or starts with issue<digits>.",
+  "_known_gap": "A Bash write (`cat > plan.md <<EOF`) is NOT gated: this hook is registered on the write TOOLS only. Gating Bash would require inspecting redirect targets inside arbitrary shell, which is the content/shape heuristic that cost the sibling hook four review rounds. The CI check from #104 remains the broad layer.",
+  "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/plan-doc-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/plan-doc-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/plan-doc-gate.ts dist/plan-doc-gate.mjs and update _parity below.",
+  "_parity": {
+    "my/hooks/plan-doc-gate.ts": "f31d711e81cb2eb2500be34f0d57c00e84c7996dcd7a9a681011900483966810",
+    "dist/plan-doc-gate.mjs": "2e67d8a1da017196c03cd022bad75694b74378d120b9e8937e4f5e8b51576e50"
+  },
+  "fixtures": [
+    {
+      "id": 1,
+      "description": "Write into ~/.claude/plans/ -> DENY (directory named verbatim by #104)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/.claude/plans/2026-07-26-refactor.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": ".claude/plans/" }
+    },
+    {
+      "id": 2,
+      "description": "Write .claude/plans/ file with a .txt extension -> DENY",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/.claude/plans/notes.txt" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": ".claude/plans/" }
+    },
+    {
+      "id": 3,
+      "description": "Write repo-root plan.md -> DENY (side-car stem)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/plan.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "side-car" }
+    },
+    {
+      "id": 4,
+      "description": "Write ISSUE_105_PLAN.md -> DENY (the exact name #104 forbids)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/ISSUE_105_PLAN.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "GitHub Issue" }
+    },
+    {
+      "id": 5,
+      "description": "Write scratchpad prompt.md -> DENY (the Codex-payload side-car)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/tmp/scratch/prompt.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "side-car" }
+    },
+    {
+      "id": 6,
+      "description": "Write implementation-plan.md -> DENY (stem ends in -plan)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/implementation-plan.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "side-car" }
+    },
+    {
+      "id": 7,
+      "description": "Write issue-95-notes.md -> DENY (issue<digits> side-car prefix)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/issue-95-notes.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "side-car" }
+    },
+    {
+      "id": 8,
+      "description": "Edit (not Write) an existing scratchpad.md -> DENY (editing a side-car is authoring one)",
+      "input": {
+        "tool_name": "Edit",
+        "tool_input": {
+          "file_path": "/home/rob/repo/scratchpad.md",
+          "old_string": "a",
+          "new_string": "b"
+        },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "side-car" }
+    },
+    {
+      "id": 9,
+      "description": "MultiEdit on plans.md -> DENY (every write tool is covered, not just Write)",
+      "input": {
+        "tool_name": "MultiEdit",
+        "tool_input": { "file_path": "/home/rob/repo/plans.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "side-car" }
+    },
+    {
+      "id": 20,
+      "description": "#95 REGRESSION: Write CLAUDE.md -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/CLAUDE.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 21,
+      "description": "#95 REGRESSION: Write agent.md -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/agent.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 22,
+      "description": "#95 REGRESSION: Write README.md -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/README.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 23,
+      "description": "#95 REGRESSION: Edit CLAUDE.md in place -> ALLOW",
+      "input": {
+        "tool_name": "Edit",
+        "tool_input": {
+          "file_path": "/home/rob/repo/CLAUDE.md",
+          "old_string": "x",
+          "new_string": "y"
+        },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 24,
+      "description": "Write SHARED_TASK_NOTES.md -> ALLOW (loaded by c-bpm-cm-openissues-team.md:70)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/SHARED_TASK_NOTES.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 25,
+      "description": "Write a skill SKILL.md -> ALLOW (the library's own maintained docs)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/my/skills/c-bpm-sk-example/SKILL.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 26,
+      "description": "Write templates/ISSUE_TEMPLATE.md -> ALLOW (no digits, and templates/ is allowlisted)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/templates/ISSUE_TEMPLATE.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 27,
+      "description": "Write a runbook whose name ends in 'playbook' -> ALLOW (PLAN_SUFFIX is anchored)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/my/runbooks/db_migration_playbook.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 28,
+      "description": "SELF-HOSTING: Write my/hooks/plan-doc-gate.ts -> ALLOW (source code, even though the name contains 'plan')",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/my/hooks/plan-doc-gate.ts" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 29,
+      "description": "SELF-HOSTING: Write dist/plan-doc-gate.mjs -> ALLOW (build artifact)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/dist/plan-doc-gate.mjs" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 30,
+      "description": "CONTENT-BLINDNESS: a maintained doc whose body reads exactly like a plan -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/home/rob/repo/README.md",
+          "content": "# Implementation Plan\n\n## Phase 1\n- [ ] step one\n- [ ] step two\n\n## Progress\nDecisions: ...\n"
+        },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 31,
+      "description": "CONTENT-BLINDNESS: an ordinary doc with plan/TODO/scratch prose -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/home/rob/repo/my/runbooks/release_process.md",
+          "content": "TODO scratchpad: the plan is to cut the release. ISSUE_105_PLAN says otherwise."
+        },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 32,
+      "description": "NON-DOC WRITE: install-hooks (extensionless script) -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/install-hooks" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 33,
+      "description": "NON-DOC WRITE: a bats test file -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/tests/bash/c-bpm-sk-plan-doc-gate.bats" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 34,
+      "description": "NON-DOC WRITE: a JSON fixture file -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/my/hooks/__tests__/plan-doc-gate.fixtures.json" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 35,
+      "description": "NON-DOC WRITE: plan.py — side-car stem but not a doc extension -> ALLOW",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/scripts/plan.py" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 36,
+      "description": "TEST TREE: a fixture literally named plan.md under tests/ -> ALLOW (allowlisted segment)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/tests/bash/fixtures/plan.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 37,
+      "description": "SCOPE: the Bash tool is not gated by this hook -> ALLOW",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "cat > plan.md <<EOF\nplan\nEOF" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow", "reason_contains": "non-write tool" }
+    },
+    {
+      "id": 38,
+      "description": "SCOPE: the Read tool is not gated -> ALLOW",
+      "input": {
+        "tool_name": "Read",
+        "tool_input": { "file_path": "/home/rob/.claude/plans/x.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow", "reason_contains": "non-write tool" }
+    },
+    {
+      "id": 39,
+      "description": "Write tool with no file_path at all -> ALLOW (nothing to classify)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "content": "hello" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow", "reason_contains": "no file path" }
+    },
+    {
+      "id": 40,
+      "description": "NotebookEdit uses notebook_path -> ALLOW for a real notebook",
+      "input": {
+        "tool_name": "NotebookEdit",
+        "tool_input": { "notebook_path": "/home/rob/repo/analysis.ipynb" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "allow" }
+    },
+    {
+      "id": 41,
+      "description": "FAIL-CLOSED: forced internal error still emits DENY on stdout and exits 0",
+      "env": ["PLAN_DOC_GATE_FORCE_ERROR=1"],
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "/home/rob/repo/README.md" },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": { "decision": "deny", "reason_contains": "internal error" }
+    }
+  ]
+}
