@@ -14,7 +14,10 @@ You are the TEAM LEAD. You run in DELEGATE MODE.
 - **Read `c-bpm-sk-milestone-type` skill** for milestone lifecycle definitions, transition rules, and Codex gate patterns. Use the FULL lifecycle and create all milestones in Phase 0.
 - If you catch yourself about to edit a file or write code: STOP — delegate it to a teammate instead
 
-Start immediately with Phase 0. Do NOT ask the user for confirmation until Phase 2 is complete.
+Start immediately with Phase 0 and run through to Phase 8 without stopping. The
+TEAM LEAD **never asks the user** for confirmation and **never waits for user
+confirmation** at any gate. The Judge — invoked via `c-bpm-sk-devils-advocate` —
+is the gate authority; the operator is not in the loop.
 
 $ARGUMENTS
 
@@ -126,6 +129,10 @@ Analyze the entire codebase:
 | Documentation | Missing/outdated docs, unclear APIs |
 | Dependencies | Outdated, deprecated, unnecessary |
 
+**Every finding becomes a GitHub Issue immediately** — never ask the user whether
+to file one, and never hold findings back for a sign-off. Over-filing is
+acceptable; asking is not.
+
 For each improvement:
 1. Check if an existing open issue already covers it → use that issue, don't duplicate
 2. If new: create GitHub Issue (type: BUG or FEATURE), assign milestone `new`
@@ -133,12 +140,14 @@ For each improvement:
 
 Determine team size (min 2, max 6). Each teammate gets an independent area. NO overlapping files. Assign issues to teammates.
 
-Present to the user:
+Record in the run log and on the issues:
 - Analysis results
 - All GitHub Issues created/linked (with numbers)
 - Proposed team structure (teammates, their issues, model choice, which skills/MCP each uses)
 
-WAIT for user confirmation before creating the team.
+**Proceed straight to Phase 3 — never wait for user confirmation before creating
+the team.** The work is gated by the Judge at Phases 4, 5 and 7, not by the
+operator.
 
 ---
 
@@ -236,7 +245,9 @@ Teammate submits test design
 ## PHASE 6 — IMPLEMENTATION
 
 After test design approval, teammate implements:
-1. Create feature branch: `refactor/<teammate-name>`
+1. Work in the checked-out `main` working tree — **no feature branch.** This repo
+   lands work by direct push to `main`; teammates never branch, never commit,
+   never push.
 2. Implement ONLY what was approved
 3. Write tests FIRST (TDD preferred), then implementation
 4. Run existing tests — nothing may break
@@ -274,13 +285,16 @@ Team Lead runs the independent review via `c-bpm-sk-devils-advocate`, asking the
 
 ---
 
-## PHASE 8 — PR & SYNTHESIS
+## PHASE 8 — LANDING (DIRECT TO MAIN) & SYNTHESIS
 
 After all issues reach `test-approved`:
 
-1. Team Lead creates a PR referencing all issues:
-   - PR description links every issue: `Resolves #<number>` or `Part of #<number>`
-   - PR summary includes: changes per teammate, test coverage delta, Codex approval status
+1. Team Lead lands the work **directly on `main`**:
+   - **One commit per issue**, message `Issue #<N>: <summary>`, pushed straight to
+     `main` with `git push`
+   - **No pull requests, no feature branches, no merges** — this repo does not
+     merge PRs; work that sits on a branch never lands
+   - Each commit body references its issue: `Resolves #<number>` / `Part of #<number>`
 
 2. Compile final refactoring report:
    - Discovery summary (MCP servers, skills found and used)
@@ -293,11 +307,9 @@ After all issues reach `test-approved`:
 
 3. Present report to user
 
-4. **Do NOT merge the PR** without explicit human confirmation
+4. **Do NOT move any issue to `DONE`** — only humans do that
 
-5. **Do NOT move any issue to `DONE`** — only humans do that
-
-6. Tell the user explicitly: "These issues are at `test-approved` and ready for your sign-off. Move them to `DONE` when you're satisfied: #1, #5, #8, ..."
+5. Tell the user explicitly: "These issues are at `test-approved` and ready for your sign-off. Move them to `DONE` when you're satisfied: #1, #5, #8, ..."
 
 ---
 
@@ -313,6 +325,28 @@ After all issues reach `test-approved`:
   independent review
 - Log all Judge verdicts as comments in the corresponding GitHub Issue, naming which
   Judge produced the verdict
+
+---
+
+## TEAMMATE LIFECYCLE (NON-NEGOTIABLE)
+
+- **Shut down a teammate as soon as it has delivered.** A teammate that has sent
+  its final report is finished — terminate it, do not keep it around as a
+  resource.
+- **A finished teammate can silently ignore further instructions.** `SendMessage`
+  to a delivered teammate returns success with a `msg_id` and can still be a
+  complete no-op: no files touched, no reply, no error surfaced (four teammates
+  at once, file mtimes unchanged 70+ minutes later — issue #132; one of them only
+  later surfaced an API connection failure). **A successful send is NOT evidence
+  that work started.** This is a silent-failure risk, not merely context rot.
+- **Never reuse a teammate that has already delivered.** Rework goes to a freshly
+  spawned teammate carrying the full context in its spawn prompt — never to a
+  follow-up message on a finished one.
+- **Verify termination before spawning the replacement.** Confirm the old
+  teammate is actually gone before the new one starts; two live teammates on the
+  same files corrupt each other's work.
+- Treat "no file change and no reply" as failure, not as work in progress:
+  terminate and respawn.
 
 ---
 

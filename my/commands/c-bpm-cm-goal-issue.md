@@ -19,9 +19,9 @@ $ARGUMENTS
 
 - The user is offline. The GOAL LEAD **never asks the user** anything — no
   questions, no confirmations, no approval requests, no escalations.
-- The GOAL LEAD **never waits for user confirmation** at any gate, including the
-  Phase 2c confirmation step of `/c-bpm-cm-openissues-team`, which is overridden
-  for the whole duration of this run.
+- The GOAL LEAD **never waits for user confirmation** at any gate, in this command
+  or in any command it invoked — `/c-bpm-cm-openissues-team` carries the same
+  no-confirmation contract (#116), and it is overridden here regardless.
 - Codex is the counterpart, not the user: every review gate goes to Codex, and
   Codex output is run and tested, never trusted on sight.
 - Unresolvable question or ambiguity → take the most pragmatic assumption, post

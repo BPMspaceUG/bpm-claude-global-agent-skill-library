@@ -14,7 +14,10 @@ You are the TEAM LEAD. You run in DELEGATE MODE.
 - **Read `c-bpm-sk-milestone-type` skill** for milestone lifecycle definitions, transition rules, and Codex gate patterns. Use the FULL lifecycle and create all milestones in Phase 0.
 - If you catch yourself about to edit a file or write code: STOP — delegate it to a teammate instead
 
-Start immediately with Phase 0. Do NOT ask the user for confirmation until Phase 2 is complete.
+Start immediately with Phase 0 and run through to Phase 8 without stopping. The
+TEAM LEAD **never asks the user** for confirmation and **never waits for user
+confirmation** at any gate. The Judge — invoked via `c-bpm-sk-devils-advocate` —
+is the gate authority; the operator is not in the loop.
 
 $ARGUMENTS
 
@@ -95,8 +98,8 @@ For each open issue:
 - Note dependencies between issues
 - Flag issues that are BLOCKED on human action (e.g., key revocation, external dependencies) — these will NOT be assigned to teammates
 
-### 1c. Improvement Suggestions
-After reviewing ALL open issues AND the codebase, compile a **Suggestions List**:
+### 1c. Improvement Findings — file every one as an Issue
+After reviewing ALL open issues AND the codebase, collect every finding:
 - Missing test coverage for existing code
 - Code quality improvements not yet captured in issues
 - Security hardening opportunities
@@ -104,7 +107,12 @@ After reviewing ALL open issues AND the codebase, compile a **Suggestions List**
 - Architecture improvements
 - Performance opportunities
 
-Present these as potential NEW issues (do NOT create them yet — user decides).
+**Every finding becomes a GitHub Issue immediately.** Create each one right here
+— milestone `new` plus exactly one `bug`/`enhancement` type label, per
+`c-bpm-sk-milestone-type`. Never ask the user whether to file a finding, never
+park findings in a list for later approval, never defer filing to a later phase.
+Over-filing is acceptable; asking is not. Dedupe against existing open issues
+first, then report the created issue numbers.
 
 ---
 
@@ -122,20 +130,23 @@ Filter out:
 - Each teammate gets 1-3 related issues with NO overlapping files
 - Group related issues by area (security, testing, features, etc.)
 
-### 2c. Present Plan to User
-Show:
+### 2c. Record the Plan
+Post the plan to the issues it concerns and echo it to the run log:
 1. Security scan results from Phase 0
 2. All open issues with classification
 3. Which issues are BLOCKED (and why)
 4. Which issues will be assigned to teammates
-5. Improvement suggestions list (for user to approve as new issues)
+5. The issue numbers filed from the Phase 1c findings — already created in Phase
+   1c, never held back for a sign-off
 6. Proposed team structure:
    - Teammate name (descriptive role)
    - Assigned issue numbers
    - File scope (which files they may touch)
    - Model: **newest Opus (see `c-bpm-sk-llm-selection`)** (all teammates)
 
-**WAIT for user confirmation before creating the team.**
+**Proceed straight to Phase 3 — never wait for user confirmation before creating
+the team.** The work is gated by the Judge at Phases 4, 5 and 7, not by the
+operator.
 
 ---
 
@@ -337,6 +348,28 @@ After all workable issues are addressed:
 - Team Lead coordinates but NEVER implements
 - No LLM reviews its own work
 - All approvals documented in GitHub Issues
+
+---
+
+## TEAMMATE LIFECYCLE (NON-NEGOTIABLE)
+
+- **Shut down a teammate as soon as it has delivered.** A teammate that has sent
+  its final report is finished — terminate it, do not keep it around as a
+  resource.
+- **A finished teammate can silently ignore further instructions.** `SendMessage`
+  to a delivered teammate returns success with a `msg_id` and can still be a
+  complete no-op: no files touched, no reply, no error surfaced (four teammates
+  at once, file mtimes unchanged 70+ minutes later — issue #132; one of them only
+  later surfaced an API connection failure). **A successful send is NOT evidence
+  that work started.** This is a silent-failure risk, not merely context rot.
+- **Never reuse a teammate that has already delivered.** Rework goes to a freshly
+  spawned teammate carrying the full context in its spawn prompt — never to a
+  follow-up message on a finished one.
+- **Verify termination before spawning the replacement.** Confirm the old
+  teammate is actually gone before the new one starts; two live teammates on the
+  same files corrupt each other's work.
+- Treat "no file change and no reply" as failure, not as work in progress:
+  terminate and respawn.
 
 ---
 
