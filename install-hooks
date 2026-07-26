@@ -379,6 +379,102 @@ settings_affected_matchers() {
   ' "${sf}"
 }
 
+# ── Stale registration pruning (issue #103) ───────────────────────────────
+#
+# A hook entry whose command points at a script file that does not exist errors
+# on every matching tool call while enforcing nothing — the worst of both: noise
+# plus a false sense of coverage. (The live finding was a PreToolUse entry on
+# AskUserQuestion pointing at ~/.claude/hooks/block-ask-user-question.py, a file
+# that was never distributed.)
+#
+# Because this runs on every install, it is also what PREVENTS such a
+# registration from being (re)introduced and surviving: whoever hand-edits one
+# in loses it on the next sync, and it cannot come back from this repo unless
+# the referenced file is actually shipped.
+#
+# Deliberately conservative — an entry is only pruned when ALL of:
+#   * its command's script path can be identified unambiguously, and
+#   * that path does not exist, and
+#   * it is not one of HOOK_REGISTRY's own hooks (those are owned by the
+#     add/remove passes below, and under --dry-run their file is not copied yet).
+
+hook_command_script() {
+  # Echo the script path a hook command runs: the first whitespace-separated
+  # token that looks like a path (contains a /) and is not a flag. Handles
+  # "node /a/b.mjs", "/a/b.sh ARG", "~/x/y.py". Prints nothing when no token
+  # qualifies (e.g. a bare "mycmd --flag"), which means "do not judge this one".
+  local cmd="$1" tok
+  # shellcheck disable=SC2086  # word splitting on the command line is intended
+  for tok in ${cmd}; do
+    case "${tok}" in
+      -*) continue ;;
+      # shellcheck disable=SC2088  # literal "~/" is the pattern being MATCHED here, then expanded by hand
+      "~/"*) printf '%s\n' "${HOME}/${tok#\~/}"; return 0 ;;
+      */*) printf '%s\n' "${tok}"; return 0 ;;
+    esac
+  done
+}
+
+settings_all_hook_commands() {
+  # Every .command string in every hook event (PreToolUse, SessionStart, ...).
+  jq -r '[ (.hooks // {}) | .[]? | .[]? | (.hooks // [])[]? | .command // "" ]
+         | .[] | select(length > 0)' "$1"
+}
+
+settings_jq_drop_command() {
+  # Removes every hook entry whose command is exactly $c, across all events and
+  # matchers, then drops matcher blocks left with no hooks.
+  cat <<'JQ'
+.hooks //= {} |
+.hooks |= with_entries(
+  .value |= (
+      map(.hooks = ((.hooks // []) | map(select((.command // "") != $c))))
+    | map(select((.hooks // []) | length > 0))
+  )
+)
+JQ
+}
+
+# Set by prune_stale_registrations so the caller can fold it into its own
+# "changed" bookkeeping (backup retention / "already up to date" logging).
+PRUNE_CHANGED=0
+
+prune_stale_registrations() {
+  local sf="$1"
+  PRUNE_CHANGED=0
+
+  local cmd script entry name rest owned
+  while IFS= read -r cmd; do
+    script="$(hook_command_script "${cmd}")"
+    [[ -n "${script}" ]] || continue
+    [[ -e "${script}" ]] && continue
+
+    owned=0
+    for entry in "${HOOK_REGISTRY[@]}"; do
+      IFS='|' read -r name rest <<< "${entry}"
+      if [[ "${cmd}" == *"${name}.mjs"* ]]; then owned=1; break; fi
+    done
+    [[ "${owned}" -eq 1 ]] && continue
+
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+      PRUNE_CHANGED=1
+      log "  ${sf}: would REMOVE stale registration (missing ${script}): ${cmd}"
+      continue
+    fi
+
+    jq --arg c "${cmd}" "$(settings_jq_drop_command)" "${sf}" > "${SETTINGS_TMP}"
+    if cmp -s "${sf}" "${SETTINGS_TMP}"; then
+      continue
+    fi
+    PRUNE_CHANGED=1
+    commit_settings_tmp "${sf}"
+    log "  ${sf}: REMOVED stale registration (missing ${script}): ${cmd}"
+    new_settings_tmp "${sf}"
+  done < <(settings_all_hook_commands "${sf}")
+
+  return 0
+}
+
 # ── Atomic settings.json writes (issue #75) ───────────────────────────────
 #
 # The temp file is created in the SAME directory as the target settings.json
@@ -448,6 +544,16 @@ apply_to_settings() {
 
   local changed=0
   new_settings_tmp "${sf}"
+
+  # Issue #103: drop registrations pointing at nonexistent hook files before
+  # merging ours in. Not run under --uninstall: that path removes only what
+  # this script installed.
+  if [[ "${UNINSTALL}" -eq 0 ]]; then
+    prune_stale_registrations "${sf}"
+    if [[ "${PRUNE_CHANGED}" -eq 1 ]]; then
+      changed=1
+    fi
+  fi
 
   if [[ "${UNINSTALL}" -eq 1 ]]; then
     # Issue #83: ONE pass per settings file per hook. settings_jq_uninstall

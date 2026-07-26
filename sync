@@ -73,16 +73,26 @@ done
 
 log_verbose "Arguments parsed: dry_run=$DRY_RUN backup=$BACKUP uninstall=$UNINSTALL verbose=$VERBOSE n8n=$INSTALL_N8N"
 
-# Determine which directories to process
+# Determine which directories to process.
+#
+# Issue #77: MY_DIRS must be set in EVERY branch. It used to be assigned only
+# here in the else branch while being read unconditionally further down (the
+# my/ sync loop), so under `set -u` any --only-* flag aborted with
+# "MY_DIRS: unbound variable" before syncing anything.
+#
+# --only-* narrows the my/ categories the same way it narrows DIRS. There is
+# no my/templates, so --only-templates alone leaves MY_DIRS empty; the my/
+# loop below is guarded on the element count for that case.
 if [ "$ONLY_AGENTS" -eq 1 ] || [ "$ONLY_SKILLS" -eq 1 ] || [ "$ONLY_RUNBOOKS" -eq 1 ] || [ "$ONLY_TEMPLATES" -eq 1 ]; then
   DIRS=()
-  [ "$ONLY_AGENTS" -eq 1 ] && DIRS+=("agents")
-  [ "$ONLY_SKILLS" -eq 1 ] && DIRS+=("skills")
-  [ "$ONLY_RUNBOOKS" -eq 1 ] && DIRS+=("runbooks")
+  MY_DIRS=()
+  [ "$ONLY_AGENTS" -eq 1 ] && { DIRS+=("agents"); MY_DIRS+=("agents"); }
+  [ "$ONLY_SKILLS" -eq 1 ] && { DIRS+=("skills"); MY_DIRS+=("skills"); }
+  [ "$ONLY_RUNBOOKS" -eq 1 ] && { DIRS+=("runbooks"); MY_DIRS+=("runbooks"); }
   [ "$ONLY_TEMPLATES" -eq 1 ] && DIRS+=("templates")
 else
   DIRS=(agents skills runbooks templates)
-MY_DIRS=(skills agents commands runbooks)
+  MY_DIRS=(skills agents commands runbooks)
 fi
 
 # Handle uninstall
@@ -227,7 +237,9 @@ else
 fi
 
 # Sync c-bpm-prefixed items from my/ directory
-if [ -d "$EXTRACTED_DIR/my" ]; then
+# ${#MY_DIRS[@]} guard: --only-templates selects no my/ category at all, and
+# expanding an empty array is an error on bash < 4.4 (issue #77).
+if [ -d "$EXTRACTED_DIR/my" ] && [ "${#MY_DIRS[@]}" -gt 0 ]; then
   echo ""
   echo "Syncing c-bpm-prefixed items..."
   MY_NEW=0
@@ -409,14 +421,22 @@ fi
 
 # Hook installation: copy dist/*.mjs to ~/.claude/hooks/dist/ and merge
 # PreToolUse entries into both supported settings.json paths. Idempotent.
+#
+# Issue #65: --ensure-both is passed UNCONDITIONALLY. install-hooks skips a
+# settings path that does not exist unless that flag is given, so a sync on a
+# host where only ~/.claude/settings.json had been created left
+# ~/.config/claude/settings.json without the hook registration — and hooks
+# silently do not fire for whichever build reads that path. Both supported
+# paths must always end up registered; this is not an opt-in.
+# (--ensure-both is a no-op under --uninstall and never writes under --dry-run.)
 INSTALL_HOOKS_SCRIPT="$SCRIPT_DIR/install-hooks"
 if [ -x "$INSTALL_HOOKS_SCRIPT" ]; then
   echo ""
   if [ "$UNINSTALL" -eq 1 ]; then
     "$INSTALL_HOOKS_SCRIPT" --uninstall
   elif [ "$DRY_RUN" -eq 1 ]; then
-    "$INSTALL_HOOKS_SCRIPT" --dry-run
+    "$INSTALL_HOOKS_SCRIPT" --dry-run --ensure-both
   else
-    "$INSTALL_HOOKS_SCRIPT"
+    "$INSTALL_HOOKS_SCRIPT" --ensure-both
   fi
 fi

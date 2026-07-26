@@ -349,3 +349,50 @@ if [[ "$CONFLICT_COUNT" -gt 0 ]]; then
   echo "CONFLICTS: $CONFLICT_COUNT item(s) changed on both sides."
   echo "  Review manually, then re-run. Or use --force to let repo win."
 fi
+
+# ── Post-pull completeness check (issue #129) ──────────────────────────────
+#
+# Deployment drift is silent otherwise: this script reported "Already up to
+# date" on a host where c-bpm-sk-devils-advocate existed in my/skills/ but had
+# never landed in ~/.claude/skills/ — i.e. a skill CLAUDE.md mandates as the
+# only sanctioned Judge call site was simply not installed, and nothing said so.
+# After a real pull, every item in the repo MUST exist in the install target;
+# if one does not, fail loudly rather than exit 0 on an incomplete install.
+#
+# Only the categories this run actually processed are checked, and never under
+# --dry-run (where nothing was copied by design).
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  DRIFT=()
+  for category in "${CATEGORIES[@]}"; do
+    REPO_CAT_DIR="$REPO_DIR/my/$category"
+    [[ -d "$REPO_CAT_DIR" ]] || continue
+    cat_prefix="$(get_category_prefix "$category")"
+
+    if [[ "$category" == "skills" ]]; then
+      for item_dir in "$REPO_CAT_DIR"/"${cat_prefix}"-*/; do
+        [[ -d "$item_dir" ]] || continue
+        item_name="$(basename "$item_dir")"
+        [[ -d "$TARGET_DIR/$category/$item_name" ]] || DRIFT+=("$category/$item_name")
+      done
+    else
+      for item_file in "$REPO_CAT_DIR"/"${cat_prefix}"-*.md; do
+        [[ -f "$item_file" ]] || continue
+        item_name="$(basename "$item_file")"
+        [[ -f "$TARGET_DIR/$category/$item_name" ]] || DRIFT+=("$category/$item_name")
+      done
+    fi
+  done
+
+  if [[ "${#DRIFT[@]}" -gt 0 ]]; then
+    echo ""
+    echo "DRIFT: ${#DRIFT[@]} item(s) in the repo are MISSING from $TARGET_DIR:"
+    for drift_item in "${DRIFT[@]}"; do
+      echo "  ! $drift_item"
+    done
+    echo ""
+    echo "  The pull completed but the install target is incomplete."
+    echo "  Re-run c-bpm-cm-library-pull; if an item stays missing, that is a bug"
+    echo "  in the pull path and not host drift — file an issue."
+    exit 1
+  fi
+fi
