@@ -13,10 +13,17 @@
 #               at ~/.claude/hooks/dist/<hook> so a per-user run also works
 #               when the system install hasn't happened yet.
 #
+#               Before a system copy is reused it is checksum-verified against
+#               this repo's dist/ build. A mismatch is FATAL (fail-closed): the
+#               symlink is refused and the script exits non-zero. --force is
+#               the only bypass and is logged loudly.
+#
 # Usage:
 #   sudo ./install-hooks --system       # one-time, multi-user setup
 #   ./install-hooks                     # per-user install / update (idempotent)
 #   ./install-hooks --dry-run           # preview, no writes
+#   ./install-hooks --ensure-both       # also create any missing settings.json
+#   ./install-hooks --force             # link a checksum-mismatched system copy anyway
 #   ./install-hooks --uninstall         # remove per-user entries + symlink
 #   sudo ./install-hooks --uninstall --system  # remove /usr/local/bin/*.mjs
 #   ./install-hooks --help
@@ -24,6 +31,12 @@
 # Settings paths managed (per-user; both written if either exists):
 #   ~/.claude/settings.json
 #   ~/.config/claude/settings.json
+#
+# By default a settings path that does not exist is skipped. Pass --ensure-both
+# to create the missing parent directory and an empty settings.json first, so
+# both supported Claude Code builds get the hook wired up. --ensure-both never
+# touches an existing settings.json, never creates anything under --dry-run,
+# and is ignored under --uninstall.
 #
 # Hook registry — single source of truth for what gets installed.
 # Each row: <basename-without-.mjs>|<comma-separated-matchers>|<timeout-seconds>
@@ -40,11 +53,15 @@ HOOK_REGISTRY=(
 DRY_RUN=0
 UNINSTALL=0
 SYSTEM=0
+FORCE=0
+ENSURE_BOTH=0
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     --uninstall) UNINSTALL=1 ;;
     --system) SYSTEM=1 ;;
+    --force) FORCE=1 ;;
+    --ensure-both) ENSURE_BOTH=1 ;;
     --help|-h)
       sed -n '2,/^set -e/p' "$0" | sed 's/^#//; s/^ //'
       exit 0
@@ -60,7 +77,36 @@ done
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST_DIR="${REPO_ROOT}/dist"
-SYSTEM_BIN_DIR="/usr/local/bin"
+
+# TEST SEAM — INSTALL_HOOKS_SYSTEM_BIN_DIR.
+#
+# Relocates the prefix that per-user mode READS when it looks for a system copy,
+# so the test suite can exercise the checksum / symlink logic without touching
+# the real /usr/local/bin. Its ONLY effect is the value of SYSTEM_BIN_DIR.
+#
+# It must never influence the root/sudo requirement or the root:root ownership
+# of a system install. An earlier revision of this script let it suppress both,
+# which turned an environment variable into a privilege-check bypass: any user
+# who could export it could make `--system` write a non-root-owned hook — a file
+# every Claude session on the host then executes — and still report success.
+#
+# Rather than rely on that staying true by intent, it is made structurally
+# impossible: --system is REFUSED outright whenever the override is set, unless
+# --dry-run is also given (which performs no writes and invokes no privileged
+# command at all). So no privileged operation can ever target an
+# environment-supplied prefix, and the sudo/ownership code below is reached
+# only with the real /usr/local/bin.
+SYSTEM_BIN_DIR="${INSTALL_HOOKS_SYSTEM_BIN_DIR:-/usr/local/bin}"
+
+if [[ -n "${INSTALL_HOOKS_SYSTEM_BIN_DIR:-}" ]] && [[ "${SYSTEM}" -eq 1 ]] && [[ "${DRY_RUN}" -eq 0 ]]; then
+  echo "ERROR: INSTALL_HOOKS_SYSTEM_BIN_DIR is set (${SYSTEM_BIN_DIR})." >&2
+  echo "       --system install and uninstall are refused with an overridden prefix." >&2
+  echo "       A system install must be root-owned and land in /usr/local/bin; the" >&2
+  echo "       override exists only so tests can read a sandbox prefix." >&2
+  echo "       Unset the variable, or add --dry-run to preview." >&2
+  exit 1
+fi
+
 USER_HOOKS_DIR="${HOME}/.claude/hooks/dist"
 SETTINGS_PATHS=(
   "${HOME}/.claude/settings.json"
@@ -68,6 +114,7 @@ SETTINGS_PATHS=(
 )
 
 # In --system mode, sudo may be required for /usr/local/bin writes.
+# Unconditional: no flag and no environment variable may skip this.
 SUDO=""
 if [[ "${SYSTEM}" -eq 1 ]] && [[ "$(id -u)" -ne 0 ]]; then
   if command -v sudo >/dev/null 2>&1; then
@@ -84,7 +131,13 @@ require() {
   command -v "$1" >/dev/null 2>&1 || { echo "ERROR: missing required command: $1" >&2; exit 1; }
 }
 require jq
-require node
+# Issue #84: uninstalling only edits settings.json and deletes files. It never
+# runs, builds or checksums a hook, so it must not demand node or sha256sum —
+# hosts that have already removed node must still be able to uninstall.
+if [[ "${UNINSTALL}" -eq 0 ]]; then
+  require node
+  require sha256sum
+fi
 
 if [[ ! -d "${DIST_DIR}" ]]; then
   echo "ERROR: ${DIST_DIR} does not exist; nothing to install" >&2
@@ -93,14 +146,60 @@ fi
 
 log()  { echo "[install-hooks] $*"; }
 warn() { echo "[install-hooks] WARN: $*" >&2; }
+err()  { echo "[install-hooks] ERROR: $*" >&2; }
 
 # ── Step 1: install hook .mjs files ───────────────────────────────────────
 #
 # In --system mode: copy src → /usr/local/bin/<name>.mjs (root:root +x).
-# In per-user mode: if /usr/local/bin/<name>.mjs exists, symlink user path
-# to it (CLAUDE.md pattern). Otherwise copy src → ~/.claude/hooks/dist/.
-# Settings.json command path is always the user-local path so the same
-# settings.json works whether the system file exists or not.
+# In per-user mode: if /usr/local/bin/<name>.mjs exists, verify its checksum
+# against the repo build and symlink the user path to it (CLAUDE.md pattern).
+# Otherwise copy src → ~/.claude/hooks/dist/. Settings.json command path is
+# always the user-local path so the same settings.json works whether the
+# system file exists or not.
+
+checksum() {
+  sha256sum "$1" | awk '{print $1}'
+}
+
+verify_system_copy() {
+  # Issue #82 — FAIL-CLOSED checksum verification.
+  #
+  # Per-user mode wires settings.json at ~/.claude/hooks/dist/<name>.mjs and
+  # points that at the system copy. The system copy is only trustworthy if it
+  # is byte-identical to this repo's dist/ build; a stale or tampered file
+  # would otherwise be executed by every Claude Code tool call, silently.
+  #
+  # On mismatch we refuse to create the symlink and exit non-zero. Warn-and-
+  # continue is fail-open and was explicitly rejected. This check also fires
+  # under --dry-run: previewing an unsafe state must not report success.
+  # --force is the only bypass and is logged loudly.
+  local src="$1" sysdst="$2"
+  local src_sum sys_sum
+  src_sum="$(checksum "${src}")"
+  sys_sum="$(checksum "${sysdst}")"
+
+  if [[ "${src_sum}" == "${sys_sum}" ]]; then
+    return 0
+  fi
+
+  if [[ "${FORCE}" -eq 1 ]]; then
+    warn "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    warn "!!! --force: CHECKSUM MISMATCH IGNORED for ${sysdst}"
+    warn "!!!   repo build : ${src} (sha256 ${src_sum})"
+    warn "!!!   system copy: ${sysdst} (sha256 ${sys_sum})"
+    warn "!!! The hook that will actually run is NOT this repo's build."
+    warn "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    return 0
+  fi
+
+  err "checksum mismatch — refusing to link the system hook copy."
+  err "  repo build : ${src} (sha256 ${src_sum})"
+  err "  system copy: ${sysdst} (sha256 ${sys_sum})"
+  err "The system copy is stale or has been modified. It will NOT be wired into settings.json."
+  err "Fix: run 'sudo ./install-hooks --system' to refresh the system copy from this repo,"
+  err "     or re-run with --force to link it anyway (NOT recommended)."
+  exit 1
+}
 
 install_system_hook() {
   local src="$1" name="$2"
@@ -113,14 +212,16 @@ install_system_hook() {
     log "  system: would copy ${src} → ${sysdst} (root:root +x)"
     return 0
   fi
+  # No sandbox variant: a system install is always root:root via sudo/root.
   ${SUDO} install -o root -g root -m 0755 "${src}" "${sysdst}"
   log "  system: installed ${sysdst} (root:root +x)"
 }
 
 install_user_hook() {
-  # Per-user install. Prefer symlink to /usr/local/bin/<name>.mjs if present;
-  # else copy the file directly. ~/.claude/hooks/dist/<name>.mjs is the path
-  # referenced by every settings.json command we write.
+  # Per-user install. Prefer symlink to /usr/local/bin/<name>.mjs if present
+  # AND checksum-verified; else copy the file directly.
+  # ~/.claude/hooks/dist/<name>.mjs is the path referenced by every
+  # settings.json command we write.
   local src="$1" name="$2"
   local userdst="${USER_HOOKS_DIR}/${name}.mjs"
   local sysdst="${SYSTEM_BIN_DIR}/${name}.mjs"
@@ -130,6 +231,10 @@ install_user_hook() {
   fi
 
   if [[ -f "${sysdst}" ]]; then
+    # #82: verify BEFORE the "already symlinked" shortcut, so a system copy
+    # that drifted after an earlier successful install is still caught.
+    verify_system_copy "${src}" "${sysdst}"
+
     # Prefer symlink to system binary.
     if [[ -L "${userdst}" ]] && [[ "$(readlink "${userdst}")" == "${sysdst}" ]]; then
       log "  user: unchanged (symlink → ${sysdst})"
@@ -176,6 +281,17 @@ copy_hooks() {
   done
 }
 
+hook_path_present() {
+  # Issue #81 — ONE predicate shared by both uninstall branches.
+  #
+  # The system branch used -f, which is false for a dangling symlink, so a
+  # broken link was silently left behind; the user branch already used
+  # -e || -L. The root cause was two copies of the same test drifting apart,
+  # so there is now only one: -e covers regular files and live symlinks,
+  # -L additionally covers dangling ones.
+  [[ -e "$1" || -L "$1" ]]
+}
+
 remove_hooks() {
   for entry in "${HOOK_REGISTRY[@]}"; do
     local name="${entry%%|*}"
@@ -183,7 +299,7 @@ remove_hooks() {
     local sysdst="${SYSTEM_BIN_DIR}/${name}.mjs"
 
     if [[ "${SYSTEM}" -eq 1 ]]; then
-      if [[ -f "${sysdst}" ]]; then
+      if hook_path_present "${sysdst}"; then
         if [[ "${DRY_RUN}" -eq 1 ]]; then
           log "  system: would remove ${sysdst}"
         else
@@ -192,7 +308,7 @@ remove_hooks() {
         fi
       fi
     else
-      if [[ -e "${userdst}" || -L "${userdst}" ]]; then
+      if hook_path_present "${userdst}"; then
         if [[ "${DRY_RUN}" -eq 1 ]]; then
           log "  user: would remove ${userdst}"
         else
@@ -237,9 +353,9 @@ JQ
 }
 
 settings_jq_uninstall() {
-  # Removes only matching hook entries from .hooks[] arrays; preserves any
-  # non-matching hooks in the same matcher block. Then drops matcher blocks
-  # whose hooks array became empty.
+  # Removes matching hook entries from every .hooks[] array in one pass,
+  # across ALL matchers; preserves any non-matching hooks in the same matcher
+  # block. Then drops matcher blocks whose hooks array became empty.
   local basename="$1"
   cat <<JQ
 .hooks.PreToolUse //= [] |
@@ -250,67 +366,157 @@ settings_jq_uninstall() {
 JQ
 }
 
+settings_affected_matchers() {
+  # Issue #83: report which matchers actually carry an entry for this hook, so
+  # the single-pass removal can log exactly what it removed instead of emitting
+  # one speculative line per registry matcher.
+  local sf="$1" basename="$2"
+  jq -r --arg b "${basename}" '
+    [ (.hooks.PreToolUse // [])[]
+      | select(any((.hooks // [])[]?; (.command // "") | contains($b)))
+      | (.matcher // "(no matcher)") ]
+    | unique | join(", ")
+  ' "${sf}"
+}
+
+# ── Atomic settings.json writes (issue #75) ───────────────────────────────
+#
+# The temp file is created in the SAME directory as the target settings.json
+# so the final mv is an atomic same-filesystem rename. A trap removes it on
+# jq failure, merge failure or signal, so an aborted run can never leave a
+# half-written settings.json or a stray temp file behind.
+
+SETTINGS_TMP=""
+
+cleanup_settings_tmp() {
+  if [[ -n "${SETTINGS_TMP}" ]]; then
+    rm -f "${SETTINGS_TMP}"
+    SETTINGS_TMP=""
+  fi
+  return 0
+}
+trap 'cleanup_settings_tmp' EXIT
+trap 'cleanup_settings_tmp; exit 130' INT
+trap 'cleanup_settings_tmp; exit 143' TERM
+
+new_settings_tmp() {
+  local target="$1" dir
+  cleanup_settings_tmp
+  dir="$(dirname "${target}")"
+  SETTINGS_TMP="$(mktemp "${dir}/.install-hooks.settings.XXXXXX")"
+}
+
+commit_settings_tmp() {
+  # mktemp creates 0600; preserve the target's existing mode so an atomic
+  # replace does not silently tighten/loosen settings.json permissions.
+  local target="$1"
+  chmod --reference="${target}" "${SETTINGS_TMP}" 2>/dev/null || chmod 0644 "${SETTINGS_TMP}"
+  mv "${SETTINGS_TMP}" "${target}"
+  SETTINGS_TMP=""
+}
+
 apply_to_settings() {
   local sf="$1"
+
   if [[ ! -f "${sf}" ]]; then
-    log "settings ${sf}: not present, skipping (this is fine if Claude Code has not been run on this path)"
-    return 0
+    # Issue #76: opt-in only. Without --ensure-both the behaviour is unchanged
+    # (skip). --ensure-both never runs under --dry-run or --uninstall.
+    if [[ "${ENSURE_BOTH}" -eq 1 ]] && [[ "${UNINSTALL}" -eq 0 ]]; then
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        log "settings ${sf}: missing; would create (--ensure-both)"
+        return 0
+      fi
+      mkdir -p "$(dirname "${sf}")"
+      printf '{}\n' > "${sf}"
+      log "settings ${sf}: created empty settings.json (--ensure-both)"
+    else
+      log "settings ${sf}: not present, skipping (this is fine if Claude Code has not been run on this path)"
+      return 0
+    fi
   fi
+
   if ! jq -e . "${sf}" >/dev/null 2>&1; then
     warn "settings ${sf}: not valid JSON; refusing to modify"
     return 1
   fi
 
-  local backup="${sf}.bak.$(date +%s)"
+  local backup
+  backup="${sf}.bak.$(date +%s)"
   if [[ "${DRY_RUN}" -eq 0 ]]; then
     cp "${sf}" "${backup}"
   fi
 
-  local current="${sf}"
-  local tmp; tmp="$(mktemp)"
   local changed=0
+  new_settings_tmp "${sf}"
 
-  for entry in "${HOOK_REGISTRY[@]}"; do
-    local name matchers timeout
-    IFS='|' read -r name matchers timeout <<< "${entry}"
-    local cmd="node ${USER_HOOKS_DIR}/${name}.mjs"
-    local basename="${name}.mjs"
+  if [[ "${UNINSTALL}" -eq 1 ]]; then
+    # Issue #83: ONE pass per settings file per hook. settings_jq_uninstall
+    # already strips the hook from every matcher at once, so iterating the
+    # registry matchers here produced one truthful log line plus N-1 spurious
+    # no-ops. Instead: discover the matchers that actually hold an entry,
+    # remove them all in a single jq pass, and log one consolidated line.
+    for entry in "${HOOK_REGISTRY[@]}"; do
+      local name matchers timeout basename affected prog
+      IFS='|' read -r name matchers timeout <<< "${entry}"
+      basename="${name}.mjs"
 
-    IFS=',' read -r -a matcher_arr <<< "${matchers}"
-    for matcher in "${matcher_arr[@]}"; do
-      local prog
-      if [[ "${UNINSTALL}" -eq 1 ]]; then
-        prog="$(settings_jq_uninstall "${basename}")"
-      else
-        prog="$(settings_jq_program "${matcher}" "${cmd}" "${timeout}" "${basename}")"
+      affected="$(settings_affected_matchers "${sf}" "${basename}")"
+      if [[ -z "${affected}" ]]; then
+        continue
       fi
-      jq "${prog}" "${current}" > "${tmp}"
-      if ! cmp -s "${current}" "${tmp}"; then
-        changed=1
-        if [[ "${DRY_RUN}" -eq 1 ]]; then
-          if [[ "${UNINSTALL}" -eq 1 ]]; then
-            log "  ${sf}: would REMOVE ${basename} entry (matcher: ${matcher})"
-          else
-            log "  ${sf}: would ADD ${basename} on matcher ${matcher}"
-          fi
-        else
-          cp "${tmp}" "${current}"
-          if [[ "${UNINSTALL}" -eq 1 ]]; then
-            log "  ${sf}: REMOVED ${basename} entry (matcher: ${matcher})"
-          else
-            log "  ${sf}: ADDED ${basename} on matcher ${matcher}"
-          fi
-        fi
+
+      prog="$(settings_jq_uninstall "${basename}")"
+      jq "${prog}" "${sf}" > "${SETTINGS_TMP}"
+      if cmp -s "${sf}" "${SETTINGS_TMP}"; then
+        continue
+      fi
+
+      changed=1
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        log "  ${sf}: would REMOVE ${basename} from matchers: ${affected}"
+      else
+        commit_settings_tmp "${sf}"
+        log "  ${sf}: REMOVED ${basename} from matchers: ${affected}"
+        new_settings_tmp "${sf}"
       fi
     done
-  done
+  else
+    for entry in "${HOOK_REGISTRY[@]}"; do
+      local name matchers timeout cmd basename
+      IFS='|' read -r name matchers timeout <<< "${entry}"
+      cmd="node ${USER_HOOKS_DIR}/${name}.mjs"
+      basename="${name}.mjs"
 
-  rm -f "${tmp}"
+      local matcher_arr matcher prog
+      IFS=',' read -r -a matcher_arr <<< "${matchers}"
+      for matcher in "${matcher_arr[@]}"; do
+        prog="$(settings_jq_program "${matcher}" "${cmd}" "${timeout}" "${basename}")"
+        jq "${prog}" "${sf}" > "${SETTINGS_TMP}"
+        if cmp -s "${sf}" "${SETTINGS_TMP}"; then
+          continue
+        fi
+        changed=1
+        if [[ "${DRY_RUN}" -eq 1 ]]; then
+          log "  ${sf}: would ADD ${basename} on matcher ${matcher}"
+        else
+          commit_settings_tmp "${sf}"
+          log "  ${sf}: ADDED ${basename} on matcher ${matcher}"
+          new_settings_tmp "${sf}"
+        fi
+      done
+    done
+  fi
+
+  cleanup_settings_tmp
 
   if [[ "${changed}" -eq 1 ]]; then
-    [[ "${DRY_RUN}" -eq 0 ]] && log "  ${sf}: backup → ${backup}"
+    if [[ "${DRY_RUN}" -eq 0 ]]; then
+      log "  ${sf}: backup → ${backup}"
+    fi
   else
-    [[ "${DRY_RUN}" -eq 0 ]] && rm -f "${backup}"
+    if [[ "${DRY_RUN}" -eq 0 ]]; then
+      rm -f "${backup}"
+    fi
     log "  ${sf}: already up to date"
   fi
 }
