@@ -1,6 +1,7 @@
 ---
 name: c-bpm-sk-bootstrap-ui
 description: Guidance for building UIs with Bootstrap focusing on consistent styling, responsiveness, and accessibility. Use when creating modals, forms, alerts, and responsive layouts with Bootstrap. Derived from S09c.
+intentPatterns: "bootstrap (modal|alert|navbar|card|form);;bootstrap (grid|layout|breakpoint|utility class);;responsive layout (with|using) bootstrap;;bootstrap (ui|component|styling)"
 ---
 
 # Bootstrap UI Patterns

@@ -1,6 +1,7 @@
 ---
 name: c-bpm-sk-jquery-ajax-forms
 description: Patterns for safe jQuery form submissions and AJAX requests with CSRF protection, error handling, and user feedback. Use when submitting forms without page reload or performing async UI updates. Derived from S09b.
+intentPatterns: "jquery (ajax|form|submit|post);;[$][.](ajax|post|getjson);;(submit|serialize) (a |the )?form (with|using|via) jquery;;csrf token (in|for) (a |the )?jquery (ajax|request|form|post);;(async|ajax) (request|ui update) (with|using) jquery"
 ---
 
 # jQuery AJAX & Forms

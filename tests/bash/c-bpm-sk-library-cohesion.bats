@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 #
 # c-bpm-sk-library-cohesion.bats — guards for issues #50, #51, #52, #54, #55, #56,
-#                                  #139, #140
+#                                  #139, #140, #141
 # Run with: bats tests/bash/c-bpm-sk-library-cohesion.bats
 #
 # Purpose:
@@ -33,6 +33,18 @@
 #  #140 The fenced YAML template EXAMPLES in those two skills must parse. The #52
 #       parse test below reads each file's real frontmatter and is therefore
 #       structurally blind to a broken sample block.
+#  #141 Four skills (bootstrap-ui, datatables, jquery-ajax-forms, php-flight-mvc) were
+#       scoped past by #51/#52 and carried NO `intentPatterns`, so the router could not
+#       reach them by intent at all. They now declare them. `paths` is added to
+#       php-flight-mvc ONLY — the other three have no repo-selective glob that survives
+#       the #51 anti-cosmetic guard honestly, and a glob that merely LOOKS like scoping
+#       is worse than none. That omission is therefore asserted, not left implicit.
+#
+#       Deliberately NOT asserted here: the em-dash description form. It is not
+#       library-wide truth today — the guard enforces it for skill-creator and
+#       skill-optimizer only, and c-bpm-sk-question-auditor is a further live exception
+#       via a folded `description: >`. A test claiming it library-wide would encode a
+#       false invariant.
 #
 #   Every assertion below is exercised against a MUTATED fixture (property removed) to
 #   prove the guard actually fails — a guard that passes either way is worthless.
@@ -84,14 +96,42 @@ NO_AUTO_INVOKE_SKILLS=(
 )
 
 # --- #51: the tech-specific set ----------------------------------------------
+#
+# Widen this list ONLY together with the skill's positive fixture in _tech_fixture
+# below, in the same change. A name added here without a fixture makes the positive
+# test fail honestly; a `paths` line added to a skill without adding it here is the
+# silent widening Codex warned about on #141 — the glob then ships unscrutinised by
+# the selectivity, negative and positive guards.
 TECH_SKILLS=(
   c-bpm-sk-bash-secure-script
   c-bpm-sk-flightphp-pro
   c-bpm-sk-mariadb-migrations
-  c-bpm-sk-n8n-reliability
   c-bpm-sk-php-crud-api-review
+  c-bpm-sk-php-flight-mvc          # +#141, with its fixture below
+  c-bpm-sk-n8n-reliability
   c-bpm-sk-redis-keyspace
   c-bpm-sk-tls-http-headers
+)
+
+# --- #141: the four skills that carried no intentPatterns at all ---------------
+INTENT_SKILLS=(
+  c-bpm-sk-bootstrap-ui
+  c-bpm-sk-datatables
+  c-bpm-sk-jquery-ajax-forms
+  c-bpm-sk-php-flight-mvc
+)
+
+# Of that set, these three get NO `paths` — adjudicated on #141. There is no
+# repo-selective glob for Bootstrap, DataTables or jQuery that survives the #51
+# anti-cosmetic guard honestly: their markers are CDN <script> tags and class names,
+# not files, and any file glob broad enough to catch them (`**/*.js`, `**/*.html`)
+# fires in essentially every web repo. Declaring one would imply scoping that does
+# not exist, which is the exact #51 defect. The absence is asserted below so a future
+# author cannot quietly add a cosmetic one.
+NO_PATHS_SKILLS=(
+  c-bpm-sk-bootstrap-ui
+  c-bpm-sk-datatables
+  c-bpm-sk-jquery-ajax-forms
 )
 
 # -----------------------------------------------------------------------------
@@ -112,6 +152,72 @@ _has_disable_model_invocation() {
 
 _has_paths() {
   _fm "$1" | grep -qE '^[[:space:]]*paths:[[:space:]]*\[.*\][[:space:]]*$'
+}
+
+_has_intent_patterns() {
+  _fm "$1" | grep -qE '^[[:space:]]*intentPatterns:[[:space:]]*\S'
+}
+
+# #141 — intentPatterns quality checker. Prints one "reason" line per problem;
+# silence == usable. Presence alone is not the bar: a single pattern, an empty
+# `;;` segment, or a pattern that is not a compilable regex all leave the router
+# with nothing it can actually match on, which is the state these four were in.
+_intent_problems() {
+  _fm "$1" | python3 -c '
+import re, sys, yaml
+try:
+    d = yaml.safe_load(sys.stdin.read()) or {}
+except Exception as e:
+    print("frontmatter does not parse: %s" % e); raise SystemExit(0)
+v = d.get("intentPatterns")
+if v is None:
+    print("no intentPatterns key"); raise SystemExit(0)
+if not isinstance(v, str) or not v.strip():
+    print("intentPatterns is not a non-empty string scalar"); raise SystemExit(0)
+raw = v.split(";;")
+pats = [p.strip() for p in raw if p.strip()]
+if len(raw) != len(pats):
+    print("empty ;;-separated segment in intentPatterns")
+if len(pats) < 3:
+    print("only %d intent pattern(s) — the convention is >= 3 distinct triggers" % len(pats))
+for p in pats:
+    try:
+        re.compile(p)
+    except re.error as e:
+        print("pattern %r is not a valid regex: %s" % (p, e))
+'
+}
+
+# #141 (round 2) — prompt-selectivity probe. Prints "pattern<TAB>prompt" for every
+# (pattern, prompt) pair that matches, reproducing the hook's own semantics exactly:
+# my/hooks/skill-activation-prompt.ts does `new RegExp(pattern, 'i').test(prompt)`,
+# i.e. an UNANCHORED, case-insensitive search — not a full-string match. Silence
+# means no pattern of this skill fires on any of the given prompts.
+#
+# This is the half _intent_problems structurally cannot see: that checker counts
+# patterns and compiles them, so a pattern that is perfectly well-formed and matches
+# every web project on earth passes it. Selectivity is a property of what a pattern
+# matches, and the only way to assert it is to run prompts through it.
+_intent_matches() {
+  local f="$1"; shift
+  _fm "${f}" | python3 -c '
+import re, sys, yaml
+try:
+    d = yaml.safe_load(sys.stdin.read()) or {}
+except Exception:
+    raise SystemExit(0)
+v = d.get("intentPatterns")
+if not isinstance(v, str):
+    raise SystemExit(0)
+for p in [x.strip() for x in v.split(";;") if x.strip()]:
+    try:
+        rx = re.compile(p, re.I)
+    except re.error:
+        continue
+    for prompt in sys.argv[1:]:
+        if rx.search(prompt):
+            print("%s\t%s" % (p, prompt))
+' "$@"
 }
 
 # Print one glob per line from a skill's `paths:` frontmatter list.
@@ -221,9 +327,55 @@ _tech_fixture() {
     c-bpm-sk-mariadb-migrations)  printf 'db/migrations/20260701_add_column.sql' ;;
     c-bpm-sk-n8n-reliability)     printf 'workflows/order-intake.n8n.json' ;;
     c-bpm-sk-php-crud-api-review) printf 'vendor/mevdschee/php-crud-api/api.php' ;;
+    # #141 — an app-owned Flight bootstrap, deliberately NOT the vendor path used for
+    # flightphp-pro: the two skills share the glob shape, so each needs a fixture that
+    # proves it fires on a real file of its own shape rather than on its sibling's.
+    c-bpm-sk-php-flight-mvc)      printf 'app/Bootstrap/FlightApp.php' ;;
     c-bpm-sk-redis-keyspace)      printf 'src/Cache/RedisClient.php' ;;
     c-bpm-sk-tls-http-headers)    printf 'etc/nginx/nginx.conf' ;;
     *)                            printf '' ;;
+  esac
+}
+
+# --- #141 (round 2): the prompt fixtures for intent selectivity ---------------
+#
+# Prompts that name NO technology of this library. Every one of them is a thing a
+# user could ask while working on a completely different stack, so no c-bpm skill
+# may fire on any of them. The first four are Codex's counterexamples from the #141
+# review — they matched the shipped datatables/jquery patterns, which is why the
+# presence-and-count guard alone was not enough. The rest are in the same spirit:
+# ordinary web/ops English that belongs to no vendor.
+#
+# The bar a pattern must clear is the one bootstrap-ui already met: name the
+# technology (`bootstrap`, `datatables`, `jquery`) or a token unique to it. A
+# pattern that can match a prompt about another stack is too loose — drop it rather
+# than contort it; three sharp patterns beat five that misfire.
+GENERIC_PROMPTS=(
+  'server side pagination table in plain php'
+  'build a table with rows'
+  'ajax form validation in vanilla js'
+  'submit a form without page reload'
+  'make a modal'
+  'write a sql query'
+  'set up nginx'
+  'how do i center a div'
+  'render a list of users in react'
+  'paginate results in django'
+)
+
+# The opposite failure, and the reason the negative list alone is not a guard:
+# tightening a pattern until it matches nothing at all also silences the router.
+# One realistic prompt per intent skill, phrased the way a user actually would.
+#
+# Deliberately a case statement, NOT `declare -A` — same bats scoping reason
+# documented at _tech_fixture above.
+_intent_positive_prompt() {
+  case "$1" in
+    c-bpm-sk-bootstrap-ui)      printf 'build a responsive layout with bootstrap' ;;
+    c-bpm-sk-datatables)        printf 'server-side pagination with datatables in php' ;;
+    c-bpm-sk-jquery-ajax-forms) printf 'submit a form with jquery without page reload' ;;
+    c-bpm-sk-php-flight-mvc)    printf 'structure a flight app with controllers and services' ;;
+    *)                          printf '' ;;
   esac
 }
 
@@ -649,6 +801,226 @@ PY
 }
 
 # =============================================================================
+# #141 — the four skills #51/#52 scoped past
+#
+# What is asserted: intentPatterns on all four; `paths` on php-flight-mvc only, with
+# its glob run through the full #51 battery above (selectivity, negative fixture,
+# positive fixture) by virtue of being in TECH_SKILLS; and the ABSENCE of `paths` on
+# the other three.
+#
+# What is deliberately NOT asserted: anything about the em-dash description form. See
+# the header — it is not a library-wide invariant today, and #141's own body proposing
+# it as one was not adopted.
+# =============================================================================
+
+@test "[#141] all four previously-bare skills declare intentPatterns" {
+  local missing=() s f
+  for s in "${INTENT_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    [[ -f "${f}" ]] || { missing+=("${s}: SKILL.md missing"); continue; }
+    _has_intent_patterns "${f}" || missing+=("${s}")
+  done
+  if (( ${#missing[@]} )); then
+    printf '#141 skills the router cannot reach by intent:\n'
+    printf '  %s\n' "${missing[@]}"
+    return 1
+  fi
+}
+
+@test "[#141] each declared intentPatterns is a usable >=3-pattern regex list" {
+  local bad=() s f out
+  for s in "${INTENT_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    out="$(_intent_problems "${f}")"
+    [[ -z "${out}" ]] || bad+=("${s}: ${out//$'\n'/ | }")
+  done
+  if (( ${#bad[@]} )); then
+    printf '#141 intentPatterns present but not usable:\n'
+    printf '  %s\n' "${bad[@]}"
+    return 1
+  fi
+}
+
+@test "[#141] the intentPatterns guard fails when the key is removed (mutation check)" {
+  local s f mutated
+  for s in "${INTENT_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    mutated="${TMPD}/intent-${s}.md"
+    _fixture_without "${f}" '^intentPatterns:' "${mutated}"
+    if _has_intent_patterns "${mutated}"; then
+      printf 'Presence guard is vacuous for %s: it passed after intentPatterns was stripped.\n' "${s}" >&2
+      return 1
+    fi
+    if [[ -z "$(_intent_problems "${mutated}")" ]]; then
+      printf 'Quality guard is vacuous for %s: it reported nothing after intentPatterns was stripped.\n' "${s}" >&2
+      return 1
+    fi
+  done
+}
+
+@test "[#141] the quality guard rejects a one-pattern and a broken-regex list (mutation check)" {
+  # Presence is the easy half. These two shapes are what "compliance without coverage"
+  # actually looks like, so the checker must reject them rather than count the key.
+  local mutated out
+  mutated="${TMPD}/intent-thin.md"
+  sed 's#^intentPatterns: .*#intentPatterns: "bootstrap"#' \
+    "${SKILLS_DIR}/c-bpm-sk-bootstrap-ui/SKILL.md" > "${mutated}"
+  ! diff -q "${SKILLS_DIR}/c-bpm-sk-bootstrap-ui/SKILL.md" "${mutated}" >/dev/null
+  out="$(_intent_problems "${mutated}")"
+  if [[ -z "${out}" ]]; then
+    printf 'Guard is vacuous: a single-pattern intentPatterns was accepted.\n' >&2
+    return 1
+  fi
+
+  mutated="${TMPD}/intent-broken.md"
+  sed 's#^intentPatterns: .*#intentPatterns: "bootstrap (modal;;bootstrap grid;;bootstrap card"#' \
+    "${SKILLS_DIR}/c-bpm-sk-bootstrap-ui/SKILL.md" > "${mutated}"
+  ! diff -q "${SKILLS_DIR}/c-bpm-sk-bootstrap-ui/SKILL.md" "${mutated}" >/dev/null
+  out="$(_intent_problems "${mutated}")"
+  if [[ -z "${out}" ]]; then
+    printf 'Guard is vacuous: an uncompilable intent pattern was accepted.\n' >&2
+    return 1
+  fi
+}
+
+@test "[#141] no skill's intentPatterns fires on a generic, technology-free prompt" {
+  # Library-wide on purpose, not just the four #141 skills: a loose pattern is a
+  # loose pattern wherever it is authored, and this list was verified clean against
+  # every c-bpm-sk-* in the library at the time of writing except the two the review
+  # rejected. A new skill that fires on "make a modal" fails here, by design.
+  local hits=() f s out line
+  for f in "${SKILLS_DIR}"/c-bpm-sk-*/SKILL.md; do
+    [[ -f "${f}" ]] || continue
+    s="$(basename "$(dirname "${f}")")"
+    out="$(_intent_matches "${f}" "${GENERIC_PROMPTS[@]}")"
+    [[ -n "${out}" ]] || continue
+    while IFS= read -r line; do
+      hits+=("${s}: ${line//$'\t'/  fires on  }")
+    done <<< "${out}"
+  done
+  if (( ${#hits[@]} )); then
+    printf 'intentPatterns that fire on prompts about other stacks:\n'
+    printf '  %s\n' "${hits[@]}"
+    printf 'Anchor each pattern on the technology name (or a token unique to it), or drop it.\n'
+    return 1
+  fi
+}
+
+@test "[#141] every intent skill still fires on a realistic prompt of its own" {
+  # Without this, "tighten the pattern" has a trivially green solution: make it match
+  # nothing. Too tight is the same defect as too loose, seen from the other side.
+  local bad=() s f prompt
+  for s in "${INTENT_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    [[ -f "${f}" ]] || { bad+=("${s}: SKILL.md missing"); continue; }
+    prompt="$(_intent_positive_prompt "${s}")"
+    [[ -n "${prompt}" ]] || { bad+=("${s}: no positive prompt declared in _intent_positive_prompt"); continue; }
+    [[ -n "$(_intent_matches "${f}" "${prompt}")" ]] \
+      || bad+=("${s}: no pattern matches its own prompt \"${prompt}\"")
+  done
+  if (( ${#bad[@]} )); then
+    printf '#141 intent skills the router can no longer reach:\n'
+    printf '  %s\n' "${bad[@]}"
+    return 1
+  fi
+}
+
+@test "[#141] the selectivity guard rejects the pre-fix loose patterns the count guard passed (regression proof)" {
+  # Both halves matter. The first shows the new guard has teeth against exactly the
+  # patterns Codex rejected; the second shows WHY they shipped green — the presence /
+  # count / compilability checker reports nothing about them, because none of those
+  # properties is selectivity.
+  local mutated out s
+  for s in datatables jquery; do
+    mutated="${TMPD}/intent-loose-${s}.md"
+    case "${s}" in
+      datatables)
+        sed 's#^intentPatterns: .*#intentPatterns: "datatables(.net)?;;server.side (processing|pagination).*table;;(build|render|page) (a )?(data )?table (of|with) rows;;datatable (column|ajax|state|render)"#' \
+          "${SKILLS_DIR}/c-bpm-sk-datatables/SKILL.md" > "${mutated}" ;;
+      jquery)
+        sed 's#^intentPatterns: .*#intentPatterns: "jquery (ajax|form|submit|post);;ajax form (submit|submission|validation);;submit (a |the )?form without (a )?(page )?reload;;csrf token (in|for) (ajax|jquery|form)"#' \
+          "${SKILLS_DIR}/c-bpm-sk-jquery-ajax-forms/SKILL.md" > "${mutated}" ;;
+    esac
+    out="$(_intent_matches "${mutated}" "${GENERIC_PROMPTS[@]}")"
+    if [[ -z "${out}" ]]; then
+      printf 'Selectivity guard is vacuous: the pre-fix %s patterns matched no generic prompt.\n' "${s}" >&2
+      return 1
+    fi
+    if [[ -n "$(_intent_problems "${mutated}")" ]]; then
+      printf 'Regression proof is unsound for %s: the loose list was rejected by the count guard too, so it does not demonstrate the blind spot.\n' "${s}" >&2
+      return 1
+    fi
+  done
+}
+
+@test "[#141] only php-flight-mvc declares paths — the other three declare none" {
+  local bad=() s f
+  for s in "${NO_PATHS_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    [[ -f "${f}" ]] || { bad+=("${s}: SKILL.md missing"); continue; }
+    if _has_paths "${f}"; then
+      bad+=("${s}: declares paths — no selective glob exists for it (see NO_PATHS_SKILLS)")
+    fi
+  done
+  # The positive half of the same ruling, so the assertion is not merely "nobody has it".
+  _has_paths "${SKILLS_DIR}/c-bpm-sk-php-flight-mvc/SKILL.md" \
+    || bad+=("c-bpm-sk-php-flight-mvc: lost its paths declaration")
+  if (( ${#bad[@]} )); then
+    printf '#141 paths scoping deviates from the adjudicated split:\n'
+    printf '  %s\n' "${bad[@]}"
+    return 1
+  fi
+}
+
+@test "[#141] the no-paths assertion fires when a cosmetic glob is added (mutation check)" {
+  # Without this, "the three declare no paths" is satisfied trivially and would keep
+  # passing if _has_paths silently stopped matching.
+  local s f mutated
+  for s in "${NO_PATHS_SKILLS[@]}"; do
+    f="${SKILLS_DIR}/${s}/SKILL.md"
+    mutated="${TMPD}/nopaths-${s}.md"
+    sed "s#^intentPatterns: #paths: ['**/*.js']\nintentPatterns: #" "${f}" > "${mutated}"
+    ! diff -q "${f}" "${mutated}" >/dev/null
+    if ! _has_paths "${mutated}"; then
+      printf 'Guard is vacuous for %s: an injected paths line was not detected.\n' "${s}" >&2
+      return 1
+    fi
+    # And the injected glob is exactly the cosmetic shape the #51 checker rejects.
+    if [[ -z "$(_selectivity_check '**/*.js')" ]]; then
+      printf 'Selectivity checker no longer rejects **/*.js — the omission ruling is unguarded.\n' >&2
+      return 1
+    fi
+  done
+}
+
+@test "[#141] php-flight-mvc paths fire on a Flight app and stay silent on a generic repo" {
+  # The #51 battery covers this by iterating TECH_SKILLS; naming it explicitly pins the
+  # #141 decision itself, so removing the skill from TECH_SKILLS cannot silently drop
+  # the only behavioural evidence that its glob is scoped.
+  local f="${SKILLS_DIR}/c-bpm-sk-php-flight-mvc/SKILL.md"
+  mapfile -t globs < <(_paths_globs "${f}")
+  (( ${#globs[@]} )) || { printf 'php-flight-mvc declares no glob.\n' >&2; return 1; }
+
+  local pos="${TMPD}/flight-app"
+  _make_tree "${pos}" "$(_tech_fixture c-bpm-sk-php-flight-mvc)" \
+    app/Controllers/UserController.php composer.json
+  [[ -n "$(_glob_hits "${pos}" "${globs[@]}")" ]] || {
+    printf 'php-flight-mvc did not fire on a Flight app fixture.\n' >&2; return 1; }
+
+  local generic="${TMPD}/generic-flight"
+  _make_tree "${generic}" "${GENERIC_REPO_FILES[@]}"
+  local hits; hits="$(_glob_hits "${generic}" "${globs[@]}")"
+  [[ -z "${hits}" ]] || {
+    printf 'php-flight-mvc fired on a generic repo: %s\n' "${hits//$'\n'/, }" >&2; return 1; }
+
+  # Non-vacuity: the negative half must be capable of failing. The broad glob that was
+  # the obvious lazy choice here DOES hit the generic repo.
+  [[ -n "$(_glob_hits "${generic}" '**/*.php')" ]] || {
+    printf 'Negative fixture is inert: even **/*.php matched nothing, so silence proves nothing.\n' >&2
+    return 1; }
+}
+
+# =============================================================================
 # #54 / #55 / #56 — the policy unit. Presence of the policy statements only:
 # this unit is governance PROSE, so no behavioural assertions are invented for it.
 # =============================================================================
@@ -749,11 +1121,13 @@ PY
 # Cross-cutting: none of the edits above may introduce a model: pin (#121)
 # =============================================================================
 
-@test "[#121] no skill touched by #50/#51/#52 introduced a frontmatter model: key" {
+@test "[#121] no skill touched by #50/#51/#52/#141 introduced a frontmatter model: key" {
   local s f hits=()
   # Includes the three skills the #138 adjudication REMOVED the flag from — they were
-  # edited by this unit too, so they must stay under the #121 guard.
+  # edited by this unit too, so they must stay under the #121 guard. INTENT_SKILLS puts
+  # the four #141 files under it as well.
   for s in "${NO_AUTO_INVOKE_SKILLS[@]}" "${TECH_SKILLS[@]}" "${EMDASH_SKILLS[@]}" \
+           "${INTENT_SKILLS[@]}" \
            c-bpm-sk-grill-me-issue c-bpm-sk-grill-claude-issue c-bpm-sk-idea-merge \
            c-bpm-sk-library-manager; do
     f="${SKILLS_DIR}/${s}/SKILL.md"

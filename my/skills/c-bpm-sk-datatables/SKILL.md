@@ -1,6 +1,7 @@
 ---
 name: c-bpm-sk-datatables
 description: Standardised DataTables.net usage for tabular data with server-side processing, accessibility, and performance. Use when building front-end pages with tabular data or integrating server-side DataTables. Derived from S09a.
+intentPatterns: "datatables(.net)?;;(server.side|serverside) (processing|pagination) (with|for|in|using) datatables?;;(build|render|paginate) (a |the )?(html )?table (with|using) datatables?;;datatable (column|ajax|state|render)"
 ---
 
 # DataTables
