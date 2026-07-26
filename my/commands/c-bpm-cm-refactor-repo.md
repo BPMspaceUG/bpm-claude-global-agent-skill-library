@@ -2,7 +2,6 @@
 name: c-bpm-cm-refactor-repo
 description: "Refactor this repo — refactor, code cleanup, restructure, reorganize codebase. Spawns 2-6 agent teammates for parallel refactoring. Codex-reviewed, test-mandatory, milestone-tracked."
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS, Task, Teammate, SendMessage
-model: opus
 ---
 
 # /refactor_repo — Agent Team Refactoring
@@ -197,9 +196,10 @@ Teammate submits plan
   → Team Lead adds plan as comment to the GitHub Issue
   → Team Lead moves issue to milestone: planned
   → Team Lead reviews
-  → Team Lead executes:
-    codex exec --skip-git-repo-check "Review this refactoring plan for <teammate-name>: <plan-summary>. Assess: completeness, test coverage, risk, safety. Approve or reject with reasons."
-  → Codex result added as comment to the GitHub Issue
+  → Team Lead runs the independent review via `c-bpm-sk-devils-advocate`, asking the
+    Judge to review this refactoring plan for <teammate-name>:
+    completeness, test coverage, risk, safety. Approve or reject with reasons.
+  → Judge verdict added as comment to the GitHub Issue
   → If BOTH approve → move issue to milestone: plan-approved
   → If EITHER rejects → issue stays at planned, rejection reason in comment, teammate revises
 ```
@@ -222,9 +222,11 @@ Teammate submits test design
   → Team Lead adds test design as comment to the GitHub Issue
   → Team Lead moves issue to milestone: test-designed
   → Team Lead reviews
-  → Team Lead executes:
-    codex exec --skip-git-repo-check "Review test designs for <teammate-name>: <test-file-paths>. Check: edge cases, meaningful assertions, no false positives, adequate coverage. Approve or reject."
-  → Codex result added as comment to the GitHub Issue
+  → Team Lead runs the independent review via `c-bpm-sk-devils-advocate`, asking the
+    Judge to review the test designs for <teammate-name> (<test-file-paths>):
+    edge cases, meaningful assertions, no false positives, adequate coverage.
+    Approve or reject.
+  → Judge verdict added as comment to the GitHub Issue
   → If BOTH approve → move issue to milestone: test-design-approved
   → If EITHER rejects → issue stays at test-designed, rejection reason in comment, teammate revises
 ```
@@ -260,8 +262,10 @@ Team Lead:
   → Run targeted tests for the changed files (not necessarily full suite, but enough to verify)
   → Spot-check the test quality: are assertions meaningful? edge cases covered?
 
-Team Lead executes:
-  codex exec --skip-git-repo-check "Verify test results for <teammate-name>. Changes: <summary>. Run tests and review: are tests passing legitimately? Any false positives? Test coverage adequate? Approve or reject."
+Team Lead runs the independent review via `c-bpm-sk-devils-advocate`, asking the
+  Judge to verify test results for <teammate-name> (changes: <summary>):
+  are tests passing legitimately? Any false positives? Test coverage adequate?
+  Approve or reject.
 
   → Verification results added as comment to the GitHub Issue
   → If BOTH approve → move issue to milestone: test-approved
@@ -300,10 +304,15 @@ After all issues reach `test-approved`:
 ## CODEX RULES
 
 - Codex is the PRIMARY REVIEW AUTHORITY for all Claude-generated code
-- Codex MUST be invoked ONLY via shell: `codex exec --skip-git-repo-check "<review-prompt>"`
-- Codex review is MANDATORY at 3 gates: plan approval, test design approval, test verification
-- If Codex is unavailable (command fails): STOP → notify user → do NOT proceed without Codex
-- Log all Codex responses as comments in the corresponding GitHub Issue
+- The Judge MUST be invoked **only through `c-bpm-sk-devils-advocate`** — that skill
+  owns the live-Issue fetch, the canonical sanitized command, and the ladder.
+  Model and ladder policy live in `c-bpm-sk-llm-selection` — never restated here,
+  never pinned in this file.
+- Independent review is MANDATORY at 3 gates: plan approval, test design approval, test verification
+- If every Judge tier is unreachable: STOP → notify user → do NOT proceed without an
+  independent review
+- Log all Judge verdicts as comments in the corresponding GitHub Issue, naming which
+  Judge produced the verdict
 
 ---
 

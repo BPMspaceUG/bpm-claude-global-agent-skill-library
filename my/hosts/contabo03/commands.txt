@@ -1,7 +1,8 @@
 # Host: contabo03
-# Updated: 2026-05-01T04:07:59Z
+# Updated: 2026-07-26T11:33:24Z
 # Category: commands
 #
+c-bpm-cm-goal-issue.md
 c-bpm-cm-library-compare.md
 c-bpm-cm-library-pull.md
 c-bpm-cm-library-push.md

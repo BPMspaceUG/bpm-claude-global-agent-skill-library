@@ -300,3 +300,73 @@ create_repo_agent() {
   run grep 'source.*lib.sh' "${COMPARE}"
   [ "$status" -eq 0 ]
 }
+
+# ============================================================================
+# --exit-code / drift-detection tests (issue #114)
+#
+# Before #114 the script reported drift on stdout but ALWAYS exited 0, so no
+# test, hook or CI job could gate on a stale installed copy — the exact failure
+# mode #114 is about. `--exit-code` follows the diff(1) convention.
+#
+# Each case asserts the DRIFT OUTPUT as well as the status, so an older build
+# that merely rejects `--exit-code` as an unknown option (also exit 1) cannot
+# make these pass by accident. Revert the c-bpm-cm-library-compare change and
+# every non-zero expectation below goes red — verified, not assumed.
+# ============================================================================
+
+@test "--exit-code exits non-zero when an installed copy DIFFERS from the repo (issue #114)" {
+  # The #114 shape: item exists on both sides, installed content is stale.
+  create_local_skill "c-bpm-sk-drifted" "installed version — stale"
+  create_repo_skill  "c-bpm-sk-drifted" "repo version — current"
+  export HOME="${FAKE_HOME}"
+  run bash "${PATCHED}" --only-skills --exit-code
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"~  skills/c-bpm-sk-drifted"* ]]
+  [[ "$output" == *"Modified:    1"* ]]
+}
+
+@test "--exit-code exits 0 when the installed copy MATCHES the repo (issue #114)" {
+  create_local_skill "c-bpm-sk-fresh" "identical content"
+  create_repo_skill  "c-bpm-sk-fresh" "identical content"
+  export HOME="${FAKE_HOME}"
+  run bash "${PATCHED}" --only-skills --exit-code
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Identical:   1"* ]]
+  [[ "$output" == *"Everything is in sync"* ]]
+}
+
+@test "--exit-code exits non-zero on local-only and repo-only drift too (issue #114)" {
+  # Never-installed, and local-without-repo, are drift as much as stale.
+  create_local_skill "c-bpm-sk-local-only"
+  create_repo_skill  "c-bpm-sk-repo-only"
+  export HOME="${FAKE_HOME}"
+  run bash "${PATCHED}" --only-skills --exit-code
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"L  skills/c-bpm-sk-local-only"* ]]
+  [[ "$output" == *"R  skills/c-bpm-sk-repo-only"* ]]
+}
+
+@test "--dry-run --exit-code reports drift in the status as well as the plan (issue #114)" {
+  create_repo_skill "c-bpm-sk-repo-only"
+  export HOME="${FAKE_HOME}"
+  run bash "${PATCHED}" --dry-run --exit-code
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"DRY RUN - No changes made"* ]]
+  [[ "$output" == *"<- skills/c-bpm-sk-repo-only"* ]]
+}
+
+@test "drift WITHOUT --exit-code still exits 0 (existing callers unaffected, issue #114)" {
+  create_local_skill "c-bpm-sk-drifted" "installed version"
+  create_repo_skill  "c-bpm-sk-drifted" "repo version"
+  export HOME="${FAKE_HOME}"
+  run bash "${PATCHED}" --only-skills
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"~  skills/c-bpm-sk-drifted"* ]]
+}
+
+@test "--help documents --exit-code and its exit status (issue #114)" {
+  run bash "${COMPARE}" --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"--exit-code"* ]]
+  [[ "$output" == *"Exit status:"* ]]
+}

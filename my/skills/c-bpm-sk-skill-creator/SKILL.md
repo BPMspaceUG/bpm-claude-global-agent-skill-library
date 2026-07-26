@@ -110,9 +110,11 @@ allowed-tools: Read, Grep, Glob    # If tool restrictions apply
 argument-hint: "[arg]"             # If arguments expected
 context: fork                      # If should run isolated
 agent: Explore                     # If specific agent type needed
-model: opus                        # If specific model needed
 ---
 ```
+
+**No `model:` key, ever** (#121). Model choice is single-source policy and lives as
+prose in `c-bpm-sk-llm-selection`; a frontmatter `model:` key bypasses it.
 
 Create scripts, references, assets as identified in Step 2.
 

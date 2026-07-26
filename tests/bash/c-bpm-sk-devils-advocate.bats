@@ -21,15 +21,20 @@
 #     6. No GLM / DeepSeek / Kimi / Fable numeric version pin under my/.
 #     7. [#117] Both mandating files carry the network-enabled sandbox flags;
 #        `danger-full-access` is not sanctioned anywhere.
-#     8. No `model:` frontmatter key in any my/skills/*/SKILL.md (single-source
-#        model policy — repo-wide sweep of the 31 carriers ratified in #113;
-#        c-bpm-sk-question-auditor carries no key today and must stay key-free).
+#     8. [#121] No `model:` frontmatter key in any my/skills/*/SKILL.md OR
+#        my/commands/*.md (single-source model policy — repo-wide sweep of the
+#        31 carriers ratified in #113; c-bpm-sk-question-auditor carries no key
+#        today and must stay key-free). Absolute: no "justified exception".
 #     9. [#112] c-bpm-sk-llm-selection carries the new ladder and the
 #        Producer/Judge role directive, and the stale bullets are gone.
+#    10. [#118] my/commands/** obeys the same routing contract as my/skills/**:
+#        zero non-stamped `codex exec`, delegation reference on every call site.
+#    11. [#119] No c-bpm doc restates the stale Codex -> Gemini -> Claude ladder
+#        (superseded by the OpenRouter tier in #113); the authority is named.
 #
-#   SCOPE NOTE: my/commands/** call sites are deliberately OUT of scope here
-#   (sequenced to #118, after #112 lands); user-level CLAUDE.md ladder -> #119;
-#   command-side model keys -> #121.
+#   SCOPE NOTE: #118 (commands) and #121 (command-side model keys) landed here
+#   in Tests 10 and 8. The user-level ~/.claude/CLAUDE.md itself is outside the
+#   repo, so Test 11 guards the distributed wording, not that host file.
 #
 #   SELF-MATCH NOTE: this file lives under tests/, outside my/, and the one
 #   repo-wide negative grep below excludes tests/ explicitly. The guard regexes
@@ -119,6 +124,56 @@ _coupled_fetch_mandate() {
     -e '(fetch|read|pull|retrieve)[^.]{0,80}issue[^.]{0,80}before[^.]{0,40}(invok|judg|codex)' \
     -e 'before[^.]{0,40}(invok|judg|codex)[^.]{0,80}(fetch|read|pull|retrieve)[^.]{0,80}issue' \
     "$1"
+}
+
+# ------------------------------------------------------------------
+# Helper: print ONLY a file's YAML frontmatter (the leading --- ... ---
+# block), one line per key. Prints nothing when the file has none.
+#
+# [#121] The naive version (`NR==1 && $0=="---"`) was BYPASSABLE — it
+# recognised frontmatter only when byte 1 of line 1 was a literal `-`,
+# so all of these smuggled a `model:` pin straight past the guard:
+#   * a UTF-8 BOM before the opening delimiter
+#   * one or more blank/whitespace-only lines before it
+#   * CRLF line endings (the trailing \r broke the exact `---` compare)
+# ...and a `...` terminator (valid YAML end-of-document) was never
+# recognised as the END of the block, so the whole BODY leaked into the
+# comparison — a false-POSITIVE risk on prose in the other direction.
+#
+# Hardened rules:
+#   * strip a UTF-8 BOM from line 1 (LC_ALL=C so substr is byte-wise;
+#     under a UTF-8 locale awk's sprintf/substr are character-wise and
+#     the 3-byte compare silently fails)
+#   * strip a trailing \r from every line (CRLF tolerance)
+#   * skip leading blank/whitespace-only lines before the delimiter
+#   * accept `---` with surrounding whitespace as the opener; the FIRST
+#     non-blank line that is not a delimiter means "no frontmatter"
+#   * close on `---` OR `...` so the body can never leak in
+# ------------------------------------------------------------------
+_extract_frontmatter() {
+  LC_ALL=C awk '
+    BEGIN { bom = sprintf("%c%c%c", 239, 187, 191) }
+    {
+      line = $0
+      if (NR == 1 && substr(line, 1, 3) == bom) line = substr(line, 4)
+      sub(/\r$/, "", line)
+    }
+    !started {
+      if (line ~ /^[[:space:]]*$/) next
+      if (line ~ /^[[:space:]]*---[[:space:]]*$/) { started = 1; next }
+      exit
+    }
+    { if (line ~ /^[[:space:]]*(---|\.\.\.)[[:space:]]*$/) exit; print line }
+  ' "$1"
+}
+
+# ------------------------------------------------------------------
+# Helper: does this file pin a model in its FRONTMATTER? Echoes the
+# offending line(s); silent when clean. Single chokepoint so Test 8 and
+# the Test 12 bypass fixtures exercise byte-identical logic.
+# ------------------------------------------------------------------
+_frontmatter_model_hit() {
+  _extract_frontmatter "$1" | grep -nE '^[[:space:]]*model:[[:space:]]*' || true
 }
 
 # ------------------------------------------------------------------
@@ -430,33 +485,51 @@ _assert_absent_needles() {
 }
 
 # ==================================================================
-# Test 8 - no `model:` frontmatter key in any my/skills/*/SKILL.md
+# Test 8 - [#121] no `model:` frontmatter key in ANY my/skills/*/SKILL.md
+#          OR my/commands/*.md
+#
+# Codex rejected the "allow a justified exception with a comment" model
+# (round 2, #121): a commented exception reopens the bypass. The rule is
+# absolute — ZERO frontmatter `model:` keys on both sides. Model choice
+# lives only as PROSE in c-bpm-sk-llm-selection (#98).
+#
+# Frontmatter only: prose and fenced YAML *templates* further down a body
+# mention `model:` legitimately as documentation, so only the leading
+# --- ... --- block is inspected.
 # ==================================================================
 
-@test "no 'model:' key in the frontmatter of any my/skills/*/SKILL.md (single-source model policy)" {
+@test "[#121] no 'model:' key in the frontmatter of any my/skills/*/SKILL.md or my/commands/*.md (single-source model policy)" {
   local offenders=()
   local f rel hit
   shopt -s nullglob
-  local targets=( "${REPO_ROOT}"/my/skills/c-bpm-sk-*/SKILL.md )
+  local targets=( "${REPO_ROOT}"/my/skills/c-bpm-sk-*/SKILL.md "${REPO_ROOT}"/my/commands/c-bpm-cm-*.md )
   if (( ${#targets[@]} == 0 )); then
     printf 'No skill SKILL.md files found under my/skills/ — enumeration broken.\n' >&2
     return 1
   fi
+  # Both halves must actually be enumerated — a glob that silently matched
+  # nothing on one side would make this test vacuously green for that side.
+  local n_skills n_commands
+  n_skills="$(printf '%s\n' "${targets[@]}" | grep -c '/my/skills/' || true)"
+  n_commands="$(printf '%s\n' "${targets[@]}" | grep -c '/my/commands/' || true)"
+  if (( n_skills == 0 || n_commands == 0 )); then
+    printf 'Enumeration broken: %d skill file(s), %d command file(s) — both must be > 0.\n' \
+      "${n_skills}" "${n_commands}" >&2
+    return 1
+  fi
   for f in "${targets[@]}"; do
     rel="${f#${REPO_ROOT}/}"
-    # Frontmatter only: the first --- ... --- block. Template examples
-    # inside fenced code blocks further down the body are not frontmatter.
-    hit="$(awk '
-      NR==1 && $0=="---" { inFm=1; next }
-      inFm && $0=="---"  { exit }
-      inFm               { print }
-    ' "${f}" | grep -nE '^model:[[:space:]]*' || true)"
+    # Frontmatter only, via the hardened extractor (see _extract_frontmatter).
+    # Template examples inside fenced code blocks further down the body are
+    # NOT frontmatter and must never fire; a BOM / leading blank line / CRLF
+    # must NOT hide a pin. Test 12 pins both halves of that contract.
+    hit="$(_frontmatter_model_hit "${f}")"
     if [[ -n "${hit}" ]]; then
       offenders+=("${rel}: ${hit}")
     fi
   done
   if (( ${#offenders[@]} > 0 )); then
-    printf 'Frontmatter model: key found — forbidden in EVERY my/skills SKILL.md (incl. %s).\n' "${LLM_SELECTION_REL}" >&2
+    printf 'Frontmatter model: key found — forbidden in EVERY my/skills SKILL.md (incl. %s) AND every my/commands/*.md.\n' "${LLM_SELECTION_REL}" >&2
     printf 'Model policy lives as PROSE in c-bpm-sk-llm-selection; no file pins a model in frontmatter:\n' >&2
     printf '  %s\n' "${offenders[@]}" >&2
     return 1
@@ -500,4 +573,191 @@ _assert_absent_needles() {
     "always the newest Opus" \
     "for cross-model validation only" \
     "not yet adopted"
+}
+
+# ==================================================================
+# Test 10 - [#118] command-side routing: same rules as my/skills/**
+#
+# The skills already delegate to c-bpm-sk-devils-advocate (Tests 1+2).
+# #118 extends the identical contract to my/commands/**:
+#   (a) exactly one stamped issue-comms block per command (anti-fake-stamp:
+#       strip_stamped() hides anything between ANY BEGIN/END pair, so a
+#       second ad-hoc wrapper could smuggle a kept invocation past it),
+#   (b) ZERO non-stamped `codex exec` in ANY command — no exemptions;
+#       unlike my/skills/**, no command is a sanctioned invocation site,
+#   (c) every enumerated #118 call site carries a delegation reference.
+#
+# Commands with no review gate (library-pull/push/compare, openissues-list)
+# are deliberately NOT in the delegation enumeration: adding the reference
+# there would be a mechanical prose rewrite, not routing. Rule (b) still
+# covers them, so they cannot acquire an invocation later without failing.
+# ==================================================================
+
+CALL_SITE_COMMANDS=(
+  "my/commands/c-bpm-cm-openissues-team.md"
+  "my/commands/c-bpm-cm-refactor-repo.md"
+  "my/commands/c-bpm-cm-skill-creator.md"
+  "my/commands/c-bpm-cm-skill-optimizer.md"
+  "my/commands/c-bpm-cm-goal-issue.md"
+)
+
+@test "[#118] no my/commands/*.md contains a non-stamped 'codex exec', and every enumerated call site delegates to c-bpm-sk-devils-advocate" {
+  local offenders=()
+  local f rel n m
+
+  # --- (a)+(b): drift-guard over EVERY command file ---
+  shopt -s nullglob
+  local all=( "${REPO_ROOT}"/my/commands/c-bpm-cm-*.md )
+  if (( ${#all[@]} == 0 )); then
+    printf 'No command files found under my/commands/ — enumeration broken.\n' >&2
+    return 1
+  fi
+  for f in "${all[@]}"; do
+    rel="${f#${REPO_ROOT}/}"
+    m="$(count_stamp_markers "${f}")"
+    if (( m != 1 )); then
+      offenders+=("${rel}: ${m} '<!-- BEGIN issue-comms' marker(s), expected exactly 1 (fake stamp block?)")
+    fi
+    n="$(strip_stamped "${f}" | grep -c -- 'codex exec' || true)"
+    if (( n > 0 )); then
+      offenders+=("${rel}: ${n} non-stamped 'codex exec' occurrence(s) (must be 0 — route via c-bpm-sk-devils-advocate)")
+    fi
+  done
+
+  # --- (c): delegation reference on the enumerated #118 call sites ---
+  for rel in "${CALL_SITE_COMMANDS[@]}"; do
+    f="${REPO_ROOT}/${rel}"
+    if [[ ! -f "${f}" ]]; then
+      offenders+=("${rel}: file not found")
+      continue
+    fi
+    if ! grep -qF -- 'c-bpm-sk-devils-advocate' "${f}"; then
+      offenders+=("${rel}: missing delegation reference to c-bpm-sk-devils-advocate")
+    fi
+  done
+
+  if (( ${#offenders[@]} > 0 )); then
+    printf 'Issue #118 command-side routing incomplete (%d finding(s)):\n' "${#offenders[@]}" >&2
+    printf '  %s\n' "${offenders[@]}" >&2
+    return 1
+  fi
+}
+
+# ==================================================================
+# Test 11 - [#119] distributed doc defers to c-bpm-sk-llm-selection
+#           instead of hard-coding a fallback ladder.
+#
+# #113 added an OpenRouter tier, so any doc that restates a ladder goes
+# stale the moment the policy moves again. The library's own distributed
+# text must NAME the authority, never re-enumerate the tiers.
+# The same wording is what ~/.claude/CLAUDE.md was rewritten to carry.
+# ==================================================================
+
+@test "[#119] no c-bpm doc hard-codes the stale 'Codex -> Gemini -> Claude' ladder; the authority is named instead" {
+  cd "${REPO_ROOT}"
+  local offenders=()
+
+  # The stale two-hop ladder (Codex -> Gemini -> Claude) with NO OpenRouter
+  # tier between them. `[^o]` on the separator keeps this from matching the
+  # correct 4-tier ladder in c-bpm-sk-llm-selection / -devils-advocate.
+  local bad
+  bad="$(grep -rniE --include='*.md' \
+    -- 'codex[^a-z]{1,4}(->|→|then)?[^a-z]{0,4}gemini[^a-z]{1,4}(->|→|then)?[^a-z]{0,4}claude' \
+    my/ | grep -vi 'openrouter' || true)"
+  if [[ -n "${bad}" ]]; then
+    offenders+=("stale ladder without an OpenRouter tier:")
+    while IFS= read -r line; do offenders+=("  ${line}"); done <<< "${bad}"
+  fi
+
+  # Positive: the two policy carriers must name llm-selection as the authority.
+  local rel
+  for rel in "${LLM_SELECTION_REL}" "${DA_SKILL_REL}"; do
+    grep -qF -- 'OpenRouter' "${REPO_ROOT}/${rel}" \
+      || offenders+=("${rel}: OpenRouter tier (#113) not mentioned")
+  done
+
+  if (( ${#offenders[@]} > 0 )); then
+    printf 'Issue #119 ladder-drift guard failed:\n' >&2
+    printf '%s\n' "${offenders[@]}" >&2
+    return 1
+  fi
+}
+
+# ==================================================================
+# Test 12 - [#121] the frontmatter guard itself is not bypassable.
+#
+# Test 8 only proves the repo is clean TODAY under whatever logic the
+# guard happens to have. This test proves the LOGIC: every fixture below
+# is a real file fed to the real helper.
+#
+# The four "must DETECT" fixtures are exactly the shapes that slipped
+# past the original `NR==1 && $0=="---"` guard — each one carries a
+# `model:` pin and MUST be caught. The "must NOT fire" fixtures pin the
+# other half of the contract: prose and fenced YAML templates that merely
+# mention a model are legitimate documentation and must stay silent.
+#
+# Revert _extract_frontmatter to the naive version and the BOM, leading
+# blank line and CRLF cases go green-when-they-should-be-red — which is
+# the whole point of this test.
+# ==================================================================
+
+@test "[#121] frontmatter guard detects model: pins hidden by BOM / blank lines / CRLF, and stays silent on prose" {
+  # No RETURN trap here: under bats it aborts the test process outright and
+  # the case silently disappears from the run ("Executed 11 instead of 12").
+  # Both verdicts are computed FIRST, the tmpdir is removed, and only then
+  # are the assertions made — so cleanup happens on every path.
+  local tmp
+  tmp="$(mktemp -d)"
+
+  # ---- MUST DETECT: a model: pin in frontmatter, however disguised ----
+  # 1. UTF-8 BOM before the opening delimiter.
+  printf '\xEF\xBB\xBF---\nname: x\nmodel: opus\n---\nbody\n'      > "${tmp}/bom.md"
+  # 2. Leading blank lines before the opening delimiter.
+  printf '\n\n---\nname: x\nmodel: opus\n---\nbody\n'              > "${tmp}/blank.md"
+  # 3. CRLF line endings — the trailing \r broke the exact `---` compare.
+  printf -- '---\r\nname: x\r\nmodel: opus\r\n---\r\nbody\r\n'     > "${tmp}/crlf.md"
+  # 4. `...` YAML end-of-document terminator instead of `---`.
+  printf -- '---\nname: x\nmodel: opus\n...\nbody\n'               > "${tmp}/dots.md"
+  # 5. Indented key — YAML tolerates leading space, so the guard must too.
+  printf -- '---\nname: x\n  model: opus\n---\nbody\n'             > "${tmp}/indent.md"
+
+  local must_detect=(bom blank crlf dots indent)
+  local missed=() name
+  for name in "${must_detect[@]}"; do
+    if [[ -z "$(_frontmatter_model_hit "${tmp}/${name}.md")" ]]; then
+      missed+=("${name}.md: frontmatter 'model:' pin NOT detected — guard is bypassable")
+    fi
+  done
+
+  # ---- MUST NOT FIRE: model mentioned in the BODY, not the frontmatter ----
+  # 6. Fenced YAML template in the body (this is the real shape in
+  #    c-bpm-sk-skill-creator / -skill-optimizer).
+  printf -- '---\nname: x\n---\n\n```yaml\nmodel: opus   # example\n```\n' > "${tmp}/template.md"
+  # 7. Prose that merely mentions the key.
+  printf -- '---\nname: x\n---\n\nNever add a `model:` key.\nmodel: opus\n'  > "${tmp}/prose.md"
+  # 8. No frontmatter at all — a body line must not be read as frontmatter.
+  printf -- 'Some doc\nmodel: opus\n'                                        > "${tmp}/nofm.md"
+  # 9. `...` terminator with the pin AFTER it — body, so not a violation.
+  printf -- '---\nname: x\n...\nmodel: opus\n'                               > "${tmp}/after-dots.md"
+
+  local must_be_silent=(template prose nofm after-dots)
+  local false_fires=()
+  for name in "${must_be_silent[@]}"; do
+    if [[ -n "$(_frontmatter_model_hit "${tmp}/${name}.md")" ]]; then
+      false_fires+=("${name}.md: guard fired on a BODY mention — it must inspect frontmatter only")
+    fi
+  done
+
+  rm -rf "${tmp}"
+
+  if (( ${#missed[@]} > 0 || ${#false_fires[@]} > 0 )); then
+    printf 'Frontmatter guard contract broken:\n' >&2
+    if (( ${#missed[@]} > 0 )); then
+      printf '  BYPASS  %s\n' "${missed[@]}" >&2
+    fi
+    if (( ${#false_fires[@]} > 0 )); then
+      printf '  FALSE+  %s\n' "${false_fires[@]}" >&2
+    fi
+    return 1
+  fi
 }

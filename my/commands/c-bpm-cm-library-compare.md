@@ -91,6 +91,27 @@ done
 
 Show the user a clear summary table with all categories and their sync status.
 
+### Machine-detectable drift gate (issue #114)
+
+An installed copy that has silently gone stale — e.g. a `~/.claude/commands/*.md`
+still carrying a pinned model that the repo copy no longer has — shows up as a
+content difference. Reporting it on stdout is not enough: nothing can gate on
+text. Use the `--exit-code` flag of the installed binary, which follows the
+`diff(1)` convention:
+
+```bash
+c-bpm-cm-library-compare --exit-code            # exit 1 if ANY item drifted
+c-bpm-cm-library-compare --only-commands --exit-code
+```
+
+- Exit `0` — every item identical.
+- Exit `1` — at least one item is local-only (`L`), repo-only (`R`) or
+  **modified (`~`, i.e. a stale installed copy)**.
+- Without `--exit-code` the status stays `0`, so existing callers are unaffected.
+
+Repair a stale installed copy with `c-bpm-cm-library-pull`, then re-run with
+`--exit-code` to confirm the gate is clean.
+
 ## Step 5: Repair (ONLY if differences found)
 
 If there are differences, ask the user:

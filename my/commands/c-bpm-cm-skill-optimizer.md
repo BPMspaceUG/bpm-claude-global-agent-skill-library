@@ -6,7 +6,6 @@ description: >
   skills with Codex-reviewed quality gates and c-bpm- naming.
 argument-hint: "[skill-name]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
-model: opus
 ---
 
 # Skill Optimizer
@@ -98,16 +97,20 @@ Codex is the review authority for skill quality. All non-trivial skill changes g
 
 ### Invocation
 
-```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
-1. Frontmatter: name and description are clear, description includes trigger conditions
-2. Progressive disclosure: SKILL.md under 500 lines, references split out properly
-3. No duplication between SKILL.md and reference files
-4. Examples are concrete and minimal, not verbose explanations
-5. Constraints are actionable (MUST/MUST NOT), not vague guidelines
-6. No unnecessary files (README.md, CHANGELOG.md, etc.)
-Skill content: <skill content>"
-```
+Run the review via `c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback
+per `c-bpm-sk-llm-selection`), asking the Judge to review this Claude Code skill
+for quality:
+
+> 1. Frontmatter: name and description are clear, description includes trigger conditions
+> 2. Progressive disclosure: SKILL.md under 500 lines, references split out properly
+> 3. No duplication between SKILL.md and reference files
+> 4. Examples are concrete and minimal, not verbose explanations
+> 5. Constraints are actionable (MUST/MUST NOT), not vague guidelines
+> 6. No unnecessary files (README.md, CHANGELOG.md, etc.)
+
+That skill owns the live-Issue fetch, the canonical sanitized invocation, and the
+substitute-Judge ladder. Never invoke a review CLI directly from here, and never
+pin a model — model policy lives in `c-bpm-sk-llm-selection`.
 
 ### Review Criteria
 

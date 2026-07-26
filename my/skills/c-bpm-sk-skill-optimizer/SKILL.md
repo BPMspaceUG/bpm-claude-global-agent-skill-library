@@ -140,7 +140,6 @@ name: c-bpm-sk-example
 description: >
   This skill should be used when the user asks to "[trigger phrase 1]", "[trigger phrase 2]".
   [What it does]. Derived from [original].
-model: opus                        # Optional: override model
 effort: high                       # Optional: override effort level
 enforcement: block
 intentPatterns: "optimize (a |this )?skill;;improve (a |this )?skill;;refactor (a |this )?skill;;upgrade skill;;skills 2\.0 (feature|checklist)"
@@ -151,6 +150,9 @@ agent: Explore                     # Optional: subagent type
 argument-hint: "[arg1] [arg2]"     # Optional: autocomplete hint
 ---
 ```
+
+**No `model:` key, ever** (#121). Model choice is single-source policy and lives as
+prose in `c-bpm-sk-llm-selection`; a frontmatter `model:` key bypasses it.
 
 ## Directory Layout
 

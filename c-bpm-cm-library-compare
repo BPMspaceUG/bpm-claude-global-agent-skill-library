@@ -11,6 +11,7 @@
 #   c-bpm-cm-library-compare --only-commands     Compare only commands
 #   c-bpm-cm-library-compare --only-runbooks     Compare only runbooks
 #   c-bpm-cm-library-compare --verbose           Show detailed output
+#   c-bpm-cm-library-compare --exit-code         Exit 1 if ANY item drifted (diff(1) convention)
 #   c-bpm-cm-library-compare --version           Show version
 #   c-bpm-cm-library-compare --help              Show this help
 #
@@ -34,6 +35,10 @@ ONLY_SKILLS=0
 ONLY_AGENTS=0
 ONLY_COMMANDS=0
 ONLY_RUNBOOKS=0
+# Issue #114: drift was reported on stdout but the exit status was always 0,
+# so nothing (test, hook, CI) could gate on a stale installed copy. Opt-in,
+# so existing callers keep their current exit status.
+EXIT_CODE_MODE=0
 
 # Categories to compare
 CATEGORIES=(skills agents commands runbooks)
@@ -56,14 +61,19 @@ show_help() {
   echo "  c-bpm-cm-library-compare --only-commands     Compare only commands"
   echo "  c-bpm-cm-library-compare --only-runbooks     Compare only runbooks"
   echo "  c-bpm-cm-library-compare --verbose           Show detailed output"
+  echo "  c-bpm-cm-library-compare --exit-code         Exit 1 if ANY item drifted (diff(1) convention)"
   echo "  c-bpm-cm-library-compare --version           Show version"
   echo "  c-bpm-cm-library-compare --help              Show this help"
   echo ""
   echo "Symbols:"
   echo "  L  local only   — exists locally but not in repo"
   echo "  R  repo only    — exists in repo but not locally"
-  echo "  ~  modified     — exists in both but content differs"
+  echo "  ~  modified     — exists in both but content differs (STALE installed copy — issue #114)"
   echo "  =  identical    — same content (shown with --verbose)"
+  echo ""
+  echo "Exit status:"
+  echo "  0  always, unless --exit-code is given"
+  echo "  1  with --exit-code, when any item is L, R or ~ (drift detected)"
 }
 
 # Parse arguments
@@ -77,6 +87,7 @@ for arg in "$@"; do
     --only-agents)   ONLY_AGENTS=1 ;;
     --only-commands) ONLY_COMMANDS=1 ;;
     --only-runbooks) ONLY_RUNBOOKS=1 ;;
+    --exit-code)     EXIT_CODE_MODE=1 ;;
     -v|--version)    echo "c-bpm-cm-library-compare v$VERSION"; exit 0 ;;
     -h|--help)       show_help; exit 0 ;;
     *)               echo "Unknown option: $arg"; show_help; exit 1 ;;
@@ -251,7 +262,8 @@ if [[ "$REPAIR" -eq 1 ]] || [[ "$DRY_RUN" -eq 1 ]]; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo ""
     echo "DRY RUN - No changes made"
-    exit 0
+    # EXIT_CODE_MODE is 0 or 1 and drift is non-zero here, so this IS the status.
+    exit "$EXIT_CODE_MODE"
   fi
 
   # Only proceed with repair if there are items to sync
@@ -260,7 +272,7 @@ if [[ "$REPAIR" -eq 1 ]] || [[ "$DRY_RUN" -eq 1 ]]; then
     echo ""
     echo "Nothing to repair automatically. Modified items require manual resolution."
     echo "  Use 'c-bpm-cm-library-pull --force' or 'c-bpm-cm-library-push --force' to resolve."
-    exit 0
+    exit "$EXIT_CODE_MODE"
   fi
 
   # Ask user what to do
@@ -337,3 +349,8 @@ if [[ "$REPAIR" -eq 1 ]] || [[ "$DRY_RUN" -eq 1 ]]; then
     echo "  Run 'c-bpm-cm-library-push' to commit and push to remote."
   fi
 fi
+
+# Issue #114: reaching here means TOTAL_DIFF > 0 (the in-sync case exited 0
+# above). Without --exit-code the status stays 0 so existing callers are
+# unaffected; with it, a stale installed copy fails the caller loudly.
+exit "$EXIT_CODE_MODE"

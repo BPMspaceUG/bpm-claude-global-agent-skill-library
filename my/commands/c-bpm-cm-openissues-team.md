@@ -2,7 +2,6 @@
 name: c-bpm-cm-openissues-team
 description: "Work on all open issues — fix all issues, abarbeiten, alle issues, work on issues. Spawns 2-6 Opus teammates to resolve open GitHub issues in parallel. Codex-reviewed, test-mandatory."
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS, Task, Teammate, SendMessage
-model: opus
 ---
 
 # /c-bpm-cm-openissues-team — Open Issues Agent Team
@@ -204,11 +203,13 @@ Teammate submits plan (via ExitPlanMode)
   -> Team Lead reviews plan
   -> Team Lead posts plan as comment on the GitHub Issue
   -> Team Lead moves issue to milestone: planned
-  -> Team Lead executes Codex review:
+  -> Team Lead runs the independent review via `c-bpm-sk-devils-advocate`
+     (Issue #<N>), asking the Judge to review the implementation plan:
+     1) Test coverage must be included. 2) Changes must be scoped to assigned
+     files. 3) Risk assessment present. 4) Rollback strategy present.
+     Approve or reject with specific reasons.
 
-     codex exec --skip-git-repo-check "Review this implementation plan for Issue #<N>. Plan: <plan-summary>. REQUIREMENTS: 1) Test coverage must be included. 2) Changes must be scoped to assigned files. 3) Risk assessment present. 4) Rollback strategy present. Approve or reject with specific reasons."
-
-  -> Codex result posted as comment on the GitHub Issue
+  -> Judge verdict posted as comment on the GitHub Issue
   -> If BOTH Team Lead AND Codex approve:
        -> Team Lead moves issue to milestone: plan-approved
        -> Approve the teammate's plan (SendMessage type: plan_approval_response, approve: true)
@@ -235,11 +236,13 @@ After plan approval, teammate designs tests and submits to team-lead.
 Teammate submits test design (message to team-lead)
   -> Team Lead posts test design as comment on the GitHub Issue
   -> Team Lead moves issue to milestone: test-designed
-  -> Team Lead executes Codex review:
+  -> Team Lead runs the independent review via `c-bpm-sk-devils-advocate`
+     (Issue #<N>), asking the Judge to review the test design:
+     edge cases covered, meaningful assertions, no false positives, adequate
+     coverage, follows project test framework (test_framework.sh).
+     Approve or reject.
 
-     codex exec --skip-git-repo-check "Review test design for Issue #<N>. Tests: <test-description>. Check: edge cases covered, meaningful assertions, no false positives, adequate coverage, follows project test framework (test_framework.sh). Approve or reject."
-
-  -> Codex result posted as comment on the GitHub Issue
+  -> Judge verdict posted as comment on the GitHub Issue
   -> If BOTH approve:
        -> Team Lead moves issue to milestone: test-design-approved
        -> Teammate proceeds to implementation
@@ -275,8 +278,10 @@ Team Lead:
   -> Run ./tests/run_tests.sh to verify all tests pass
   -> Spot-check test quality
 
-Team Lead executes:
-  codex exec --skip-git-repo-check "Verify implementation and test results for Issue #<N>. Changes: <summary>. Check: tests passing legitimately, no false positives, test coverage adequate, code quality acceptable. Approve or reject."
+Team Lead runs the independent review via `c-bpm-sk-devils-advocate` (Issue #<N>),
+  asking the Judge to verify implementation and test results:
+  tests passing legitimately, no false positives, test coverage adequate,
+  code quality acceptable. Approve or reject.
 
   -> Verification results posted as comment on the GitHub Issue
   -> If BOTH approve -> Team Lead moves issue to milestone: test-approved — ready for human DONE sign-off
@@ -310,20 +315,25 @@ After all workable issues are addressed:
 ## CODEX RULES (NON-NEGOTIABLE)
 
 - Codex is the **PRIMARY REVIEW AUTHORITY** for all Claude-generated work
-- Codex MUST be invoked **ONLY via shell**: `codex exec --skip-git-repo-check "<review-prompt>"`
-- Codex review is **MANDATORY** at 3 gates:
+- The Judge MUST be invoked **only through `c-bpm-sk-devils-advocate`** — that skill
+  owns the live-Issue fetch, the canonical sanitized command, and the ladder.
+  Model and ladder policy live in `c-bpm-sk-llm-selection` — never restated here,
+  never pinned in this file.
+- Independent review is **MANDATORY** at 3 gates:
   1. Plan approval (Phase 4)
   2. Test design approval (Phase 5)
   3. Test verification (Phase 7)
-- If Codex is unavailable (command fails): **STOP -> notify user -> do NOT proceed without Codex**
-- Log ALL Codex responses as comments in the corresponding GitHub Issue
+- If every Judge tier is unreachable: **STOP -> notify user -> do NOT proceed
+  without an independent review**
+- Log ALL Judge verdicts as comments in the corresponding GitHub Issue, naming
+  which Judge produced the verdict
 
 ---
 
 ## SEGREGATION OF DUTY
 
 - Claude teammates do the work
-- Codex reviews and approves via `codex exec`
+- The Judge reviews and approves via `c-bpm-sk-devils-advocate`
 - Team Lead coordinates but NEVER implements
 - No LLM reviews its own work
 - All approvals documented in GitHub Issues

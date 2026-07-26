@@ -6,7 +6,6 @@ description: >
   Enforces naming convention and Codex review.
 argument-hint: "[skill-name]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
-model: opus
 ---
 
 # Skill Creator (Custom)
@@ -87,19 +86,23 @@ cp -r ~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/<original>/ ~
 4. Delete unused example files from init
 5. Remove `LICENSE.txt` if forked (custom skills don't carry original licenses)
 
-### Step 5: Codex Review
+### Step 5: Judge Review
 
-```bash
-codex exec --skip-git-repo-check "Review this Claude Code skill for quality. Check for:
-1. Frontmatter: name (c-bpm-sk- prefix) and description (includes trigger conditions)
-2. Progressive disclosure: SKILL.md under 500 lines, references split out
-3. No duplication between SKILL.md and reference files
-4. Examples are concrete and minimal
-5. Constraints are actionable (MUST/MUST NOT)
-6. No unnecessary files (README.md, CHANGELOG.md, etc.)
-7. Original skill untouched (if forked)
-Skill content: <skill content>"
-```
+Run the review via `c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback
+per `c-bpm-sk-llm-selection`), asking the Judge to review this Claude Code skill
+for quality:
+
+> 1. Frontmatter: name (c-bpm-sk- prefix) and description (includes trigger conditions)
+> 2. Progressive disclosure: SKILL.md under 500 lines, references split out
+> 3. No duplication between SKILL.md and reference files
+> 4. Examples are concrete and minimal
+> 5. Constraints are actionable (MUST/MUST NOT)
+> 6. No unnecessary files (README.md, CHANGELOG.md, etc.)
+> 7. Original skill untouched (if forked)
+
+That skill owns the live-Issue fetch, the canonical sanitized invocation, and the
+substitute-Judge ladder. Never invoke a review CLI directly from here, and never
+pin a model — model policy lives in `c-bpm-sk-llm-selection`.
 
 ### Step 6: Iterate
 
