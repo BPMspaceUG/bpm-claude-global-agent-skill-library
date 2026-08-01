@@ -106,16 +106,15 @@ commit pushed to `main`; every assumption documented as an issue comment.
 
 1. Final devil's-advocate pass over the whole run via `c-bpm-sk-devils-advocate`
    (that skill owns its own review ladder). Findings become new issues.
-2. Write the morning report to `SUMMARY-<YYYYMMDD>-<HHMM>.md` in the repo root
-   and leave it untracked.
-
-   **Precedence for this single artifact:** the Issue #112 spec (an explicit
-   user directive) **takes precedence** over the generic no-side-car rule below.
-   The GitHub Issues remain the **authoritative** record: every per-issue fact —
-   plan, assumption, review verdict, blocker — is posted as an **issue comment**
-   FIRST, and the SUMMARY is only a user-mandated aggregation of what is already
-   in the issues, never an agent-invented plan file. The ban in the block below
-   targets agent-invented side-car docs; it is not waived for anything else.
+2. Post the morning report as an Issue comment — never as a file (#153, user
+   decision of 2026-08-01): multi-issue run → comment on the run's Plan Issue
+   (the #152 mechanism); single-issue run → comment on that work issue. There
+   is no run artifact on disk and no precedence carve-out; the no side-car
+   rule below applies without exceptions, enforced at runtime by
+   `plan-doc-gate`. The GitHub Issues remain the authoritative record: every
+   per-issue fact — plan, assumption, review verdict, blocker — is posted as
+   an issue comment as it happens; the morning report only aggregates what the
+   issues already hold.
 
 3. Report contents: per issue → final milestone, commit SHA, DoD status,
    assumptions, blockers; plus the devil's-advocate findings and the new issues

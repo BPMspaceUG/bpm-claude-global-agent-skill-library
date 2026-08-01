@@ -41,6 +41,16 @@ summary_window() {
   grep -E -B2 -A15 "${SUMMARY_FILE_RE}" "$1" || true
 }
 
+# Command-authored region: everything outside the stamped issue-comms block
+# (byte identity of the block itself is owned by issue-comms-anchor.bats).
+authored_region() {
+  awk '
+    /<!-- BEGIN issue-comms/ { p=1 }
+    !p { print }
+    /<!-- END issue-comms/   { p=0 }
+  ' "$1"
+}
+
 # Clean guard so a missing command file fails as an assertion, not a script error.
 require_cmd() {
   if [[ ! -f "${CMD}" ]]; then
@@ -233,39 +243,52 @@ require_cmd() {
 }
 
 # ------------------------------------------------------------------
-# 12 — SUMMARY artifact filename pattern
+# 12 — morning report is an Issue comment, never a SUMMARY-*.md file (#153)
 # ------------------------------------------------------------------
 
-@test "12: final report uses the SUMMARY-<YYYYMMDD>-<HHMM>.md filename pattern" {
+@test "12: morning report is posted as an Issue comment, no SUMMARY file mandate" {
   require_cmd
-  if ! grep -qE "${SUMMARY_FILE_RE}" "${CMD}"; then
-    printf 'Command must name the final report SUMMARY-<YYYYMMDD>-<HHMM>.md\n' >&2
+  # The command-authored region must not mandate a SUMMARY-*.md artifact.
+  if authored_region "${CMD}" | grep -qE "${SUMMARY_FILE_RE}|SUMMARY-\*\.md"; then
+    printf 'Command still mandates a SUMMARY-*.md side-car (removed by #153)\n' >&2
     return 1
   fi
+  # The Issue-based report rule is present: Plan Issue (multi) / work issue (single).
+  authored_region "${CMD}" | grep -qiE 'morning report.*(comment|Issue)' || {
+    printf 'Command must state the morning report is posted as an Issue comment\n' >&2
+    return 1
+  }
+  authored_region "${CMD}" | grep -qF 'Plan Issue' || {
+    printf 'Command must route the multi-issue morning report to the Plan Issue\n' >&2
+    return 1
+  }
 }
 
 # ------------------------------------------------------------------
-# 13 — SUMMARY precedence statement (Codex directive D1)
-#      Pairs with test 12: the side-car artifact is only allowed together
-#      with its explicit, documented precedence over the issues-only rule.
+# 13 — no side-car precedence carve-out remains (#153)
 # ------------------------------------------------------------------
 
-@test "13: SUMMARY artifact carries the explicit precedence statement" {
+@test "13: no precedence carve-out for a run artifact remains" {
   require_cmd
-  local missing="" window
-  window="$(summary_window "${CMD}")"
-  if [[ -z "${window}" ]]; then
-    printf 'No SUMMARY section found — cannot verify the precedence statement.\n' >&2
+  if authored_region "${CMD}" | grep -qiE 'takes precedence.*no-side-car|precedence for this single artifact'; then
+    printf 'Command still carries a side-car precedence carve-out (removed by #153)\n' >&2
     return 1
   fi
-  # Markers must sit INSIDE the SUMMARY section, not anywhere in the document.
-  printf '%s\n' "${window}" | grep -qiF 'takes precedence' || missing="${missing} 'takes precedence'"
-  printf '%s\n' "${window}" | grep -qiF 'authoritative'    || missing="${missing} 'authoritative'"
-  printf '%s\n' "${window}" | grep -qiE 'issue comments?'  || missing="${missing} 'issue comment'"
-  if [[ -n "${missing}" ]]; then
-    printf 'SUMMARY precedence block incomplete, missing marker(s):%s\n' "${missing}" >&2
-    printf 'Required: #112 spec takes precedence for this single artifact; Issues stay\n' >&2
-    printf 'authoritative; every per-issue fact is posted as an issue comment FIRST.\n' >&2
+  authored_region "${CMD}" | grep -qiE 'no side-car|never .* side-car|lives in GitHub Issues' || {
+    printf 'Command must state the no-side-car rule applies without carve-outs\n' >&2
+    return 1
+  }
+}
+
+# ------------------------------------------------------------------
+# 13b — repo root carries no committed SUMMARY-*.md report (#153)
+# ------------------------------------------------------------------
+
+@test "13b: repo root contains no SUMMARY-*.md file" {
+  local hits
+  hits="$(ls "${REPO_ROOT}"/SUMMARY-*.md 2>/dev/null || true)"
+  if [[ -n "${hits}" ]]; then
+    printf 'Stray SUMMARY report(s) in repo root (forbidden by #153):\n%s\n' "${hits}" >&2
     return 1
   fi
 }
