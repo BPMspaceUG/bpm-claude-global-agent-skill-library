@@ -59,7 +59,7 @@ for what ships. Two hooks are registered:
 | `issue-write-gate` | `PreToolUse` | `Bash`, `mcp__github__issue_write`, `mcp__github__create_issue` | Denies any GitHub Issue creation that lacks a milestone or exactly one `bug`/`enhancement` type label — across `gh issue create`, `gh api` POSTs to `.../issues`, inline `curl`/`python` HTTP calls, and the GitHub MCP tools | fail-closed (deny) |
 | `plan-doc-gate` | `PreToolUse` | `Write`, `Edit`, `MultiEdit`, `NotebookEdit` | Denies authored plan/doc side-car files (`plan.md`, `PLAN.md`, scratchpad `prompt.md`, `~/.claude/plans/*`, `ISSUE_<n>_PLAN.md`, …) — the GitHub Issue is the only durable record (#104 / #105). Decides on path and name only, never on file content | fail-closed (deny) |
 
-A third source file, `skill-activation-prompt`, is unregistered and inactive — it sits in `my/hooks/` with no registry row, no `dist/` artifact and broken imports; tracked in #151. Do not count it as an enforcement layer.
+A third source file, `skill-activation-prompt`, was removed as unregistered dead code — it sat in `my/hooks/` with no registry row, no `dist/` artifact and broken imports (#151). The registry-parity guard (`tests/bash/c-bpm-hooks-registry-parity.bats`) now fails on any such unmanaged drop-in.
 
 #### What happens on every tool call
 
