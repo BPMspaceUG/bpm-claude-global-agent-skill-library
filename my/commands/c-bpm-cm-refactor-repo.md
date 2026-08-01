@@ -172,14 +172,14 @@ mode: "plan"
 
 There is no second spawn path. An unrestricted teammate — one holding `Bash`, `gh`, or a
 shared working tree — must not be created for any reason, however urgent the task.
-`c-bpm-ag-teammate` has **no `Bash`**: it cannot run `codex exec`, cannot run `gh`, cannot
+`c-bpm-ag-teammate` has **no `Bash`**: it cannot invoke the Judge CLI, cannot run `gh`, cannot
 `git push`. The SoD gate is a capability the teammate lacks, not a rule it is asked to obey
 (see #101). `mode: "plan"` remains a convenience, **not** the control — it demonstrably
 failed to block Edit/Write.
 
 ### Gate of Record — Lead only
 **A teammate's report is narrative, never state.** "Codex approved", "tests pass" and
-"plan accepted" from a teammate advance *nothing*. The Team Lead runs `codex exec`, runs
+"plan accepted" from a teammate advance *nothing*. The Team Lead invokes the Judge (via `c-bpm-sk-devils-advocate`), runs
 the test suite, and performs every `gh` mutation itself, and posts each verdict as a
 `## GATE` comment carrying a **nonce the Lead generated** (`NONCE=$(openssl rand -hex 8)`)
 before that Codex run. A verdict whose nonce the Lead did not generate is **void**.

@@ -191,7 +191,7 @@ shared working tree — must not be created for any reason, however urgent the t
 
 **Why, and what each part buys (see #101):**
 - `c-bpm-ag-teammate` grants `Read, Write, Edit, Glob, Grep` and **no `Bash`**. The teammate
-  therefore *cannot* run `codex exec`, *cannot* run `gh`, *cannot* `git push`. The SoD gate
+  therefore *cannot* invoke the Judge CLI, *cannot* run `gh`, *cannot* `git push`. The SoD gate
   stops being a rule the teammate is asked to obey and becomes a capability it does not have.
 - `isolation: "worktree"` keeps every edit in the teammate's own worktree. Nothing reaches
   the shared tree until the Team Lead merges it behind a **passed** Codex gate. This is what
@@ -206,7 +206,7 @@ only on facts the Lead observed itself:
 
 | Fact | Who establishes it |
 |---|---|
-| Codex verdict | Team Lead runs `codex exec`, reads raw stdout |
+| Codex verdict | Team Lead invokes the Judge via `c-bpm-sk-devils-advocate`, reads raw stdout |
 | Test result | Team Lead runs `./tests/run_tests.sh` |
 | Milestone / label / comment | Team Lead via `gh` |
 
