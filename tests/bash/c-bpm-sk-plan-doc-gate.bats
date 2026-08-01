@@ -28,6 +28,14 @@ setup() {
   if ! command -v jq >/dev/null 2>&1; then
     skip "jq not available"
   fi
+  # #155 fixtures 50-57: materialize the spec-deliverable directory pair the
+  # static fixture paths point at. rootA = SPEC.md + .git (sanctioned pair);
+  # rootB = .git only (no SPEC.md); a planted SPEC.md under .claude/plans/
+  # must NOT sanction anything.
+  local e2e=/tmp/plan-doc-gate-e2e
+  mkdir -p "${e2e}/rootA/sub" "${e2e}/rootA/.git" "${e2e}/rootB/.git" "${e2e}/.claude/plans"
+  touch "${e2e}/rootA/SPEC.md" "${e2e}/.claude/plans/SPEC.md"
+  rm -f "${e2e}/rootB/SPEC.md"
 }
 
 # Run a single fixture by id. Pipes the input JSON to the hook on stdin and
@@ -201,6 +209,49 @@ run_fixture() {
 
 @test "passthrough: NotebookEdit on a .ipynb -> ALLOW" {
   run_fixture 40
+}
+
+# ── #155 spec-deliverable exception ───────────────────────────────────────
+#
+# Exactly one sanctioned allow inside the deny set: exact-name PLAN.md whose
+# directory also holds SPEC.md and a .git entry (repo root). Narrowness is
+# proven by keeping every other side-car denied WITH SPEC.md present.
+
+@test "#155 fixture 50: root PLAN.md with SPEC.md + .git -> ALLOW (reason names SPEC.md)" {
+  run_fixture 50
+}
+
+@test "#155 fixture 51: root PLAN.md without SPEC.md -> DENY" {
+  run_fixture 51
+}
+
+@test "#155 fixture 52: nested PLAN.md, SPEC.md only above -> DENY" {
+  run_fixture 52
+}
+
+@test "#155 fixture 53: ISSUE_12_PLAN.md denied despite SPEC.md" {
+  run_fixture 53
+}
+
+@test "#155 fixture 54: implementation-plan.md denied despite SPEC.md" {
+  run_fixture 54
+}
+
+@test "#155 fixture 55: .claude/plans/PLAN.md denied despite planted SPEC.md" {
+  run_fixture 55
+}
+
+@test "#155 fixture 56: lowercase plan.md denied despite SPEC.md (exact-name rule)" {
+  run_fixture 56
+}
+
+@test "#155 fixture 57: Edit tool on sanctioned PLAN.md -> ALLOW" {
+  run_fixture 57
+}
+
+@test "#155 documentation: ts and dist rule text both name the SPEC.md carve-out" {
+  grep -qF 'SPEC.md' "${HOOK_TS}"
+  grep -qF 'SPEC.md' "${HOOK}"
 }
 
 # ── Content blindness ─────────────────────────────────────────────────────

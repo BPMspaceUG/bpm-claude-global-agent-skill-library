@@ -4,8 +4,8 @@
   "_known_gap": "A Bash write (`cat > plan.md <<EOF`) is NOT gated: this hook is registered on the write TOOLS only. Gating Bash would require inspecting redirect targets inside arbitrary shell, which is the content/shape heuristic that cost the sibling hook four review rounds. The CI check from #104 remains the broad layer.",
   "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/plan-doc-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/plan-doc-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/plan-doc-gate.ts dist/plan-doc-gate.mjs and update _parity below.",
   "_parity": {
-    "my/hooks/plan-doc-gate.ts": "f31d711e81cb2eb2500be34f0d57c00e84c7996dcd7a9a681011900483966810",
-    "dist/plan-doc-gate.mjs": "2e67d8a1da017196c03cd022bad75694b74378d120b9e8937e4f5e8b51576e50"
+    "my/hooks/plan-doc-gate.ts": "0aa4e09f80d83de470ec75ba8c0c9d42daa40bfef338db53f0b221fff0e916ea",
+    "dist/plan-doc-gate.mjs": "5e79145a4f91c6606ee00f81785fe4def45191e6fae6a4df78717bffb8ba771f"
   },
   "fixtures": [
     {
@@ -13,70 +13,105 @@
       "description": "Write into ~/.claude/plans/ -> DENY (directory named verbatim by #104)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/.claude/plans/2026-07-26-refactor.md" },
+        "tool_input": {
+          "file_path": "/home/rob/.claude/plans/2026-07-26-refactor.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": ".claude/plans/" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": ".claude/plans/"
+      }
     },
     {
       "id": 2,
       "description": "Write .claude/plans/ file with a .txt extension -> DENY",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/.claude/plans/notes.txt" },
+        "tool_input": {
+          "file_path": "/home/rob/.claude/plans/notes.txt"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": ".claude/plans/" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": ".claude/plans/"
+      }
     },
     {
       "id": 3,
       "description": "Write repo-root plan.md -> DENY (side-car stem)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/plan.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/plan.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "side-car" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
     },
     {
       "id": 4,
       "description": "Write ISSUE_105_PLAN.md -> DENY (the exact name #104 forbids)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/ISSUE_105_PLAN.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/ISSUE_105_PLAN.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "GitHub Issue" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "GitHub Issue"
+      }
     },
     {
       "id": 5,
       "description": "Write scratchpad prompt.md -> DENY (the Codex-payload side-car)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/tmp/scratch/prompt.md" },
+        "tool_input": {
+          "file_path": "/tmp/scratch/prompt.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "side-car" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
     },
     {
       "id": 6,
       "description": "Write implementation-plan.md -> DENY (stem ends in -plan)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/implementation-plan.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/implementation-plan.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "side-car" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
     },
     {
       "id": 7,
       "description": "Write issue-95-notes.md -> DENY (issue<digits> side-car prefix)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/issue-95-notes.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/issue-95-notes.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "side-car" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
     },
     {
       "id": 8,
@@ -90,47 +125,67 @@
         },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "side-car" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
     },
     {
       "id": 9,
       "description": "MultiEdit on plans.md -> DENY (every write tool is covered, not just Write)",
       "input": {
         "tool_name": "MultiEdit",
-        "tool_input": { "file_path": "/home/rob/repo/plans.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/plans.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "side-car" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
     },
     {
       "id": 20,
       "description": "#95 REGRESSION: Write CLAUDE.md -> ALLOW",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/CLAUDE.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/CLAUDE.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 21,
       "description": "#95 REGRESSION: Write agent.md -> ALLOW",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/agent.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/agent.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 22,
       "description": "#95 REGRESSION: Write README.md -> ALLOW",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/README.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/README.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 23,
@@ -144,67 +199,93 @@
         },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 24,
       "description": "Write SHARED_TASK_NOTES.md -> ALLOW (loaded by c-bpm-cm-openissues-team.md:70)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/SHARED_TASK_NOTES.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/SHARED_TASK_NOTES.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 25,
       "description": "Write a skill SKILL.md -> ALLOW (the library's own maintained docs)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/my/skills/c-bpm-sk-example/SKILL.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/my/skills/c-bpm-sk-example/SKILL.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 26,
       "description": "Write templates/ISSUE_TEMPLATE.md -> ALLOW (no digits, and templates/ is allowlisted)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/templates/ISSUE_TEMPLATE.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/templates/ISSUE_TEMPLATE.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 27,
       "description": "Write a runbook whose name ends in 'playbook' -> ALLOW (PLAN_SUFFIX is anchored)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/my/runbooks/db_migration_playbook.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/my/runbooks/db_migration_playbook.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 28,
       "description": "SELF-HOSTING: Write my/hooks/plan-doc-gate.ts -> ALLOW (source code, even though the name contains 'plan')",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/my/hooks/plan-doc-gate.ts" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/my/hooks/plan-doc-gate.ts"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 29,
       "description": "SELF-HOSTING: Write dist/plan-doc-gate.mjs -> ALLOW (build artifact)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/dist/plan-doc-gate.mjs" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/dist/plan-doc-gate.mjs"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 30,
@@ -217,7 +298,9 @@
         },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 31,
@@ -230,108 +313,278 @@
         },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 32,
       "description": "NON-DOC WRITE: install-hooks (extensionless script) -> ALLOW",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/install-hooks" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/install-hooks"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 33,
       "description": "NON-DOC WRITE: a bats test file -> ALLOW",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/tests/bash/c-bpm-sk-plan-doc-gate.bats" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/tests/bash/c-bpm-sk-plan-doc-gate.bats"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 34,
       "description": "NON-DOC WRITE: a JSON fixture file -> ALLOW",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/my/hooks/__tests__/plan-doc-gate.fixtures.json" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/my/hooks/__tests__/plan-doc-gate.fixtures.json"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 35,
       "description": "NON-DOC WRITE: plan.py — side-car stem but not a doc extension -> ALLOW",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/scripts/plan.py" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/scripts/plan.py"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 36,
       "description": "TEST TREE: a fixture literally named plan.md under tests/ -> ALLOW (allowlisted segment)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/tests/bash/fixtures/plan.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/tests/bash/fixtures/plan.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 37,
       "description": "SCOPE: the Bash tool is not gated by this hook -> ALLOW",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "cat > plan.md <<EOF\nplan\nEOF" },
+        "tool_input": {
+          "command": "cat > plan.md <<EOF\nplan\nEOF"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow", "reason_contains": "non-write tool" }
+      "expected": {
+        "decision": "allow",
+        "reason_contains": "non-write tool"
+      }
     },
     {
       "id": 38,
       "description": "SCOPE: the Read tool is not gated -> ALLOW",
       "input": {
         "tool_name": "Read",
-        "tool_input": { "file_path": "/home/rob/.claude/plans/x.md" },
+        "tool_input": {
+          "file_path": "/home/rob/.claude/plans/x.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow", "reason_contains": "non-write tool" }
+      "expected": {
+        "decision": "allow",
+        "reason_contains": "non-write tool"
+      }
     },
     {
       "id": 39,
       "description": "Write tool with no file_path at all -> ALLOW (nothing to classify)",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "content": "hello" },
+        "tool_input": {
+          "content": "hello"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow", "reason_contains": "no file path" }
+      "expected": {
+        "decision": "allow",
+        "reason_contains": "no file path"
+      }
     },
     {
       "id": 40,
       "description": "NotebookEdit uses notebook_path -> ALLOW for a real notebook",
       "input": {
         "tool_name": "NotebookEdit",
-        "tool_input": { "notebook_path": "/home/rob/repo/analysis.ipynb" },
+        "tool_input": {
+          "notebook_path": "/home/rob/repo/analysis.ipynb"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "allow" }
+      "expected": {
+        "decision": "allow"
+      }
     },
     {
       "id": 41,
       "description": "FAIL-CLOSED: forced internal error still emits DENY on stdout and exits 0",
-      "env": ["PLAN_DOC_GATE_FORCE_ERROR=1"],
+      "env": [
+        "PLAN_DOC_GATE_FORCE_ERROR=1"
+      ],
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "/home/rob/repo/README.md" },
+        "tool_input": {
+          "file_path": "/home/rob/repo/README.md"
+        },
         "cwd": "/home/rob/repo"
       },
-      "expected": { "decision": "deny", "reason_contains": "internal error" }
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "internal error"
+      }
+    },
+    {
+      "id": 50,
+      "description": "#155: root PLAN.md WITH sibling SPEC.md and .git -> ALLOW (spec deliverable). Paths materialized by bats setup() under /tmp/plan-doc-gate-e2e.",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootA/PLAN.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootA"
+      },
+      "expected": {
+        "decision": "allow",
+        "reason_contains": "SPEC.md"
+      }
+    },
+    {
+      "id": 51,
+      "description": "#155: root PLAN.md with .git but NO SPEC.md -> DENY (unchanged behavior)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootB/PLAN.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootB"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
+    },
+    {
+      "id": 52,
+      "description": "#155: nested PLAN.md, SPEC.md only at the root above -> DENY (no sibling pair)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootA/sub/PLAN.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootA"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
+    },
+    {
+      "id": 53,
+      "description": "#155 narrowness: ISSUE_12_PLAN.md stays DENIED even with SPEC.md present",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootA/ISSUE_12_PLAN.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootA"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
+    },
+    {
+      "id": 54,
+      "description": "#155 narrowness: implementation-plan.md stays DENIED even with SPEC.md present",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootA/implementation-plan.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootA"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
+    },
+    {
+      "id": 55,
+      "description": "#155 narrowness: .claude/plans/PLAN.md stays DENIED even with a planted SPEC.md (plans-dir check precedes the exception)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/.claude/plans/PLAN.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": ".claude/plans/"
+      }
+    },
+    {
+      "id": 56,
+      "description": "#155 exact-name rule: lowercase plan.md next to SPEC.md -> DENY (only PLAN.md is the spec deliverable)",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootA/plan.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootA"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
+    },
+    {
+      "id": 57,
+      "description": "#155: Edit tool on the sanctioned root PLAN.md -> ALLOW (all write tools covered)",
+      "input": {
+        "tool_name": "Edit",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootA/PLAN.md",
+          "old_string": "a",
+          "new_string": "b"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootA"
+      },
+      "expected": {
+        "decision": "allow",
+        "reason_contains": "SPEC.md"
+      }
     }
   ]
 }

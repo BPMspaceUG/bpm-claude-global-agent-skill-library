@@ -34,6 +34,16 @@
 // `roadmap-v2.md`) passes. That is deliberate. This layer is the cheap runtime
 // tripwire for the named class; the CI check from #104 remains the broad one.
 //
+// ── #155 SPEC-DELIVERABLE EXCEPTION ──────────────────────────────────────
+//
+// One sanctioned allow inside the deny set: a file named exactly `PLAN.md`
+// whose directory ALSO contains `SPEC.md` and a `.git` entry (repo root).
+// SPEC-driven repos mandate root PLAN.md as a reviewed product deliverable;
+// denying it forced audit-hostile manual overrides. Everything else in the
+// side-car class stays denied — including PLAN.md without SPEC.md, nested
+// PLAN.md, lowercase plan.md, and anything under .claude/plans/ even with a
+// planted SPEC.md.
+//
 // Hook contract (identical to issue-write-gate):
 //   stdin:  JSON {tool_name, tool_input, cwd, ...}
 //   stdout: JSON {hookSpecificOutput: {hookEventName, permissionDecision,
@@ -45,7 +55,7 @@
 // Test mode env vars:
 //   PLAN_DOC_GATE_FORCE_ERROR=1   throws inside main() to prove fail-closed
 
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 
 interface HookInput {
   tool_name?: string;
@@ -92,6 +102,15 @@ const PLAN_SUFFIX = /[-_](plan|plans)$/;
 // `ISSUE_105_PLAN.md`, `issue-105-notes.md`, `issue105.md`. Digits are
 // REQUIRED, so `ISSUE_TEMPLATE.md` is not a match.
 const ISSUE_SIDECAR = /^issue[-_]?\d+/;
+
+// #155 sentinel: classify() returns this instead of null when the write is
+// the sanctioned SPEC.md-paired PLAN.md deliverable, so the call site can
+// emit an allow reason that names the exception.
+const SPEC_DELIVERABLE = 'SPEC_DELIVERABLE_ALLOW';
+
+// cwd of the tool call — needed only to resolve a relative PLAN.md path for
+// the #155 sibling-existence checks. Set in main() before classify().
+let CWD = '';
 
 function emit(decision: 'allow' | 'deny', reason = ''): never {
   process.stdout.write(JSON.stringify({
@@ -148,6 +167,23 @@ function classify(rawPath: string): string | null {
     }
   }
 
+  // #155 spec-deliverable exception: `PLAN.md` (exact name) at a REPO ROOT
+  // that pairs with `SPEC.md` is a mandated product deliverable of SPEC-driven
+  // repos, not a run side-car. Three conditions, all in the same directory at
+  // decision time: exact basename PLAN.md, a sibling SPEC.md, and a `.git`
+  // entry (the repo-root marker; a plain SPEC.md dropped elsewhere sanctions
+  // nothing). Runs after the .claude/plans check, so plans-dir denial wins.
+  if (name === 'PLAN.md') {
+    const slash = path.lastIndexOf('/');
+    let dir = slash < 0 ? '' : path.slice(0, slash + 1);
+    if (!path.startsWith('/') && !/^[A-Za-z]:\//.test(path)) {
+      dir = `${(CWD || '.').replace(/\\/g, '/')}/${dir}`;
+    }
+    if (existsSync(`${dir}SPEC.md`) && existsSync(`${dir}.git`)) {
+      return SPEC_DELIVERABLE;
+    }
+  }
+
   const st = stem(lower);
   if (SIDECAR_STEMS.has(st) || PLAN_SUFFIX.test(st) || ISSUE_SIDECAR.test(st)) {
     return `"${name}" is an authored plan/doc side-car. Put the plan, progress, decisions and review notes in the GitHub Issue (body or comment) instead — no side-car files (#104).`;
@@ -178,7 +214,11 @@ function main(): never {
   const target = ti.file_path ?? ti.notebook_path ?? ti.path;
   if (typeof target !== 'string' || !target) return allow('no file path in tool input');
 
+  CWD = typeof input.cwd === 'string' ? input.cwd : '';
   const reason = classify(target);
+  if (reason === SPEC_DELIVERABLE) {
+    return allow('"PLAN.md" next to SPEC.md at a repo root — sanctioned spec deliverable, not a side-car (#155)');
+  }
   return reason ? deny(reason) : allow();
 }
 
