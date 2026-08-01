@@ -136,8 +136,8 @@ conversation, because the evaluator reads only what you surfaced here:
   code. Invoke it exclusively through `c-bpm-sk-devils-advocate` — that skill
   owns the canonical sanitized invocation, the live-Issue payload, and the
   substitute-Judge ladder defined in `c-bpm-sk-llm-selection`. Never hand-roll
-  a `codex exec` line here (see issue #119); the OpenRouter tier is part of
-  that ladder, not a flag pinned in this command.
+  a Judge CLI invocation in this command (see issues #118/#119); the OpenRouter
+  tier is part of that ladder, not a flag pinned here.
 
 ---
 
