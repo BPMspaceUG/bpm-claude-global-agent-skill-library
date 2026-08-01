@@ -44,13 +44,6 @@ interface FlagResult {
   _positional?: string[];
 }
 
-// #136: a `-c` payload plus how sure we are it is a command. `strict` drives
-// fail-closed parsing — see shellPayloads.
-interface ShellPayload {
-  payload: string;
-  strict: boolean;
-}
-
 interface MilestoneCatalog {
   byNum: Map<number, string>;
   byName: Set<string>;
@@ -83,26 +76,21 @@ const SHELL_RUNNERS: ReadonlySet<string> = new Set(['bash', 'sh', 'zsh', 'dash',
 
 const GH_COMMAND: ReadonlySet<string> = new Set(['gh']);
 
-// #136: tools whose `-c` takes an OPERAND, not a command. `grep -c PATTERN` is
-// a count, `sort -c` a check, `ssh -c CIPHER` a cipher name, `git -c k=v` a
-// config override — re-gating their argument denied `grep -c "gh issue create"
-// notes.txt` and `ssh -c 'gh issue create --title x' host`, i.e. the gate
-// blocked anyone auditing this repo for that very pattern.
+// #136: tools whose `-c` is NOT a command payload. `grep -c PATTERN` is a
+// count, `sort -c` a check, `git -c k=v` a config override — re-gating their
+// argument denied `grep -c "gh issue create" notes.txt`, i.e. the gate blocked
+// anyone auditing this repo for that very pattern.
 //
-// This list is HALF of the discriminator, never the whole of it — see
-// shellPayloads for how it combines with the positional rules, and why neither
-// signal is allowed to decide alone. Consulted only for the word that OWNS the
-// flag, never for any word merely present in the segment — otherwise
+// This is a NARROW, name-based EXCEPTION to the shape-based unwrap, and it is
+// deliberately the only name-based trust in the path: a name NOT on this list
+// is still unwrapped and inspected, so unknown heads can never fail open (see
+// decideSegment). Consulted only for the word that OWNS the flag (see
+// shellPayloads), never for any word merely present in the segment — otherwise
 // `mysh -c "gh issue create" grep` would disable its own unwrap.
-const C_OPERAND_TOOLS: ReadonlySet<string> = new Set([
+const NON_SHELL_C_FLAG: ReadonlySet<string> = new Set([
   'grep', 'egrep', 'fgrep', 'rg', 'ag', 'ack', 'sort', 'uniq', 'awk',
-  'tar', 'cpio', 'git', 'docker', 'podman', 'systemctl', 'cmake',
-  'ssh', 'scp', 'sftp'
+  'tar', 'cpio', 'git', 'docker', 'podman', 'systemctl', 'cmake'
 ]);
-
-// #136: HTTP clients whose argv can carry a create. Used to bind a POST flag to
-// a URL inside ONE invocation — see curlPostsToIssues.
-const HTTP_CLIENTS: ReadonlySet<string> = new Set(['curl', 'wget', 'http', 'https', 'httpie', 'xh']);
 
 // Max recursion through nested shell runners before failing closed (#71).
 const MAX_DEPTH = 5;
@@ -205,54 +193,14 @@ function findCommandIndex(seg: string[], names: ReadonlySet<string>): number {
 
 // Payloads handed to a shell runner, for recursive re-gating.
 //
-// #136 — HOW THE TWO SIGNALS COMBINE. Neither decides alone, because each one
-// alone was demonstrably wrong:
-//
-//   OWNERSHIP (primary). `owner` is the last non-flag word before the `-c`
-//   flag — the tool the flag actually belongs to. `sudo grep -c pat f` → grep,
-//   `mysh -c "cmd" x` → mysh. Only that word is matched against
-//   C_OPERAND_TOOLS, so a trailing operand cannot be used to suppress the
-//   unwrap. Ownership is what makes `sort -c "gh issue create --title x"` and
-//   `ssh -c CIPHER host` allow: the flag demonstrably belongs to a tool that
-//   consumes an operand there. But a NAME LIST alone was rejected twice, and
-//   correctly: a list that decides WHAT TO INSPECT fails open on every name
-//   nobody listed. So it does NOT decide inspection here — an owner that is not
-//   on the list is still unwrapped and inspected. The list can only ever
-//   SUPPRESS inspection for a positively-recognised operand consumer, which is
-//   the safe direction; unknown owners keep failing closed.
-//
-//   POSITION (secondary). A terminal `-c` argument is not unique to shells —
-//   `sort -c "gh issue create --title x"` has the exact shape of
-//   `mysh -c "gh issue create --title x"` — so position cannot decide
-//   inspection either. What it CAN decide is confidence, i.e. whether an
-//   unrecognised owner's payload is treated as definitely-a-command and
-//   therefore parsed fail-closed (`strict`). Three shapes say "shell":
-//     - the owner is a known shell runner (`bash -c`, `busybox sh -c`);
-//     - the flag is a BUNDLE — `-lc`, `-ic`, `-euc`. Stacking `c` with other
-//       single letters is a shell spelling; an operand-taking tool does not
-//       spell its option that way;
-//     - an operand FOLLOWS the payload — the `sh -c CMD $0 $1...` shape.
-//   Hence `mysh -c "it's fine"` stays allowed (unparseable, not obviously a
-//   command, SUSPECT decides) while `mysh -c "it's fine" arg0` denies: the
-//   trailing operand is the shell shape, so an unparseable payload fails
-//   closed. Same owner, same flag, decided by position alone.
-//
-//   RESIDUAL, stated generally so it is not mistaken for a short list of known
-//   shapes: ANY tool that takes an operand after `-c` and is NOT in
-//   C_OPERAND_TOOLS has that operand re-gated as if it were a command, so it is
-//   DENIED whenever the operand text itself looks like an issue-create. `grep`,
-//   `sort` and `ssh` are listed because they were hit in practice; every
-//   unlisted consumer — `gcc -c "gh issue create --title x" file.c` is one, and
-//   there are others nobody has enumerated — is a false positive of exactly
-//   this kind. That is the DESIGNED cost, not an oversight: the list may only
-//   ever suppress inspection, never enable it, so growing it on demand trades a
-//   visible, self-correcting annoyance for a silent fail-open. Do not "fix" a
-//   report of this shape by appending the tool; only add a name when that tool
-//   is genuinely a `-c` operand consumer AND the false positive is real.
-function shellPayloads(head: string, seg: string[]): ShellPayload[] {
-  if (basename(head) === 'eval') {
+// #136: `owner` tracks the last non-flag word before the `-c` flag — the tool
+// the flag actually belongs to. `sudo grep -c pat f` → grep, `mysh -c "cmd" x`
+// → mysh. Only that word is checked against NON_SHELL_C_FLAG, so a trailing
+// operand cannot be used to suppress the unwrap.
+function shellPayloads(head: string, seg: string[]): string[] {
+  if (head === 'eval') {
     const rest = seg.slice(1);
-    return rest.length ? [{ payload: rest.join(' '), strict: true }] : [];
+    return rest.length ? [rest.join(' ')] : [];
   }
   let owner = head;
   for (let i = 1; i < seg.length; i++) {
@@ -260,12 +208,8 @@ function shellPayloads(head: string, seg: string[]): ShellPayload[] {
     if (t.startsWith('--')) continue;
     if (t.startsWith('-')) {
       if (!t.includes('c')) continue;
-      if (C_OPERAND_TOOLS.has(basename(owner))) return [];
-      if (i + 1 >= seg.length) return [];
-      const strict = SHELL_RUNNERS.has(basename(owner))   // known shell
-        || t.replace(/^-+/, '').length > 1                // bundled -lc/-ic
-        || i + 2 < seg.length;                            // trailing $0 operand
-      return [{ payload: seg[i + 1], strict }];
+      if (NON_SHELL_C_FLAG.has(basename(owner))) return [];
+      return i + 1 < seg.length ? [seg[i + 1]] : [];
     }
     owner = t;
   }
@@ -550,148 +494,19 @@ function validate(milestone: unknown, labels: unknown, repo: string | null): str
 // (issues.opened), which catches anything created outside Claude Code.
 // Tracked as issue #131 — do not "fix" it here; the recommendation there is to
 // enforce server-side rather than grow more inline heuristics.
-//
-// #136: the POST indicator and the URL must be SYNTACTICALLY CONNECTED — bound
-// inside one invocation — not merely co-occurring somewhere in the string. The
-// old whole-string test denied
-//   python3 -c "print('requests.post'); print('https://api.github.com/repos/o/r/issues')"
-// because both tokens appeared, each inside its own print().
-
-// A curl/wget argv token that carries a request BODY or names POST explicitly.
-// `next` is the following token, for the separated `-X POST` form.
-function isPostFlag(tok: string, next: string | undefined): boolean {
-  if (/^(?:-d|--data|--data-raw|--data-binary|--data-urlencode|--json|-F|--form|-T|--upload-file|--post-data|--post-file)$/.test(tok)) return true;
-  if (/^(?:--data|--data-raw|--data-binary|--data-urlencode|--json|--form|--upload-file|--post-data|--post-file)=/.test(tok)) return true;
-  if (/^-d./.test(tok)) return true;                       // -d'{"a":1}' → -d{"a":1}
-  if (tok === '-X' || tok === '--request' || tok === '--method') {
-    return (next || '').toUpperCase() === 'POST';
-  }
-  if (/^(?:-X|--request=|--method=)/.test(tok)) return /post/i.test(tok);
-  return false;
-}
-
-// The URL and the POST flag must sit in the SAME client invocation. Segment
-// scoping means `curl .../issues | grep -d` cannot fake a create, and
-// `echo -d && curl .../issues` cannot either.
-function curlPostsToIssues(cmd: string): boolean {
-  let argv: string[];
-  try { argv = tokenise(cmd); } catch { return false; }
-  for (const seg of splitSegments(argv)) {
-    const i = findCommandIndex(seg, HTTP_CLIENTS);
-    if (i < 0) continue;
-    const args = seg.slice(i + 1);
-    if (!args.some((t) => GH_REST_ISSUES.test(t))) continue;
-    if (args.some((t, k) => isPostFlag(t, args[k + 1]))) return true;
-  }
-  return false;
-}
-
-// Posting call sites in INLINE code (`python3 -c "..."`, `node -e "..."`).
-//
-// #136: detection is a CALL-SHAPED TEXTUAL MATCH, not a semantic one. This
-// hook does not parse the embedded language, so it cannot tell executable code
-// from a string literal or a comment. Both directions of that are KNOWN and
-// ACCEPTED — the earlier claim here, that a URL "printed, logged or assembled
-// in a comment is not a create", was simply false and is retracted:
-//
-//   FALSE POSITIVE — a call-shaped MENTION is denied. Both of these merely
-//   quote a create and both are DENIED today:
-//     python3 -c "print(\"requests.post('https://api.github.com/repos/o/r/issues', data='x')\")"
-//     python3 -c "# requests.post('https://api.github.com/repos/o/r/issues', data='x')\nprint('ok')"
-//   What is NOT matched is a bare token with no call shape, e.g.
-//   `python3 -c "print('requests.post')"` — quoting the NAME is fine, quoting a
-//   whole call is not.
-//
-//   FALSE NEGATIVE — the URL has to appear LITERALLY in the TEXT OF THAT
-//   ARGUMENT LIST, so any indirection that removes it evades the check.
-//   Illustrative, not exhaustive:
-//     - bound to a name first: `u = "https://api.github.com/repos/o/r/issues";
-//       requests.post(u, json=...)`;
-//     - returned by a helper: `requests.post(build_url(), json=...)`;
-//     - assembled from pieces: `requests.post(BASE + "/repos/o/r/issues", ...)`.
-//   All were denied by the old co-occurrence rule and are NOT caught now.
-//
-// Closing either direction means interpreting the embedded language, which this
-// hook does not and should not do. So where the check CAN fire it is
-// deliberately biased toward DENYING ON DOUBT, consistent with this file's
-// fail-closed posture, and the price is false positives on commands that quote
-// code; where indirection hides the URL it cannot fire at all, and the backstop
-// is the same as for the script-FILE limit above — the server-side GitHub
-// Actions layer on issues.opened (#131), which sees every issue however it was
-// created. Fixtures 87/88 pin the two false positives above so a future change
-// to this behaviour surfaces at review instead of passing unnoticed.
-//
-// What IS guaranteed: the literal is found wherever it sits inside the call's
-// own parentheses, however deeply nested in sub-calls (see argsOf).
-const INLINE_POST_CALL = /\b(?:[\w.]*\.post|urlopen|Request|fetch|request)\s*\(/g;
-
-// Bound on the matching-paren scan below. Long enough for any real inline
-// script a hook sees, short enough that a pathological input cannot make the
-// scan the slow part of the hook. Exceeding it is not "give up and allow" —
-// see the caller.
-const MAX_ARG_SCAN = 8192;
-
-// Text between the paren at `open` and its MATCHING close, or null if that
-// close is not within MAX_ARG_SCAN characters.
-//
-// #136: this used to be `cmd.indexOf(')', open)` — the FIRST close paren, not
-// the matching one — which truncated the argument text at the first nested
-// call and lost everything after it. `fetch(new URL('…/issues'), {method:
-// 'POST'})` yielded `new URL('…/issues'` , so the corroborating `method:` fell
-// outside and the create was ALLOWED. Depth counting fixes that; string
-// literals are skipped so a `)` inside `'…'`, `"…"` or a backtick template
-// cannot close the call early.
-function argsOf(cmd: string, open: number): string | null {
-  let depth = 1;
-  let quote = '';
-  const end = Math.min(cmd.length, open + MAX_ARG_SCAN);
-  for (let i = open; i < end; i++) {
-    const ch = cmd[i];
-    if (ch === '\\') { i++; continue; }               // escaped char, in or out of a string
-    if (quote) { if (ch === quote) quote = ''; continue; }
-    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
-    if (ch === '(') depth++;
-    else if (ch === ')' && --depth === 0) return cmd.slice(open, i);
-  }
-  return null;
-}
-
-function inlinePostsToIssues(cmd: string): boolean {
-  INLINE_POST_CALL.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = INLINE_POST_CALL.exec(cmd)) !== null) {
-    const open = m.index + m[0].length;
-    const argsText = argsOf(cmd, open);
-    // Fail closed, like the rest of this file: a posting call whose argument
-    // list is unterminated or longer than the scan bound cannot be inspected,
-    // and the caller has already established that an issues URL is present in
-    // the command. Unparseable + a create URL = deny, not allow.
-    if (argsText === null) return true;
-    if (!GH_REST_ISSUES.test(argsText)) continue;
-    // urlopen()/Request()/fetch()/request() are ALSO the read path; only a body
-    // or an explicit method riding in the same call makes one a create.
-    // `.post(` needs no such corroboration — the verb is the method.
-    if (!/\.post$/.test(m[0].replace(/\s*\($/, ''))) {
-      if (!/\b(?:data|body|method)\s*[=:]/i.test(argsText)) continue;
-    }
-    return true;
-  }
-  return false;
-}
-
 function checkHttpClient(cmd: string): string | null {
-  if (GH_GRAPHQL.test(cmd)) {
-    if (!POST_HINT.test(cmd)) return null;    // read-only call
+  const isGraphql = GH_GRAPHQL.test(cmd);
+  const rest = cmd.match(GH_REST_ISSUES);
+  if (!isGraphql && !rest) return null;
+  if (!POST_HINT.test(cmd)) return null;      // read-only call
+
+  if (isGraphql) {
     return GQL_CREATE.test(cmd)
       ? 'GraphQL createIssue mutation detected; milestone and type label cannot be validated here. Use `gh issue create --milestone <lifecycle> --label bug|enhancement`.'
       : null;
   }
 
-  const rest = cmd.match(GH_REST_ISSUES);
-  if (!rest) return null;
-  if (!curlPostsToIssues(cmd) && !inlinePostsToIssues(cmd)) return null;
-
-  const repo = `${rest[1]}/${rest[2]}`;
+  const repo = `${rest![1]}/${rest![2]}`;
   const ms = cmd.match(/["']milestone["']\s*:\s*"?([^",}\s]+)"?/);
   const block = cmd.match(/["']labels["']\s*:\s*\[([^\]]*)\]/);
   const labels = block
@@ -749,21 +564,19 @@ function decideSegment(seg: string[], cwd: string, depth: number): string | null
   // held only while the argument contained no issue-create text: `grep -c "gh
   // issue create" notes.txt` was re-gated as if it were an invocation and
   // DENIED, so the gate blocked auditing itself. What the code guarantees now,
-  // precisely: the argument of a `-c` flag is re-gated UNLESS the word OWNING
-  // the flag is a positively-recognised operand consumer (C_OPERAND_TOOLS).
-  // Every other owner — including every unknown one — is still unwrapped and
-  // inspected, so the name list adds no fail-open path; positional shape then
-  // decides how strictly the unwrapped payload is parsed. See shellPayloads for
-  // why neither signal is allowed to decide alone. The residual cost runs in
-  // the safe direction: an UNRECOGNISED tool whose `-c` argument literally
-  // contains an issue-create command line is denied.
+  // precisely: the argument of a `-c` flag is re-gated UNLESS the word owning
+  // the flag is one of the few tools listed in NON_SHELL_C_FLAG. Every other
+  // head — including every unknown one — is still unwrapped and inspected, so
+  // this exception adds no fail-open path. Its cost is the opposite direction:
+  // an unlisted tool whose `-c` argument literally contains an issue-create
+  // command line is denied. That is the safe direction, and the deliberate one.
   const r = findCommandIndex(seg, SHELL_RUNNERS);
   const start = r >= 0 ? r : 0;
-  for (const p of shellPayloads(basename(seg[start]), seg.slice(start))) {
-    // strict: the payload is definitely a command, so an unparsable one fails
-    // closed. Otherwise SUSPECT decides, so `grep -c "it's" f` is not denied
-    // while `rbash -c "gh issue create 'x"` is.
-    const reason = decideBash(p.payload, cwd, depth + 1, p.strict);
+  for (const payload of shellPayloads(basename(seg[start]), seg.slice(start))) {
+    // strict = known runner: its payload is definitely a command, so an
+    // unparsable one fails closed. A shape-only unwrap falls back to SUSPECT so
+    // `grep -c "it's" f` is not denied while `rbash -c "gh issue create 'x"` is.
+    const reason = decideBash(payload, cwd, depth + 1, r >= 0);
     if (reason) return reason;
   }
 
