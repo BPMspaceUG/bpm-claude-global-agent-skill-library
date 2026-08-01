@@ -48,15 +48,98 @@ curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-
 templates from a **pinned release tarball**, so it does not deliver the latest
 `c-bpm` items — `c-bpm-cm-library-pull` is the path for those.
 
-### Hooks
+### Hooks — the enforcement machinery in depth
 
 `install-hooks` installs `dist/*.mjs` and registers them as `PreToolUse` hooks.
-Currently one hook ships: `issue-write-gate`, wired to the `Bash`,
-`mcp__github__issue_write` and `mcp__github__create_issue` matchers — it denies
-any GitHub Issue creation that lacks a milestone or a single `bug`/`enhancement`
-type label.
+The `HOOK_REGISTRY` array inside `install-hooks` is the single source of truth
+for what ships. Two hooks are registered:
 
-It registers the hook in **both** standard settings paths
+| Hook | Event | Matchers | What it decides | On internal error |
+|------|-------|----------|-----------------|-------------------|
+| `issue-write-gate` | `PreToolUse` | `Bash`, `mcp__github__issue_write`, `mcp__github__create_issue` | Denies any GitHub Issue creation that lacks a milestone or exactly one `bug`/`enhancement` type label — across `gh issue create`, `gh api` POSTs to `.../issues`, inline `curl`/`python` HTTP calls, and the GitHub MCP tools | fail-closed (deny) |
+| `plan-doc-gate` | `PreToolUse` | `Write`, `Edit`, `MultiEdit`, `NotebookEdit` | Denies authored plan/doc side-car files (`plan.md`, `PLAN.md`, scratchpad `prompt.md`, `~/.claude/plans/*`, `ISSUE_<n>_PLAN.md`, …) — the GitHub Issue is the only durable record (#104 / #105). Decides on path and name only, never on file content | fail-closed (deny) |
+
+A third source file, `skill-activation-prompt`, is unregistered and inactive — it sits in `my/hooks/` with no registry row, no `dist/` artifact and broken imports; tracked in #151. Do not count it as an enforcement layer.
+
+#### What happens on every tool call
+
+Both hooks speak the same contract. Claude Code pipes the tool invocation as
+JSON on **stdin** (`{tool_name, tool_input, cwd}`); the hook prints a
+permission decision on stdout — the nested
+`hookSpecificOutput{permissionDecision, permissionDecisionReason}` shape plus a
+legacy flat mirror so older builds read the same verdict (#99) — and always
+exits with code 0 (the `exit 0` contract). A hook that hits an internal error
+emits `deny`: **fail-closed**, because a non-zero exit with empty stdout would
+deliver no decision at all and silently fail open (#133). There is no build
+step — each `dist/*.mjs` is the hand-maintained runnable artifact, pinned to
+its TypeScript source by the test suite.
+
+At session start nothing from this repo executes: registration lives in
+`settings.json`, and the hooks fire per matching tool call, every time.
+
+What an agent experiences when it tries to create a non-compliant issue:
+
+```mermaid
+%% diagram: issue-create-sequence
+sequenceDiagram
+    participant A as Agent (any Claude Code session)
+    participant H as issue-write-gate (PreToolUse)
+    participant G as GitHub
+    A->>H: Bash tool call: gh issue create ...
+    H->>H: tokenise + classify the command
+    alt milestone AND exactly one type label present
+        H-->>A: allow
+        A->>G: command executes
+        G-->>A: issue URL
+    else missing milestone or type label (or unparseable)
+        H-->>A: deny + reason
+        Note over A,G: the command never reaches GitHub
+    end
+```
+
+Inside the gate, the decision logic:
+
+```mermaid
+%% diagram: gate-decision
+flowchart TD
+    IN["tool call JSON on stdin"] --> T{"tool name?"}
+    T -->|"Bash"| P["tokenise command (strict, fail-closed)"]
+    T -->|"GitHub MCP issue tools"| F["read tool_input fields"]
+    T -->|"anything else"| OK["allow"]
+    P -->|"parse error"| D2["deny (fail-closed)"]
+    P --> S{"issue-creating shape? (issue-write-gate matchers: gh issue create, gh api POST .../issues, curl/python inline)"}
+    S -->|"no"| OK
+    S -->|"yes"| C{"milestone present AND exactly one type label (bug or enhancement)?"}
+    F --> C
+    C -->|"yes"| OK
+    C -->|"no"| D["deny with reason"]
+```
+
+#### Enforcement layers — which layer catches which bypass
+
+| Layer | Status | Catches |
+|-------|--------|---------|
+| `PreToolUse` hooks (this repo) | **live** | every issue-creating or file-writing tool call inside a Claude Code session, including MCP tools |
+| GitHub Actions | **planned** — the GitHub-Actions layer (`.github/workflows/`) does not exist yet | everything created outside Claude Code: web UI, raw API calls, other agents, other machines |
+| CLI wrappers in `/usr/local/bin` | forbidden anti-pattern (see CLAUDE.md) | — |
+
+Until the Actions layer lands, issue creation from outside Claude Code is
+unenforced — treat the hook layer as necessary, not sufficient.
+
+#### How a change reaches every machine
+
+```mermaid
+%% diagram: distribution
+flowchart LR
+    R["repo main branch"] -->|"c-bpm-cm-library-pull"| L["~/.claude/ installed copies"]
+    R -->|"./install-hooks"| REG["hook registration"]
+    REG --> S1["~/.claude/settings.json"]
+    REG --> S2["~/.config/claude/settings.json"]
+    S1 --> LIVE["PreToolUse hooks fire in every session"]
+    S2 --> LIVE
+```
+
+`install-hooks` registers each hook in **both** standard settings paths
 (`~/.claude/settings.json` and `~/.config/claude/settings.json`)
 **where they exist — a missing settings file is skipped, not created**
 (see #65 / #76). Ensure both files exist before running it if your Claude builds
@@ -120,8 +203,32 @@ unreachable. A gate never passes on a missing review.
 `new` → `planned` → `plan-approved` → `test-designed` →
 `test-design-approved` → `implemented` → `tested-success` / `tested-failed` →
 `test-approved`, updated at each transition. `DONE` is **human-only** — agents
-never set it. Every issue also carries exactly one type label, `bug` or
+never set it, and so is the terminal abort `CANCELLED`, reachable from any
+state except `DONE`. Every issue also carries exactly one type label, `bug` or
 `enhancement`; `issue-write-gate` enforces both mechanically.
+
+```mermaid
+%% diagram: milestone-lifecycle
+stateDiagram-v2
+    [*] --> new
+    new --> planned
+    planned --> plan_approved
+    plan_approved --> test_designed
+    test_designed --> test_design_approved
+    test_design_approved --> implemented
+    implemented --> tested_success
+    implemented --> tested_failed
+    tested_failed --> planned : wrong approach
+    tested_failed --> implemented : code bug
+    tested_success --> test_approved
+    test_approved --> DONE : human only
+    DONE --> [*]
+    state "CANCELLED (human only, from any state except DONE)" as CANCELLED
+    new --> CANCELLED
+    planned --> CANCELLED
+    test_approved --> CANCELLED
+    CANCELLED --> [*]
+```
 
 **Communication is Issues-only.** The plan, rejected plans, progress and every
 decision go in the Issue body or comments — never into side-car `.md` files.
@@ -164,11 +271,10 @@ commands themselves — model-version pins, Codex invocation hygiene, the review
 loop, the Issues-only communication block, the goal-issue command, and this
 README.
 
-**Known red:** 9 of the 29 `c-bpm-sk-issue-write-gate.bats` fixtures fail
-because the runner never exports `FIXTURE_REPO` — a test-harness defect, not a
-hook defect, tracked in #100. A clean checkout is expected to show exactly those
-failures and no others. End-to-end execution of skills (as opposed to static
-guards) is not covered yet; that harness is #122.
+**Fully green:** a clean checkout runs with 0 failures. The formerly
+known-red `issue-write-gate` fixtures were a test-harness defect (the runner
+never exported `FIXTURE_REPO`), fixed under #100. End-to-end execution of
+skills (as opposed to static guards) is not covered yet; that harness is #122.
 
 ## 6. Key Commands
 

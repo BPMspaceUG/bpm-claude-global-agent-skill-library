@@ -220,3 +220,122 @@ readme_fences() {
 
   return "${bad}"
 }
+
+# ------------------------------------------------------------------
+# 8: hook-system deep dive (Issue #150)
+# ------------------------------------------------------------------
+
+# Emit the body of the single ```mermaid block containing the given tag line.
+mermaid_block_by_tag() { # <tag-name>
+  awk -v tag="%% diagram: $1" '
+    /^[[:space:]]*```mermaid/ { inb=1; buf=""; next }
+    inb && /^[[:space:]]*```[[:space:]]*$/ { inb=0; if (index(buf, tag)) print buf; next }
+    inb { buf = buf $0 "\n" }
+  ' "${README}"
+}
+
+# Count mermaid blocks containing the given tag line.
+mermaid_blocks_with_tag() { # <tag-name>
+  awk -v tag="%% diagram: $1" '
+    /^[[:space:]]*```mermaid/ { inb=1; buf=""; next }
+    inb && /^[[:space:]]*```[[:space:]]*$/ { inb=0; if (index(buf, tag)) n++; next }
+    inb { buf = buf $0 "\n" }
+    END { print n+0 }
+  ' "${README}"
+}
+
+# Assert one tagged diagram: unique tag, required type, required markers.
+check_tagged_diagram() { # <tag> <type> <marker...>
+  local tag="$1" type="$2"; shift 2
+  local n block first m
+  n="$(mermaid_blocks_with_tag "${tag}")"
+  if [ "${n}" -ne 1 ]; then
+    printf 'diagram tag "%s": expected exactly 1 mermaid block, found %s\n' "${tag}" "${n}" >&2
+    return 1
+  fi
+  block="$(mermaid_block_by_tag "${tag}")"
+  first="$(printf '%s\n' "${block}" | grep -vE '^[[:space:]]*(%%|$)' | head -1 | awk '{print $1}')"
+  if [ "${first}" != "${type}" ]; then
+    printf 'diagram "%s": first line type is "%s", expected "%s"\n' "${tag}" "${first}" "${type}" >&2
+    return 1
+  fi
+  for m in "$@"; do
+    if ! printf '%s\n' "${block}" | grep -qE -- "${m}"; then
+      printf 'diagram "%s": required marker "%s" missing\n' "${tag}" "${m}" >&2
+      return 1
+    fi
+  done
+}
+
+@test "README documents every HOOK_REGISTRY hook: name, PreToolUse event, all matchers (#150)" {
+  local bad=0 row name matchers m
+  while IFS='|' read -r name matchers _; do
+    [ -n "${name}" ] || continue
+    if ! grep -qF -- "${name}" "${README}"; then
+      printf 'README does not name registered hook %s\n' "${name}" >&2; bad=1
+    fi
+    for m in ${matchers//,/ }; do
+      if ! grep -qF -- "${m}" "${README}"; then
+        printf 'README missing matcher %s of hook %s\n' "${m}" "${name}" >&2; bad=1
+      fi
+    done
+  done < <(sed -n '/^HOOK_REGISTRY=(/,/^)/p' "${REPO_ROOT}/install-hooks" | grep -oE '"[^"]+"' | tr -d '"')
+  grep -qF -- 'PreToolUse' "${README}" || { printf 'README missing the PreToolUse event name\n' >&2; bad=1; }
+  return "${bad}"
+}
+
+@test "README states the hook I/O contract: stdin JSON, stdout decision, exit 0, fail-closed (#150)" {
+  local bad=0 f
+  for f in 'stdin' 'permission decision' 'exit 0' 'fail-closed'; do
+    grep -qiF -- "${f}" "${README}" || { printf 'README missing hook-contract fact: %s\n' "${f}" >&2; bad=1; }
+  done
+  return "${bad}"
+}
+
+@test "README is honest about the inactive skill-activation-prompt source (#150, #151)" {
+  grep -qF -- 'skill-activation-prompt' "${README}"
+  grep -qiE 'skill-activation-prompt[^.]*\b(unregistered|inactive|not registered)|(unregistered|inactive)[^.]*skill-activation-prompt' "${README}"
+  grep -qF -- '#151' "${README}"
+}
+
+@test "README carries >=4 mermaid diagrams, each opening with a valid type (#150)" {
+  local count
+  count="$(grep -cE '^[[:space:]]*```mermaid' "${README}")"
+  if [ "${count}" -lt 4 ]; then
+    printf 'expected >=4 mermaid blocks, found %s\n' "${count}" >&2
+    return 1
+  fi
+  awk '
+    /^[[:space:]]*```mermaid/ { inb=1; first=1; next }
+    inb && /^[[:space:]]*```[[:space:]]*$/ { inb=0; next }
+    inb && first {
+      if ($0 ~ /^[[:space:]]*(%%|$)/) next
+      if ($1 != "sequenceDiagram" && $1 != "flowchart" && $1 != "stateDiagram-v2" && $1 != "graph") {
+        printf "invalid mermaid diagram type line: %s\n", $0 > "/dev/stderr"; bad=1
+      }
+      first=0
+    }
+    END { exit bad }
+  ' "${README}"
+}
+
+@test "the four required diagrams exist as four distinct tagged blocks (#150)" {
+  check_tagged_diagram 'issue-create-sequence' 'sequenceDiagram' 'issue-write-gate' 'deny' 'allow'
+  check_tagged_diagram 'gate-decision'         'flowchart'       'issue-write-gate' 'milestone' 'bug' 'enhancement'
+  check_tagged_diagram 'milestone-lifecycle'   'stateDiagram-v2' 'CANCELLED' 'DONE' 'test_approved|test-approved'
+  check_tagged_diagram 'distribution'          'flowchart'       'settings\.json' 'c-bpm-cm-library-pull'
+}
+
+@test "README no longer claims only one hook ships (#150)" {
+  ! grep -qiF -- 'one hook ships' "${README}"
+}
+
+@test "README is honest that the GitHub-Actions layer does not exist yet (#150)" {
+  grep -qF -- '.github/workflows/' "${README}"
+  grep -qF -- 'does not exist yet' "${README}"
+}
+
+@test "README testing section carries no stale known-red claim (#150)" {
+  ! grep -qF -- 'expected to show exactly' "${README}"
+  ! grep -qF -- 'Known red:' "${README}"
+}
