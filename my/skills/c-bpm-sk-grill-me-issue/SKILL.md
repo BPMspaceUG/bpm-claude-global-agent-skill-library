@@ -136,8 +136,9 @@ remaining, and any new issues spawned with links.
 
 When grilling reveals work outside the target issue's scope:
 
-1. Ask: "Das geht ueber den Scope von Issue #{number} hinaus. Soll ich ein neues Issue anlegen?"
-2. **Only create after explicit user confirmation**
+1. Out-of-scope work is a finding: file it as a new GitHub Issue immediately —
+   never ask first (the user decides afterwards what happens with it)
+2. Note in the grilled issue: "beyond scope — split out as #<new>"
 3. Before creating: mandatory dedup check against all open issues
 4. Use the repo's issue template if one exists (check `.github/ISSUE_TEMPLATE/`)
 5. New issues get milestone `new` and appropriate type label (`bug`/`enhancement`)

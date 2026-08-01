@@ -72,7 +72,7 @@ skill_text() { # <skill-name>
   local s text bad=0 hits
   for s in "${FINDING_SKILLS[@]}"; do
     text="$(skill_text "${s}")"
-    hits="$(echo "${text}" | grep -niE 'report only|no (github )?issues (are )?created|ask the user (whether|if)|without asking the user|asking the user first|should (i|the issue griller) (file|assign|create|take)|no labels|no tags|\[BUG\]|\[ENHANCEMENT\]|per-session limit|[0-9]-per-session|issues per session' || true)"
+    hits="$(echo "${text}" | grep -niE 'report only|no (github )?issues (are )?created|ask the user (whether|if)|without asking the user|asking the user first|should (i|the issue griller) (file|assign|create|take)|no labels|no tags|\[BUG\]|\[ENHANCEMENT\]|per-session limit|[0-9]-per-session|issues per session|soll ich.*(anlegen|erstellen)|only create after|create after explicit' || true)"
     if [ -n "${hits}" ]; then
       printf '%s still carries contradiction wording:\n%s\n' "${s}" "${hits}" >&2
       bad=1
