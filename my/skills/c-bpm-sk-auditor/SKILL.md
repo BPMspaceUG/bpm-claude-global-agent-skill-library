@@ -1,6 +1,6 @@
 ---
 name: c-bpm-sk-auditor
-description: "Audit this repo — full codebase review, code quality check, security audit, due diligence, maintenance handover, review this codebase. Produces [REPONAME]-YYMMDD-HHSS.md report. No issues created."
+description: "Audit this repo — full codebase review, code quality check, security audit, due diligence, maintenance handover, review this codebase. Produces [REPONAME]-YYMMDD-HHSS.md report; every finding is also filed as an issue."
 user-invocable: true
 enforcement: block
 intentPatterns: "audit this repo;;full codebase (review|audit);;review this codebase;;code quality (check|audit);;maintenance handover"
@@ -9,7 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Task, Teammate, SendMessage
 
 # /c-bpm-sk-auditor - Repository Audit Skill
 
-Comprehensive, team-based audit of an existing repository. Produces a single Markdown report — no GitHub issues created.
+Comprehensive, team-based audit of an existing repository. Produces a single Markdown report and files every finding as a GitHub Issue.
 
 ## When to Use
 
@@ -24,7 +24,7 @@ Comprehensive, team-based audit of an existing repository. Produces a single Mar
 
 A single Markdown file: `[REPONAME]-YYMMDD-HHSS.md` in the repo root.
 
-**NO GitHub issues are created. Report only.**
+**Every finding is filed as a GitHub Issue immediately; the report aggregates them (#62).**
 
 ## Architecture
 
@@ -168,7 +168,6 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 - Run the review via `c-bpm-sk-devils-advocate` (Codex primary; OpenRouter fallback per `c-bpm-sk-llm-selection`) — never a review CLI directly
 
 ### MUST NOT
-- Create GitHub issues (report only)
 - Push code or create branches
 - Modify any repository files (read-only audit)
 - Skip the independent devil's advocate review (must use fallback chain if Codex unavailable)
@@ -180,6 +179,17 @@ Write `[REPONAME]-YYMMDD-HHSS.md`, send shutdown_request to all teammates, TeamD
 - If tests require credentials/DB → note as "unable to verify" in report
 - If repo is too large for single pass → ask user to scope the audit
 - Codex unavailable → try fallback chain: Codex → Gemini (`gemini` CLI) → any available model. If ALL unavailable: notify user, do not proceed without independent review. Log which reviewer was used.
+
+## Findings → Issues
+
+Every finding this skill surfaces — bug, optimization, gap, decision-needed,
+even a maybe-not-OK hunch — is filed as a GitHub Issue **immediately**, one
+issue per discrete finding, at the moment it is found. Never ask first;
+over-filing is fine, asking is not. Dedup before filing: search open issues
+and skip only on a genuine match (note "already tracked: #N"). Every created
+issue gets milestone `new` and exactly one type label — `bug` or
+`enhancement` (lowercase) — at creation; issue-write-gate enforces both
+mechanically. The user decides afterwards which issues are kept or worked on.
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only

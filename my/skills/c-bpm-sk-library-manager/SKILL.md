@@ -175,6 +175,17 @@ lost Must-Stay content and must have it moved back.
 - Deleted items: shown as warnings, **never auto-deleted** (safety)
 - Resolution: manual `cd ~/bpm-claude-global-agent-skill-library && git status`
 
+## Findings → Issues
+
+Every finding this skill surfaces — bug, optimization, gap, decision-needed,
+even a maybe-not-OK hunch — is filed as a GitHub Issue **immediately**, one
+issue per discrete finding, at the moment it is found. Never ask first;
+over-filing is fine, asking is not. Dedup before filing: search open issues
+and skip only on a genuine match (note "already tracked: #N"). Every created
+issue gets milestone `new` and exactly one type label — `bug` or
+`enhancement` (lowercase) — at creation; issue-write-gate enforces both
+mechanically. The user decides afterwards which issues are kept or worked on.
+
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only
 

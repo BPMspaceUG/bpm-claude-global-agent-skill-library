@@ -211,6 +211,17 @@ Read when: orchestrating a team to build or refactor multiple skills in parallel
 setting up milestone-based issue tracking, spawning agent teammates, running
 Codex review gates, or managing the full lifecycle from discovery through PR.
 
+## Findings → Issues
+
+Every finding this skill surfaces — bug, optimization, gap, decision-needed,
+even a maybe-not-OK hunch — is filed as a GitHub Issue **immediately**, one
+issue per discrete finding, at the moment it is found. Never ask first;
+over-filing is fine, asking is not. Dedup before filing: search open issues
+and skip only on a genuine match (note "already tracked: #N"). Every created
+issue gets milestone `new` and exactly one type label — `bug` or
+`enhancement` (lowercase) — at creation; issue-write-gate enforces both
+mechanically. The user decides afterwards which issues are kept or worked on.
+
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only
 

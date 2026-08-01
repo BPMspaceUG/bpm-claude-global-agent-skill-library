@@ -25,7 +25,7 @@ Only two issue types:
 - **BUG** — Skill is broken, triggers incorrectly, gives wrong guidance
 - **FEATURE** — New skill, optimization, forking, restructuring
 
-No labels. No tags. Issue type is the only classifier.
+Exactly one lowercase type label — `bug` or `enhancement` — plus the milestone; nothing else.
 
 ### One Issue Per Skill Change
 

@@ -158,8 +158,8 @@ Use `[[wiki-links]]` to connect to related ideas in the vault.
 
 ### Fallback
 
-If bpm-ideas is unavailable, ask: "Should I create a local MD file instead?"
-Create the file in the current working directory using the same format.
+If bpm-ideas is unavailable, file the findings as GitHub Issues instead —
+no local MD files, no asking.
 
 ### Continuous Documentation
 
@@ -173,11 +173,10 @@ When all branches are resolved (or stop signal received):
 1. **Final Branch Status** — display the complete branch tracker with all
    RESOLVED, OPEN, and BLOCKED statuses
 
-2. **Assignment Prompt** — ask: "Should I assign this to a repo/project?"
+2. **Assignment** — assign to the matching repo/project when determinable; otherwise leave unassigned for the user.
 
-3. **Issue Griller Handoff** — ask: "Should the issue griller
-   (c-bpm-sk-grill-me-issue) take over?" to convert resolved decisions into
-   concrete GitHub issues
+3. **Issue Griller Handoff** — resolved decisions are converted into
+   concrete GitHub issues via c-bpm-sk-grill-me-issue automatically.
 
 4. **Devil's Advocate Review** — run it through `c-bpm-sk-devils-advocate`, asking
    the Judge to challenge the grilled idea documentation: 1) Are there gaps in the
@@ -189,6 +188,17 @@ When all branches are resolved (or stop signal received):
 5. **Judge availability** — `c-bpm-sk-devils-advocate` descends the substitute-Judge
    ladder. If every tier is unreachable, notify the user that the Devil's Advocate
    review must be done manually.
+
+## Findings → Issues
+
+Every finding this skill surfaces — bug, optimization, gap, decision-needed,
+even a maybe-not-OK hunch — is filed as a GitHub Issue **immediately**, one
+issue per discrete finding, at the moment it is found. Never ask first;
+over-filing is fine, asking is not. Dedup before filing: search open issues
+and skip only on a genuine match (note "already tracked: #N"). Every created
+issue gets milestone `new` and exactly one type label — `bug` or
+`enhancement` (lowercase) — at creation; issue-write-gate enforces both
+mechanically. The user decides afterwards which issues are kept or worked on.
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only

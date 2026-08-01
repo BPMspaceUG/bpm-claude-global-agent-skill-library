@@ -27,7 +27,7 @@ Only two issue types are used:
 - **BUG** — Something is broken, insecure, or behaves incorrectly
 - **FEATURE** — New functionality, refactoring, or improvement
 
-No labels. No tags. Issue type is the only classifier.
+Exactly one lowercase type label — `bug` or `enhancement` — plus the milestone; nothing else.
 
 ### One Issue Per Improvement
 

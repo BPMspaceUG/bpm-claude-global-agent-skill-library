@@ -141,7 +141,7 @@ When grilling reveals work outside the target issue's scope:
 3. Before creating: mandatory dedup check against all open issues
 4. Use the repo's issue template if one exists (check `.github/ISSUE_TEMPLATE/`)
 5. New issues get milestone `new` and appropriate type label (`bug`/`enhancement`)
-6. **Hard limit: 3 new issues per session.** After 3, inform the user the session limit is reached. Suggest starting a new session if more issues are needed. Do NOT create more than 3 regardless of user request.
+6. **Every discrete finding files its own issue** — no session cap; over-filing is fine, asking is not (#62).
 
 ## Termination
 
@@ -176,9 +176,20 @@ Both paths execute the full wrap-up protocol.
 - Always check milestones and labels for compliance with repo conventions
 - One focused question at a time — never bundle multiple questions in one message
 - If a question can be answered by reading code, read the code instead of asking
-- Never modify labels or milestone without asking the user first
+- Leave milestone and type label to the lifecycle rules — never modify them during grilling
 - Keep the original issue body intact — append refined sections below it
-- Track all created issues to avoid exceeding the 3-per-session limit
+- Track all created issues
+
+## Findings → Issues
+
+Every finding this skill surfaces — bug, optimization, gap, decision-needed,
+even a maybe-not-OK hunch — is filed as a GitHub Issue **immediately**, one
+issue per discrete finding, at the moment it is found. Never ask first;
+over-filing is fine, asking is not. Dedup before filing: search open issues
+and skip only on a genuine match (note "already tracked: #N"). Every created
+issue gets milestone `new` and exactly one type label — `bug` or
+`enhancement` (lowercase) — at creation; issue-write-gate enforces both
+mechanically. The user decides afterwards which issues are kept or worked on.
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only

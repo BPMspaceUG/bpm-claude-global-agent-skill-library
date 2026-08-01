@@ -157,9 +157,9 @@ After plan approval, each teammate creates their issues:
 ```
 
 ### Issue Rules (MANDATORY — teammates MUST follow these exactly)
-- **Type**: BUG or ENHANCEMENT — prefix in title: `[BUG]` or `[ENHANCEMENT]`
+- **Type**: exactly one lowercase type label — `bug` or `enhancement`; no title prefixes
 - **Milestone**: MUST be set to `new` (milestone number provided in spawn prompt) — **NO ISSUE WITHOUT MILESTONE**
-- **No labels** — milestones are the only lifecycle tracker
+- **Labels**: only the single type label; milestones track the lifecycle
 - **Dedup**: search before create — skip if matching open issue exists
 - **Log**: skipped findings reported as "already tracked: #{issue-number}"
 - **One issue per finding** — never combine multiple findings into one issue
@@ -266,7 +266,7 @@ Read: `references/audit-checklist.md` section C
 | **BUG** | Something is broken, insecure, or wrong | Symlink shadowing, SSH misconfigured, failed services |
 | **ENHANCEMENT** | Improvement or recommendation | Install fail2ban, set up version manager, add backup rotation |
 
-No labels. No tags. Issue type + milestone = full lifecycle tracking.
+Exactly one type label (`bug`/`enhancement`) + milestone = full lifecycle tracking.
 
 ---
 
@@ -306,6 +306,17 @@ No labels. No tags. Issue type + milestone = full lifecycle tracking.
 - Communication via shared task list and messages
 - **All teammates use newest Opus (see `c-bpm-sk-llm-selection`)**
 - Agent teams require: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+
+## Findings → Issues
+
+Every finding this skill surfaces — bug, optimization, gap, decision-needed,
+even a maybe-not-OK hunch — is filed as a GitHub Issue **immediately**, one
+issue per discrete finding, at the moment it is found. Never ask first;
+over-filing is fine, asking is not. Dedup before filing: search open issues
+and skip only on a genuine match (note "already tracked: #N"). Every created
+issue gets milestone `new` and exactly one type label — `bug` or
+`enhancement` (lowercase) — at creation; issue-write-gate enforces both
+mechanically. The user decides afterwards which issues are kept or worked on.
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only

@@ -163,6 +163,12 @@ If any of these paths can create an issue without milestone + type label, the ru
 - Per-machine install steps for enforcement logic beyond the one-time hook deployment
 - Documentation-only "remember to set milestone" — must be machine-enforced
 
+### Findings → Issues (mandatory, #62)
+
+Every finding-surfacing skill files each finding as a GitHub Issue
+**immediately** (milestone `new`, exactly one `bug`/`enhancement` type label)
+and never asks first — guarded by `tests/bash/c-bpm-sk-findings-to-issues.bats`.
+
 ### When the audit finds a gap
 
 If `/c-bpm-cm-openissues-list` finds a non-compliant issue:

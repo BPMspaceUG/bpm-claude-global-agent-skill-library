@@ -1,6 +1,6 @@
 ---
 name: c-bpm-sk-idea-merge
-description: "Cluster and merge ideas — cluster ideas, merge ideas, find duplicates, group similar issues, clean up ideas, deduplicate. Scans repos (Obsidian vaults, GitHub Issues) for clusterable ideas. User approves each action."
+description: "Cluster and merge ideas — cluster ideas, merge ideas, find duplicates, group similar issues, clean up ideas, deduplicate. Scans repos (Obsidian vaults, GitHub Issues) for clusterable ideas. User approves each destructive merge action; findings are filed as issues without asking."
 enforcement: block
 intentPatterns: "cluster ideas;;merge ideas;;deduplicate issues;;group similar"
 user-invocable: true
@@ -169,6 +169,17 @@ gh issue comment {number} --body "..." -R {owner}/{repo}
 6. **Codex approval required** — no mutations without Codex review (fallback chain applies)
 7. **Dry-run first** — always show the diff before executing
 8. **Idempotent** — running the scan again after execution should show no new clusters for already-processed items
+
+## Findings → Issues
+
+Every finding this skill surfaces — bug, optimization, gap, decision-needed,
+even a maybe-not-OK hunch — is filed as a GitHub Issue **immediately**, one
+issue per discrete finding, at the moment it is found. Never ask first;
+over-filing is fine, asking is not. Dedup before filing: search open issues
+and skip only on a genuine match (note "already tracked: #N"). Every created
+issue gets milestone `new` and exactly one type label — `bug` or
+`enhancement` (lowercase) — at creation; issue-write-gate enforces both
+mechanically. The user decides afterwards which issues are kept or worked on.
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only
