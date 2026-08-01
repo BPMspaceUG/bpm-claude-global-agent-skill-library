@@ -37,7 +37,7 @@ Each discrete improvement, fix, or feature gets its own issue. All phases of wor
 
 **Read `c-bpm-sk-milestone-type` skill** for full milestone definitions, transition rules, and Codex gate patterns.
 
-Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only).
+Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only). Abort: any state except `DONE` may move to `CANCELLED` (human-only, terminal).
 
 ---
 

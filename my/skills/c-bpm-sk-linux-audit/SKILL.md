@@ -44,7 +44,7 @@ Run all bootstrap checks from `references/audit-checklist.md` → **Bootstrap** 
 
 ```
 new, planned, plan-approved, test-designed, test-design-approved,
-implemented, tested-success, tested-failed, test-approved, DONE
+implemented, tested-success, tested-failed, test-approved, DONE, CANCELLED
 ```
 
 Skip any milestone that already exists. **Record the milestone numbers** (e.g., `new`=#1) — teammates need these to set milestones on created issues.
@@ -55,7 +55,7 @@ Before proceeding to Phase 1, confirm ALL of these:
 - [ ] `rootmessages` user exists with NOPASSWD sudo
 - [ ] Host-repo exists on GitHub
 - [ ] Local clone is up to date
-- [ ] All 10 milestones exist
+- [ ] All 11 milestones exist
 - [ ] Milestone numbers are noted
 
 **If ANY check fails: STOP and fix it before proceeding.**

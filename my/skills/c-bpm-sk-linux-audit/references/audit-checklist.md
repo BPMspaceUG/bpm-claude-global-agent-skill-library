@@ -41,7 +41,7 @@ ls -d /home/rootmessages/bpm-${HOSTNAME}/.git 2>/dev/null
 Create via GitHub MCP if they don't exist:
 ```
 new, planned, plan-approved, test-designed, test-design-approved,
-implemented, tested-success, tested-failed, test-approved, DONE
+implemented, tested-success, tested-failed, test-approved, DONE, CANCELLED
 ```
 
 ---

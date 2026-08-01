@@ -75,7 +75,7 @@ The full lifecycle requires these milestones:
 
    1. **One milestone at a time** per issue — no skipping states
    2. **Dual approval required** at every gate — Team Lead AND Codex must both approve
-   3. **`DONE` is human-only** — agents must NEVER set this milestone
+   3. **`DONE` and `CANCELLED` are human-only** — agents must NEVER set these milestones. On `CANCELLED`, the canceller documents in a comment whether teardown/rollback is needed; if yes, create a new linked issue (milestone `new`)
    4. **One issue per discrete change** — all phases documented as comments on that issue
    5. **Audit trail** — every Codex response posted as comment on the GitHub Issue
    6. **On failure**: `tested-failed` bounces back to `planned` (wrong approach) or `implemented` (code bug), with documented reason

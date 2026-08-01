@@ -46,7 +46,7 @@ Mandatory before asking any questions. Build context silently.
    gh api repos/{owner}/{repo}/milestones --jq '.[] | {number, title}'
    ```
    - Check the target issue's milestone against the lifecycle
-     (`new` -> `planned` -> `plan-approved` -> ... -> `DONE`)
+     (`new` -> `planned` -> `plan-approved` -> ... -> `DONE`; abort: `CANCELLED`, human-only)
    - No milestone: flag it — "Dieses Issue hat keinen Milestone — welcher passt?"
    - Milestone seems wrong for the issue's current state: flag it
 4. **Codebase scan**: read files and functions referenced in the issue body

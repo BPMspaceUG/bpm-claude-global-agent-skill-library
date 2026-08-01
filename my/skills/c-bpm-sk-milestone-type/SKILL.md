@@ -221,7 +221,7 @@ Output a compliance table:
 
 ```
 Repo: {owner}/{repo}
-Milestones: ✓ all 10 exist
+Milestones: ✓ all 15 exist
 Type labels: ✓ bug + enhancement (lowercase)
 Open issues: 12
   With milestone: 12/12 ✓

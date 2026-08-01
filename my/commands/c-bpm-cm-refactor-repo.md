@@ -41,7 +41,7 @@ Do NOT use labels. Do NOT use tags. Issue Type + Milestone is the only tracking 
 ### Milestone-Based Lifecycle
 **Read `c-bpm-sk-milestone-type` skill for full milestone definitions, rules, and Codex gate patterns.**
 
-Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only).
+Uses the FULL lifecycle: `new` -> `planned` -> `plan-approved` -> `test-designed` -> `test-design-approved` -> `implemented` -> `tested-success`/`tested-failed` -> `test-approved` -> `DONE` (human only). Abort: any state except `DONE` may move to `CANCELLED` (human-only, terminal).
 
 ### Existing Issues
 Before creating ANY new issues:
@@ -67,6 +67,7 @@ Using GitHub MCP, create ALL lifecycle milestones upfront (skip any that already
 8. `tested-failed`
 9. `test-approved`
 10. `DONE`
+11. `CANCELLED`
 
 ### 0b. MCP Servers
 Check which MCP servers are connected:

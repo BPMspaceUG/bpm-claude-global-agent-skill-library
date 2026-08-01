@@ -35,7 +35,7 @@ Each discrete skill change gets its own issue. All phases of work are documented
 
 **Read `c-bpm-sk-milestone-type` skill** for full milestone definitions, transition rules, and Codex gate patterns.
 
-Uses the COMPACT lifecycle: `new` -> `planned` -> `plan-approved` -> `implemented` -> `reviewed` -> `review-approved` -> `DONE` (human only).
+Uses the COMPACT lifecycle: `new` -> `planned` -> `plan-approved` -> `implemented` -> `reviewed` -> `review-approved` -> `DONE` (human only). Abort: any state except `DONE` may move to `CANCELLED` (human-only, terminal).
 
 ---
 

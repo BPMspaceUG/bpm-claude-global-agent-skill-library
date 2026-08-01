@@ -66,11 +66,11 @@ If not cloned: clone to `/home/rootmessages/bpm-${HOSTNAME}/`. If exists: `git p
 
 ### 0e. Verify Milestones
 
-List existing milestones. All 10 lifecycle milestones MUST exist:
+List existing milestones. All 11 lifecycle milestones MUST exist:
 
 ```
 new, planned, plan-approved, test-designed, test-design-approved,
-implemented, tested-success, tested-failed, test-approved, DONE
+implemented, tested-success, tested-failed, test-approved, DONE, CANCELLED
 ```
 
 Create any that are missing. **Record milestone numbers** — teammates need these.
@@ -339,6 +339,7 @@ After all workable issues are addressed:
 ```
 new → planned → plan-approved → implemented → tested-success → test-approved → DONE
                                             ↘ tested-failed → (back to planned)
+any state except DONE → CANCELLED   (human-only, terminal abort)
 ```
 
 Team Lead manages ALL milestone transitions. Teammates recommend but do not set milestones.
