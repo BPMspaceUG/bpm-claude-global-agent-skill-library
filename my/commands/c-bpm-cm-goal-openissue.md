@@ -40,12 +40,16 @@ mkdir -p decisions reviews
 | `tested-failed` | Test result: fail |
 | `test-approved` | Tests accepted — **agent end state** |
 | `DONE` | Closed — set by a **human ONLY**, never by an agent |
+| `CANCELLED` | Deliberate abort — terminal, set by a **human ONLY**. Reachable from any state except `DONE`. |
 
 Hard rules on milestones:
 
-- **NEVER set an issue to `DONE`.** That is a human-only transition.
+- **NEVER set an issue to `DONE` or `CANCELLED`.** Both are human-only
+  transitions. An issue you cannot finish is reported as `documented-blocked`
+  in a comment — never cancelled by you.
 - `test-approved` is the terminal state for this command.
-- Issues in `test-approved` or `DONE` are out of scope and are not touched.
+- Issues in `test-approved`, `DONE`, or `CANCELLED` are out of scope and are
+  not touched.
 - Set the milestone after each completed stage, so an interrupted run is
   resumable from the issue state alone.
 
@@ -57,13 +61,14 @@ Hard rules on milestones:
   label filter.
 - If issue numbers are given, ONLY those issues are in scope. Nothing else is
   touched — the state filter below does not apply. If a given issue does not
-  exist or is already `test-approved`/`DONE`, say so explicitly and continue
-  with the remaining ones.
+  exist or is already `test-approved`/`DONE`/`CANCELLED`, say so explicitly and
+  continue with the remaining ones.
 - If no arguments are given, the scope is resolved automatically (see below).
 
 ## SCOPE RESOLUTION (no issue numbers given)
 
-- In scope: every issue whose milestone is NOT `test-approved` and NOT `DONE`.
+- In scope: every issue whose milestone is NOT `test-approved`, NOT `DONE`, and
+  NOT `CANCELLED`.
 - This deliberately includes issues stuck in an intermediate milestone from an
   aborted or crashed earlier run — those are the most important ones.
 - Resolve the scope via `/c-bpm-cm-openissues-team` at the start of the run and

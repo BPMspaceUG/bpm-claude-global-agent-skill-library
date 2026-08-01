@@ -42,6 +42,7 @@ The full lifecycle requires these milestones:
 | `tested-failed` | Tests fail — bounces back with documented reason |
 | `test-approved` | Final automated gate — independent verification passed |
 | `DONE` | Human-only final sign-off |
+| `CANCELLED` | Human-only terminal abort — reachable from any state except `DONE` |
 
 ### If ANY milestones are missing:
 
@@ -67,6 +68,7 @@ The full lifecycle requires these milestones:
    ```
    new -> planned -> plan-approved -> test-designed -> test-design-approved
      -> implemented -> tested-success / tested-failed -> test-approved -> DONE
+   any state except DONE -> CANCELLED   (human-only, terminal)
    ```
 
    ### Non-Negotiable Rules

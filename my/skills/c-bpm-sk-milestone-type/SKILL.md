@@ -78,6 +78,24 @@ gh label delete Enhancement --yes 2>/dev/null || true
 | `tested-failed` | Team Lead | Tests fail — bounces back with documented reason |
 | `test-approved` | Team Lead + Codex | Final automated gate — independent verification passed |
 | `DONE` | **Human only** | Final sign-off. Agents NEVER set this. |
+| `CANCELLED` | **Human only** | Deliberate abort — terminal. Agents NEVER set this. |
+
+### CANCELLED (terminal abort — all lifecycles)
+
+`CANCELLED` exists in **every** lifecycle (Full, Compact, Ops/Task):
+
+- Reachable from **any state except `DONE`**. Once `DONE`, an issue is signed off
+  and can no longer be cancelled.
+- **Terminal.** A cancelled issue is never resumed; new work gets a new issue.
+- **Human-only**, like `DONE`: the deliberate-abort decision belongs to a human.
+  Agents that cannot finish an issue report it as `documented-blocked` in a
+  comment — they never cancel.
+- **At cancellation time the canceller MUST answer in an issue comment:** does the
+  partial work require teardown/rollback? If yes → create a NEW linked issue
+  (milestone `new`, type label set) for the rollback work. The cancelled issue
+  itself stays terminal.
+- Issues in `CANCELLED` are **out of scope** for every autonomous command, exactly
+  like `test-approved` and `DONE`.
 
 ### Compact Lifecycle (simpler development workflows)
 
@@ -142,6 +160,11 @@ new -> planned -> plan-approved -> implemented -> reviewed -> review-approved ->
 new -> investigating -> resolved -> DONE
 ```
 
+**Abort (all lifecycles):**
+```
+any state except DONE -> CANCELLED   (human-only, terminal)
+```
+
 On failure (Full): `tested-failed` bounces back to `planned` (wrong approach) or `implemented` (code bug).
 On escalation (Ops/Task): if investigation reveals a code fix is needed, create a NEW issue with Full lifecycle and link it.
 
@@ -156,7 +179,7 @@ When auditing a repo, check ALL of these:
 gh api repos/{owner}/{repo}/milestones --jq '.[].title'
 
 # Create missing ones
-for ms in new planned plan-approved test-designed test-design-approved implemented tested-success tested-failed test-approved reviewed review-approved investigating resolved DONE; do
+for ms in new planned plan-approved test-designed test-design-approved implemented tested-success tested-failed test-approved reviewed review-approved investigating resolved DONE CANCELLED; do
   gh api repos/{owner}/{repo}/milestones --method POST -f title="$ms" 2>/dev/null || true
 done
 ```
@@ -210,7 +233,7 @@ Open issues: 12
 
 1. **One milestone at a time** per issue — no skipping states
 2. **Dual approval required** at every gate — Team Lead AND independent reviewer (Codex → Gemini → other) must both approve
-3. **`DONE` is human-only** — agents must NEVER set this milestone
+3. **`DONE` and `CANCELLED` are human-only** — agents must NEVER set these milestones; `CANCELLED` additionally requires the documented teardown/rollback decision (see CANCELLED section)
 4. **Every issue gets a type** — `bug` or `enhancement`, no exceptions
 5. **Always lowercase** — normalize on sight
 6. **One issue per discrete change** — all phases documented as comments

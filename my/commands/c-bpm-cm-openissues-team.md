@@ -83,6 +83,7 @@ Using GitHub MCP, create ALL lifecycle milestones upfront (skip any that already
 8. `tested-failed`
 9. `test-approved`
 10. `DONE`
+11. `CANCELLED`
 
 ---
 
