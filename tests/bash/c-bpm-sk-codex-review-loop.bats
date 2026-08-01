@@ -92,6 +92,45 @@ _assert_no_match() {
 }
 
 # ==================================================================
+# Test 0 - scanned file set intact (#126)
+#
+# The negative tests below scan a FIXED file list with fixed regexes, so at a
+# given commit their outcome is deterministic — UNLESS a scanned file was
+# mutated mid-run by an earlier suite (the #126 flake). This precondition
+# turns that silent mutation into a named failure: every scanned file must
+# exist and match its committed (HEAD) content at suite start.
+#
+# Legitimate local development on one of the six files: set
+# CODEX_REVIEW_LOOP_ALLOW_DIRTY=1 to skip only the HEAD comparison
+# (existence + cardinality always hold). CI / clean checkouts never set it —
+# overuse suppresses exactly the signal this test exists for.
+# ==================================================================
+
+@test "scanned in-scope file set is intact at suite start (#126)" {
+  local bad=0 rel f
+  if [[ "${#IN_SCOPE_FILES[@]}" -ne 6 ]]; then
+    echo "IN_SCOPE_FILES cardinality is ${#IN_SCOPE_FILES[@]}, expected exactly 6"
+    bad=1
+  fi
+  for rel in "${IN_SCOPE_FILES[@]}"; do
+    f="${REPO_ROOT}/${rel}"
+    if [[ ! -f "${f}" ]]; then
+      echo "scanned file missing: ${rel}"
+      bad=1
+      continue
+    fi
+    if [[ "${CODEX_REVIEW_LOOP_ALLOW_DIRTY:-0}" != "1" ]]; then
+      if ! git -C "${REPO_ROOT}" show "HEAD:${rel}" 2>/dev/null | cmp -s - "${f}"; then
+        echo "scanned file differs from HEAD at suite start (mid-run mutation, or an uncommitted edit — see CODEX_REVIEW_LOOP_ALLOW_DIRTY): ${rel}"
+        git -C "${REPO_ROOT}" diff HEAD -- "${rel}" | head -20
+        bad=1
+      fi
+    fi
+  done
+  return "${bad}"
+}
+
+# ==================================================================
 # Test 1 - c-bpm-sk-llm-selection encodes the Producer<->Codex Judge loop
 # ==================================================================
 
