@@ -128,9 +128,20 @@ Render a markdown table with these columns:
 
 Sort by issue number ascending.
 
-After the table, show a summary line:
+### Definition of "open" (actionable)
+
+An issue counts as **open (actionable)** only if its milestone is NOT
+`test-approved` and NOT `CANCELLED`. `test-approved` means the agent side is
+finished — the issue merely waits for the human `DONE` sign-off, which
+routinely takes a while; it is not open work. `CANCELLED` is terminal.
+
+After the table, show this summary:
 ```
-N open issue(s) | M with milestones | K without milestones
+N GitHub-open issue(s) total
+  A open (actionable — not test-approved, not CANCELLED)
+  T test-approved (waiting for human DONE sign-off)
+  C CANCELLED (terminal)
+M with milestones | K without milestones
 ```
 
 ## Step 5 — Final Status
