@@ -370,3 +370,14 @@ run_fixture() {
   [[ -n "${reg}" ]] || { echo "no HOOK_REGISTRY entry for plan-doc-gate"; return 1; }
   [[ "${reg}" == *"Write"* && "${reg}" == *"Edit"* && "${reg}" == *"NotebookEdit"* ]]
 }
+
+# ── #155 round 2: traversal cannot smuggle a side-car through an allowlisted
+#    segment (Judge finding on the final gate) ─────────────────────────────
+
+@test "#155 fixture 58: .git/../ISSUE_12_PLAN.md -> DENY (traversal collapsed)" {
+  run_fixture 58
+}
+
+@test "#155 fixture 59: dist/../plan.md -> DENY (pre-existing traversal shape)" {
+  run_fixture 59
+}

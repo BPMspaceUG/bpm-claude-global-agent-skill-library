@@ -4,8 +4,8 @@
   "_known_gap": "A Bash write (`cat > plan.md <<EOF`) is NOT gated: this hook is registered on the write TOOLS only. Gating Bash would require inspecting redirect targets inside arbitrary shell, which is the content/shape heuristic that cost the sibling hook four review rounds. The CI check from #104 remains the broad layer.",
   "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/plan-doc-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/plan-doc-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/plan-doc-gate.ts dist/plan-doc-gate.mjs and update _parity below.",
   "_parity": {
-    "my/hooks/plan-doc-gate.ts": "0aa4e09f80d83de470ec75ba8c0c9d42daa40bfef338db53f0b221fff0e916ea",
-    "dist/plan-doc-gate.mjs": "5e79145a4f91c6606ee00f81785fe4def45191e6fae6a4df78717bffb8ba771f"
+    "my/hooks/plan-doc-gate.ts": "2dd6942f6195467ca5032bb9744d6cec71f59fe99c6e38ce1c09a11e68d05b7f",
+    "dist/plan-doc-gate.mjs": "6c39be75a8a7342f217e4f5e0540f083123d9e9be2423ec90784d5c8c9d83242"
   },
   "fixtures": [
     {
@@ -584,6 +584,36 @@
       "expected": {
         "decision": "allow",
         "reason_contains": "SPEC.md"
+      }
+    },
+    {
+      "id": 58,
+      "description": "#155 traversal probe (Judge finding): .git/../ISSUE_12_PLAN.md -> DENY after lexical normalization",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/tmp/plan-doc-gate-e2e/rootA/.git/../ISSUE_12_PLAN.md"
+        },
+        "cwd": "/tmp/plan-doc-gate-e2e/rootA"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
+      }
+    },
+    {
+      "id": 59,
+      "description": "#155 traversal, pre-existing shape: dist/../plan.md -> DENY",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/home/rob/repo/dist/../plan.md"
+        },
+        "cwd": "/home/rob/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "side-car"
       }
     }
   ]

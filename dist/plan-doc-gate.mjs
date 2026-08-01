@@ -128,10 +128,25 @@ function stem(name) {
   return name.replace(DOC_EXT, '').toLowerCase();
 }
 
+// Lexically collapse `.` and `..` segments so traversal cannot smuggle a
+// denied name through an allowlisted segment (`.git/../ISSUE_12_PLAN.md`).
+// Purely lexical — no filesystem access, symlinks are out of scope for a
+// path-rule tripwire.
+function normalize(p) {
+  const abs = p.startsWith('/');
+  const parts = [];
+  for (const s of p.split('/')) {
+    if (s === '' || s === '.') continue;
+    if (s === '..') { parts.pop(); continue; }
+    parts.push(s);
+  }
+  return (abs ? '/' : '') + parts.join('/');
+}
+
 // Returns a deny reason, or null to allow. PATH IN, VERDICT OUT — no file is
 // read, no tool_input content is consulted.
 function classify(rawPath) {
-  const path = rawPath.replace(/\\/g, '/');
+  const path = normalize(rawPath.replace(/\\/g, '/'));
   const name = basename(path);
   const lower = name.toLowerCase();
 
