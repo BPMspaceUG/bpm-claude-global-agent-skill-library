@@ -128,6 +128,15 @@ Render a markdown table with these columns:
 
 Sort by issue number ascending.
 
+### Display rule — closed-for-the-dashboard states are hidden
+
+Rows whose milestone is `test-approved`, `DONE`, or `CANCELLED` are hidden from the table — for this dashboard they count as closed (#149).
+The user checks what happens next; dozens of finished rows drown out the
+actionable ones. They stay in the fetch and appear in the summary counts
+below — hidden from the table only, never from the numbers.
+Issues without milestone still render in the table (they are findings the
+pre-flight must surface).
+
 ### Definition of "open" (actionable)
 
 An issue counts as **open (actionable)** only if its milestone is NOT
