@@ -20,9 +20,15 @@ $ARGUMENTS
 
 ## SETUP — FIRST, before anything else
 
-```bash
-mkdir -p decisions reviews
-```
+No run directories, no run files: every record of this run lives in GitHub
+Issues (see BATCH PLANNING). The only setup is the orchestration label,
+**ensure-then-verify**: create the `plan` label if missing, then verify it
+exists with a read (`gh label list` or `gh api .../labels/plan`). Only an
+"already exists" error is tolerable. If the verification read fails for any
+reason (auth, API, network), the discriminator is unavailable — you MUST NOT
+create a Plan Issue and MUST NOT proceed with multi-issue orchestration;
+report `documented-blocked` on the affected issues instead. No verified
+label, no Plan Issue, no silent fallback.
 
 ---
 
@@ -63,12 +69,18 @@ Hard rules on milestones:
   touched — the state filter below does not apply. If a given issue does not
   exist or is already `test-approved`/`DONE`/`CANCELLED`, say so explicitly and
   continue with the remaining ones.
+- An explicitly passed issue carrying the `plan` label is refused as a work
+  item — report it as an orchestration artifact and continue with the
+  remaining numbers. Plan Issues are never executable, on either entry path.
 - If no arguments are given, the scope is resolved automatically (see below).
 
 ## SCOPE RESOLUTION (no issue numbers given)
 
 - In scope: every issue whose milestone is NOT `test-approved`, NOT `DONE`, and
   NOT `CANCELLED`.
+- An issue carrying the `plan` label is an orchestration artifact — never an
+  executable work item. It is excluded exactly like `test-approved`/`DONE`/
+  `CANCELLED`, on the initial resolve and on every re-resolve.
 - This deliberately includes issues stuck in an intermediate milestone from an
   aborted or crashed earlier run — those are the most important ones.
 - Resolve the scope via `/c-bpm-cm-openissues-team` at the start of the run and
@@ -106,6 +118,36 @@ artefact is intact, say so, and restart from there.
   chain strictly in order.
 - Surface this split in the conversation before executing it.
 
+The batch plan is posted to GitHub, never to a file:
+
+- **Multi-issue scope → Plan Issue.** Create a dedicated Plan Issue: title
+  prefixed `PLAN:`, milestone `new`, type label `enhancement`, plus the `plan`
+  label (the machine discriminator). It holds the parallel/sequential split,
+  the ordered dependency chain, and the per-round score table. It is an
+  orchestration artifact, not a work item. Closing a Plan Issue is human-only.
+- **Single-issue scope → plan comment.** The plan comment on that issue
+  suffices; no Plan Issue is created.
+- **Promotion (single → multi).** The moment a re-resolve or an explicit user
+  instruction grows the in-scope set beyond one issue, promote the run:
+  create the Plan Issue right then, seed its body with the current plan state
+  (ordered chain, split, link to the original work issue's plan comment, score
+  table rows accumulated so far) and post a backlink comment on the original
+  work issue ("run promoted, plan now tracked in #N"). A shrinking multi-issue
+  run keeps its Plan Issue — history stays.
+- **Dependency lines, both directions.** Every work issue's plan comment
+  carries explicit `Depends on: #N` and `Blocks: #N` lines, consistent with
+  the chain in the Plan Issue.
+- **Amendments.** After every re-resolve that changes the in-scope set, post a
+  plan amendment comment on the Plan Issue (added/removed issues, revised
+  split, revised chain), update the `Depends on:` / `Blocks:` lines of every
+  affected work issue with a new plan comment (never edit history away), and
+  re-run the plan gate on the amendment. The score table in the Plan Issue
+  gains one row per gate round, amendment rounds included.
+- **Mirroring.** Every decision recorded in the Plan Issue that affects a work
+  issue is mirrored to each affected work issue at decision time — a
+  one-paragraph summary comment plus a backlink to the Plan Issue comment.
+  The Plan Issue never substitutes for per-issue history.
+
 ---
 
 ## DONE — all of the following hold AND each has been demonstrated in this
@@ -115,15 +157,18 @@ conversation, because the evaluator reads only what you surfaced here:
    payloads, states) are answered against the live API or the live system, the
    issue is updated with the verified facts (description or comment), and that
    change is committed.
-2. PLAN.md exists, covers every in-scope issue including the
-   parallel/sequential split, and its review verdict is APPROVED
+2. The plan is posted where it belongs — single-issue run: plan comment on the
+   issue; multi-issue run (at any point of its life): the Plan Issue exists and
+   covers the final in-scope set including the parallel/sequential split and
+   all amendments — and the latest plan-gate verdict is APPROVED
    (TOTAL >= 20, no dimension below 4).
 3. Every deliverable named in the in-scope issues exists; you showed the tree.
 4. The test suite runs and exits 0; you showed the output.
 5. The implementation review verdict is APPROVED under the same rubric.
 6. The acceptance criteria of each in-scope issue are demonstrated live in
    this conversation (run it, show the output) — not merely asserted.
-7. `reviews/scores.md` holds every round, `git status` is clean, and every
+7. The score table in the Plan Issue (or, single-issue run, in the work
+   issue's comments) holds every round, `git status` is clean, and every
    finished issue carries the milestone `test-approved`. No issue was set to
    `DONE`.
 
@@ -145,17 +190,20 @@ conversation, because the evaluator reads only what you surfaced here:
 
 - **Never ask the user anything.** Nobody is awake. There is no human until
   morning.
-- When blocked or uncertain, ask Codex instead of stopping. Append question
-  and answer to `decisions/qa.md`, take the answer as the decision, continue.
-- If an issue is underspecified, do not guess silently: ask Codex, record the
-  decision in `decisions/qa.md`, and write the resulting interpretation back
-  into the issue.
+- When blocked or uncertain, ask Codex instead of stopping. Post question and
+  answer as a comment on the affected issue (cross-cutting → the Plan Issue,
+  mirrored per the BATCH PLANNING mirroring rule), take the answer as the
+  decision, continue.
+- If an issue is underspecified, do not guess silently: ask Codex, post the
+  decision as a comment on that issue, and write the resulting interpretation
+  back into the issue body.
 - **Never expand the scope on your own.** If work on an in-scope issue reveals
   additional work, create a separate issue in milestone `new` instead of doing
   it — unless it is strictly required to satisfy the in-scope acceptance
   criteria.
-- Capture every review into `reviews/`, append scores to `reviews/scores.md`,
-  commit `reviews/`.
+- Every review verdict is posted verbatim as an Issue comment (naming the
+  Judge used), and its scores land as a row in the score table — nothing is
+  captured into files.
 - Commit before every review and after every green test run. Reference the
   issue ID in every commit message. No pull requests — push directly to
   `main`.
@@ -170,8 +218,8 @@ conversation, because the evaluator reads only what you surfaced here:
 - The models this build runs on have nothing to do with the models the
   product calls. Never wire the product to your own model, and never copy a
   build-time model name into source, config, prompts, tests or docs.
-- If the same failure repeats three times, stop retrying. Write it to
-  `decisions/blockers.md`, ask Codex for a different route, take it.
+- If the same failure repeats three times, stop retrying. Post the blocker as
+  a comment on the affected issue, ask Codex for a different route, take it.
 
 ## TURN PROTOCOL
 
@@ -182,17 +230,13 @@ conversation, because the evaluator reads only what you surfaced here:
 
 ---
 
-## PRECEDENCE — mandated run artifacts
+## NO SIDE-CAR ARTIFACTS
 
-The `PLAN.md`, `decisions/`, and `reviews/` files above are an **explicit user
-directive for this command** and take precedence over the generic no-side-car
-rule in the stamped block below — the same PC-2-style ratification as the
-SUMMARY report in `/c-bpm-cm-goal-issue`. The GitHub Issues remain the
-**authoritative** record: every per-issue fact — plan, decision, review
-verdict, blocker — is posted as an **issue comment FIRST**, and these files are
-user-mandated aggregations of what is already in the issues, never a
-replacement for them. The ban below targets agent-invented side-car docs and
-is not waived for anything else.
+This command mandates no files of its own. Every record of the run — plan,
+amendments, decisions, blockers, review verdicts, score table — lives in
+GitHub Issues, as described above. The stamped block below applies without
+carve-outs, and the `plan-doc-gate` hook enforces it at runtime with no
+exceptions for this command (user decision of 2026-08-01, issue #152).
 
 <!-- BEGIN issue-comms (stamped block — do not edit in stamped files; edit my/shared/issue-communication-protocol.md and run scripts/stamp-issue-protocol.sh) -->
 ## Communication: GitHub Issues only
