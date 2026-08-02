@@ -4,7 +4,7 @@
 # against the fixture set in my/hooks/__tests__/issue-write-gate.fixtures.json.
 #
 # Implements test plan from BPMspaceUG/bpm-claude-global-agent-skill-library#68,
-# plus #69 #70 #71 #72 #73 #74 #99 #100.
+# plus #69 #70 #71 #72 #73 #74 #99 #100 #131 #133 #136.
 # Run with: bats tests/bash/c-bpm-sk-issue-write-gate.bats
 
 set -u
@@ -438,6 +438,152 @@ stub_path() {
 
 @test "fixture 67 (#133): internal error in main() -> DENY exit 0 (outer wrapper)" {
   run_fixture 67
+}
+
+# Fixtures 68-81 (#136) are the acceptance set for the HYBRID discriminator that
+# replaced two rejected designs.
+#
+# What failed before, so nobody re-proposes it:
+#   - a NAME ALLOWLIST deciding what to inspect. It fails open on every name
+#     nobody listed, and its false-positive class just moves: first `grep -c`,
+#     then `ssh -c` (fixture 69, a LIVE deny).
+#   - POSITION ONLY. A terminal `-c` argument is not unique to shells:
+#     fixture 62 (`sort -c "gh issue create --title x"`) has the exact shape of
+#     fixture 74 (`mysh -c "gh issue create --title x"`) and must go the other
+#     way.
+#
+# So the two signals split the job. OWNERSHIP (68-71) can only ever SUPPRESS
+# inspection, and only for a positively-recognised operand consumer — unknown
+# owners are still unwrapped (74) and still fail closed. POSITION then decides
+# how strictly an unrecognised owner's payload is parsed, and 75/76 isolate it:
+# same owner, same flag, same unparsable payload, decided purely by whether a
+# trailing `$0` operand follows.
+#
+# 72/77-81 are the checkHttpClient() half: the POST indicator and the URL must
+# be syntactically connected, not merely co-present in the string.
+
+@test "fixture 68 (#136): ssh -c CIPHER host -> ALLOW (cipher, not a command)" {
+  run_fixture 68
+}
+
+@test "fixture 69 (#136): ssh -c with create text in the cipher slot -> ALLOW (was DENY)" {
+  run_fixture 69
+}
+
+@test "fixture 70 (#136): grep -c PATTERN FILE -> ALLOW" {
+  run_fixture 70
+}
+
+@test "fixture 71 (#136): sort -c FILE -> ALLOW" {
+  run_fixture 71
+}
+
+@test "fixture 72 (#136): python3 -c printing a URL literal -> ALLOW (was DENY)" {
+  run_fixture 72
+}
+
+@test "fixture 73 (#136): bash -c CMD arg0 -> DENY (trailing-positional shell shape)" {
+  run_fixture 73
+}
+
+@test "fixture 74 (#136): bare unknown shell mysh -c -> DENY (unknown owner inspected)" {
+  run_fixture 74
+}
+
+@test "fixture 75 (#136): unknown shell + trailing operand -> DENY (position decides alone)" {
+  run_fixture 75
+}
+
+@test "fixture 76 (#136): same payload without the operand -> ALLOW (control for 75)" {
+  run_fixture 76
+}
+
+@test "fixture 77 (#136): python3 -c urlopen(Request(url, data=)) -> DENY" {
+  run_fixture 77
+}
+
+@test "fixture 78 (#136): curl -X POST .../issues -d @b.json -> DENY (flag bound to URL)" {
+  run_fixture 78
+}
+
+@test "fixture 79 (#136): curl GET on the issues collection -> ALLOW (no body/method)" {
+  run_fixture 79
+}
+
+@test "fixture 80 (#136): echo of a URL plus the word --data -> ALLOW (was DENY)" {
+  run_fixture 80
+}
+
+@test "fixture 81 (#136): wget --post-data to issues -> DENY (was ALLOW, missed bypass)" {
+  run_fixture 81
+}
+
+# 82-86 (#136): the inline-call argument text is delimited by the MATCHING
+# close paren, not the first one. 83 and 85 were ALLOW until that fix — a
+# bypass the #136 rewrite itself introduced, so they are the load-bearing cases
+# here. 82 is the flat control and 84 the deeper-nesting case; both denied
+# before the fix as well, so neither would have caught the bypass on its own.
+# 86 pins the fail-closed branch when the matching paren is not found at all.
+
+@test "fixture 82 (#136): node -e fetch(URL, {method:POST}) -> DENY (flat control)" {
+  run_fixture 82
+}
+
+@test "fixture 83 (#136): fetch(new URL(...), {method:POST}) -> DENY (was ALLOW, bypass)" {
+  run_fixture 83
+}
+
+@test "fixture 84 (#136): requests.post(str(build_url(URL))) -> DENY (URL two calls deep)" {
+  run_fixture 84
+}
+
+@test "fixture 85 (#136): ')' inside a string literal -> DENY (was ALLOW, quote tracking)" {
+  run_fixture 85
+}
+
+@test "fixture 86 (#136): posting call with no matching close paren -> DENY (fail-closed)" {
+  run_fixture 86
+}
+
+# 87-88 (#136): KNOWN, ACCEPTED FALSE POSITIVES, pinned deliberately. The
+# inline scan is a call-shaped TEXTUAL match with no awareness of the embedded
+# language, so a create quoted inside a Python string literal (87) or sitting
+# in a `#` comment (88) is denied even though nothing is invoked. Both were
+# reproduced live against this hook. They are NOT desired behaviour; they are
+# the documented price of the fail-closed bias (see inlinePostsToIssues). They
+# are pinned so that a change to this behaviour — deliberate or accidental —
+# fails the suite and gets reviewed instead of landing unnoticed. Fixture 44
+# (a genuine requests.post create) and fixture 72 (a bare `requests.post`
+# token with no call shape, ALLOW) keep the real cases distinguishable.
+
+@test "fixture 87 (#136): create quoted in a string literal -> DENY (known false positive)" {
+  run_fixture 87
+}
+
+@test "fixture 88 (#136): create in a # comment -> DENY (known false positive)" {
+  run_fixture 88
+}
+
+@test "fixture 89 (#136): xh POST .../issues -> DENY (was ALLOW, httpie verb missed)" {
+  run_fixture 89
+}
+
+# 90 (#136): a third pinned false positive, same class as 87/88 but from the
+# `-c` discriminator rather than the inline scan. gcc is the residual named
+# verbatim in shellPayloads: an unlisted operand consumer whose operand text
+# looks like a create is denied. Pinned so that "fixing" it by growing
+# C_OPERAND_TOOLS — which would fail OPEN — has to pass review first.
+
+@test "fixture 90 (#136): gcc -c 'gh issue create' file.c -> DENY (known false positive)" {
+  run_fixture 90
+}
+
+@test "fixture 91 (#136): scp -c CIPHER src dst -> ALLOW (listed operand consumer)" {
+  run_fixture 91
+}
+
+@test "fixture 92 (#136): mysh -nvc wrapping a create -> DENY (bundled flag = shell shape)" {
+  run_fixture 92
 }
 
 # ── ts <-> dist parity ────────────────────────────────────────────────────
