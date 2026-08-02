@@ -706,6 +706,10 @@ stub_path() {
   run_fixture 113
 }
 
+@test "fixture 114 (#131): python3 create_issue.py -> ALLOW (documented out-of-scope boundary, #42 is the planned enforcer)" {
+  run_fixture 114
+}
+
 # ── ts <-> dist parity ────────────────────────────────────────────────────
 #
 # dist/issue-write-gate.mjs is what Claude Code executes; the .ts is the

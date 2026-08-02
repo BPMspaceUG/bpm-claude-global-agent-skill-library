@@ -18,8 +18,8 @@
   "_done_creation_allowed": false,
   "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/issue-write-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/issue-write-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/issue-write-gate.ts dist/issue-write-gate.mjs and update _parity below.",
   "_parity": {
-    "my/hooks/issue-write-gate.ts": "316160d2499264946619000f09438f837000117809000ce26e1bdd497d4c59cc",
-    "dist/issue-write-gate.mjs": "edc9c9ccf39823b37b7a5434abbb2f82960faea780a324f8e06db6b95709b61c"
+    "my/hooks/issue-write-gate.ts": "cedf26dbc3841292a58b79f4562612dea5204fd29eb6e6a365e6a24b849dd149",
+    "dist/issue-write-gate.mjs": "db06d740f839fbcdf711513f52dbd8d29014a13441ca6778ff4f586eece60749"
   },
   "fixtures": [
     {
@@ -1831,6 +1831,21 @@
         "tool_name": "Bash",
         "tool_input": {
           "command": "sh <<EOF\ngh issue create --title x\nEOF"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 114,
+      "description": "#131: python3 create_issue.py (POST lives in the file) -> ALLOW (documented out-of-scope boundary; server-side #42 Action is the planned, not-yet-existing enforcer)",
+      "_note": "Regression pin for the #131 accepted boundary. If a future heuristic starts denying script-file runs, this fixture fails instead of silently shipping the false-positive class #131 warns against.",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "python3 create_issue.py"
         },
         "cwd": "/tmp/repo"
       },

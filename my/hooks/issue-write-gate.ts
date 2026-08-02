@@ -652,10 +652,15 @@ function validate(milestone: unknown, labels: unknown, repo: string | null): str
 // `python3 -c "...requests.post(...)"`. It does NOT and cannot catch issue
 // creation inside a script FILE — `python3 create_issue.py`, `./release.sh` —
 // because the hook never sees that file's contents. Script-file invocation is
-// out of scope for this layer and belongs to the GitHub Actions layer
-// (issues.opened), which catches anything created outside Claude Code.
-// Tracked as issue #131 — do not "fix" it here; the recommendation there is to
-// enforce server-side rather than grow more inline heuristics.
+// out of scope for this layer BY RULING (#131): the hook cannot read a
+// subprocess's file, and must NOT grow deny-on-suspicion heuristics that would
+// block ordinary script runs (that option was weighed and rejected on #131).
+// The layer that WOULD catch it is the `issues.opened` GitHub Action — but that
+// Action is NOT YET IMPLEMENTED (tracked in #42). Until #42 lands, script-file
+// issue creation from inside Claude Code is UNENFORCED; that is an accepted,
+// documented residual, not a covered case. Do not "fix" it here. Fixture 114
+// pins the allow so a future over-eager heuristic that starts denying script
+// files fails a test instead of silently shipping the false-positive class.
 //
 // #136: the POST indicator and the URL must be SYNTACTICALLY CONNECTED — bound
 // inside one invocation — not merely co-occurring somewhere in the string. The
