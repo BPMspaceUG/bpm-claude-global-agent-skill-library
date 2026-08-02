@@ -156,7 +156,7 @@ Present a summary to the user:
 4. **Proposed team** — teammate names, responsibilities, assigned issues, file scopes
 5. **Estimated complexity** — per teammate
 
-**STOP and WAIT for user confirmation before proceeding.** Do not spawn any teammates until the user approves the plan.
+**Proceed to spawn the team — never wait for user confirmation.** The plan is gated by the Judge (the review authority), not the operator; the Lead posts the plan and continues to the next phase without an operator approval step.
 
 ---
 

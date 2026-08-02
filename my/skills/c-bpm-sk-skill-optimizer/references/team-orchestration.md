@@ -109,7 +109,7 @@ Present a summary:
 3. **Proposed team** — teammate names, responsibilities, assigned issues
 4. **Estimated complexity** — per teammate
 
-**STOP and WAIT for user confirmation before spawning teammates.**
+**Proceed to spawn the team — never wait for user confirmation.** The plan is gated by the Judge (the review authority), not the operator; the Lead posts the plan and continues to the next phase without an operator approval step.
 
 ---
 

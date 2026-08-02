@@ -26,6 +26,7 @@ setup() {
   TEAM="${REPO_ROOT}/my/commands/c-bpm-cm-openissues-team.md"
   REFACTOR="${REPO_ROOT}/my/commands/c-bpm-cm-refactor-repo.md"
   CMDS=("${TEAM}" "${REFACTOR}")
+  REFS=( "${REPO_ROOT}"/my/skills/*/references/team-orchestration.md )
 }
 
 require_cmds() {
@@ -36,6 +37,10 @@ require_cmds() {
       return 1
     fi
   done
+}
+
+require_refs() {
+  [ "${#REFS[@]}" -ge 2 ] && [ -f "${REFS[0]}" ] || { echo "REFS glob resolved to <2 files: ${REFS[*]}"; return 1; }
 }
 
 # ------------------------------------------------------------------
@@ -227,4 +232,39 @@ ${hits}}"
     printf "%b" "${all}" >&2
     return 1
   fi
+}
+
+@test "159: references glob resolves to the team-orchestration reference files" {
+  require_refs
+}
+
+@test "159: no team-orchestration reference blocks on user confirmation (#116 extended)" {
+  require_refs
+  local f hits bad="" all=""
+  for f in "${REFS[@]}"; do
+    hits="$(grep -niE 'wait([[:alpha:]]*)? for (the )?user (confirmation|approval)' "${f}" || true)"
+    [[ -z "${hits}" ]] && continue
+    bad="$(printf '%s\n' "${hits}" | grep -viE "(never|not|don.t|without)[[:space:]].*wait([[:alpha:]]*)? for (the )?user (confirmation|approval)" || true)"
+    [[ -n "${bad}" ]] && all="${all}${f}:\n${bad}\n"
+  done
+  if [[ -n "${all}" ]]; then printf 'Blocking user-confirmation gate in a reference (violates #116/#159):\n' >&2; printf "%b" "${all}" >&2; return 1; fi
+}
+
+@test "159: each team-orchestration reference states the never-wait autonomy contract" {
+  require_refs
+  local f missing=""
+  for f in "${REFS[@]}"; do
+    grep -qiE 'never (asks?|waits?)' "${f}" || missing="${missing} ${f}"
+  done
+  if [[ -n "${missing}" ]]; then printf 'Autonomy contract missing in:%s\n' "${missing}" >&2; return 1; fi
+}
+
+@test "159: guard bites — a reference with a blocking wait is flagged (non-vacuous)" {
+  local d f; d="$(mktemp -d)"; f="$d/team-orchestration.md"
+  printf 'STOP and WAIT for user confirmation before spawning teammates.\n' > "$f"
+  local hits bad
+  hits="$(grep -niE 'wait([[:alpha:]]*)? for (the )?user (confirmation|approval)' "$f" || true)"
+  bad="$(printf '%s\n' "$hits" | grep -viE "(never|not|don.t|without)[[:space:]].*wait([[:alpha:]]*)? for (the )?user (confirmation|approval)" || true)"
+  rm -rf "$d"
+  [[ -n "$bad" ]]
 }
