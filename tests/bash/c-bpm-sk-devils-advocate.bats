@@ -795,3 +795,25 @@ CALL_SITE_COMMANDS=(
 @test "[#137] single-source preserved: devils-advocate does not restate the numeric threshold" {
   ! grep -qF 'TOTAL >= 20' "${DA_SKILL}"
 }
+
+@test "[#175] devils-advocate states the review is scoped to the current repo only" {
+  grep -qiF 'Review scope' "$DA_SKILL"
+  grep -qiF 'only the artifacts of the repository this session is in' "$DA_SKILL"
+  grep -qiF 'not read, reference, judge, or act on any other repository' "$DA_SKILL"
+}
+
+@test "[#175] devils-advocate scopes the payload to THIS repo via git remote -v owner/repo" {
+  grep -qiF 'git remote -v' "$DA_SKILL"
+  grep -qiF 'never another repo' "$DA_SKILL"
+}
+
+@test "[#175] the only permitted cross-repo action is the #166 Issue exception" {
+  grep -qiF 'only permitted cross-repo action is the #166 exception' "$DA_SKILL"
+}
+
+@test "[#175] guard is non-vacuous: a skill lacking the review-scope statement fails" {
+  local f; f="$(mktemp)"
+  printf '# a judge skill with no scope statement\n' > "$f"
+  ! grep -qiF 'only the artifacts of the repository this session is in' "$f"
+  rm -f "$f"
+}

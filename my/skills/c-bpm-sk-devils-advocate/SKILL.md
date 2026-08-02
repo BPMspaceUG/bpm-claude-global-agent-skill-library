@@ -41,6 +41,12 @@ OWNER=…; REPO=…; N=…          # discover OWNER/REPO from `git remote -v`
   **documented-blocked** on the Issue. Never emit a fabricated verdict, never guess
   what the Judge would have said, never let a gate pass on a missing review.
 
+## Review scope — current repo only (#175)
+
+The Judge reviews **only the artifacts of the repository this session is in** — the repo resolved from `git remote -v` / the cwd. It must not read, reference, judge, or act on any other repository, and it never claims jurisdiction beyond the current repo. The payload is Issue-sourced from THIS repo (`gh api repos/<owner>/<repo>/…`, where `<owner>/<repo>` come from `git remote -v` of the cwd) — never another repo's Issue.
+
+The only permitted cross-repo action is the #166 exception: creating, or commenting on, an Issue this same session filed in another repo for a finding concerning it. Nothing else. This complements #162 (which confines the reviewer's *writes* to a throwaway worktree) by confining its *scope*.
+
 ## Primary Judge — Codex
 
 Codex is the primary Judge. Canonical invocation (from `c-bpm-sk-llm-selection`,
