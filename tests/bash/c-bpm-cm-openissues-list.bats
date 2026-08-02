@@ -48,3 +48,21 @@ authored() {
   grep -qF '<!-- BEGIN issue-comms' "${CMD}"
   grep -qF '<!-- END issue-comms' "${CMD}"
 }
+
+@test "[#127] openissues-list carries the evidence-re-verify step for implemented+ issues" {
+  grep -qiF 'Evidence re-verify' "$CMD"
+  grep -qiF 'MILESTONE-UNBACKED' "$CMD"
+  grep -qiF 'implemented' "$CMD"
+  grep -qiF 'does not resolve' "$CMD"
+}
+
+@test "[#127] openissues-list states milestones follow commits, not narratives" {
+  grep -qiF 'milestones follow commits, not narratives' "$CMD"
+}
+
+@test "[#127] guard is non-vacuous: a command lacking the re-verify step fails" {
+  local f; f="$(mktemp)"
+  printf '# a dashboard with no evidence re-verify\n' > "$f"
+  ! grep -qiF 'MILESTONE-UNBACKED' "$f"
+  rm -f "$f"
+}

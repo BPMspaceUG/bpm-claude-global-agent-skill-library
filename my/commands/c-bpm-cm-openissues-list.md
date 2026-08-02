@@ -153,6 +153,18 @@ N GitHub-open issue(s) total
 M with milestones | K without milestones
 ```
 
+## Step — Evidence re-verify (issues at `implemented` or later)
+
+A milestone must be backed by the tree, not by a self-written label (#127; #101 sat at `tested-success` with none of its claimed artifacts present, and nothing detected it). For every open issue whose milestone is `implemented`, `tested-success`, `tested-failed`, or `test-approved`:
+
+1. Scan its Issue comments for cited artifact paths (e.g. `my/…`, `tests/…`, `dist/…`, `.github/…`) and any cited commit SHA.
+2. Resolve each: does the path exist in the working tree? Is the SHA present (`git cat-file -e <sha>`)?
+3. If any cited artifact does not resolve, emit a warning line:
+   `MILESTONE-UNBACKED #<n> (<milestone>): missing <path|sha> …`
+   naming the issue and the missing artifacts. This is the exact check that caught #101 — a human must never sign `DONE` on unbacked state.
+
+**Rule — milestones follow commits, not narratives.** A transition to `implemented` or later should be derivable from a landed commit that references the issue; a teammate report is narrative, only landed code is state. A milestone at `implemented`+ whose artifacts do not resolve is a `MILESTONE-UNBACKED` finding, not a passing state.
+
 ## Step 5 — Final Status
 
 ### If ALL issues have milestones:
