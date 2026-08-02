@@ -66,3 +66,21 @@ authored() {
   ! grep -qiF 'MILESTONE-UNBACKED' "$f"
   rm -f "$f"
 }
+
+@test "[#174] openissues-list references c-bpm-sk-milestone-type as the lifecycle source" {
+  grep -qF 'c-bpm-sk-milestone-type' "$CMD"
+  grep -qiF 'Do not copy the lifecycle' "$CMD"
+}
+
+@test "[#174] openissues-list no longer embeds the copied lifecycle block" {
+  ! grep -qiF '### Non-Negotiable Rules' "$CMD"
+  ! grep -qiF 'Dual approval required' "$CMD"
+  ! grep -qiF '## Mandatory: Milestone-Based Issue Lifecycle' "$CMD"
+}
+
+@test "[#174] guard bites: a reintroduced copied block is caught" {
+  local f; f="$(mktemp)"
+  printf '### Non-Negotiable Rules\n1. Dual approval required\n' > "$f"
+  grep -qiF '### Non-Negotiable Rules' "$f"
+  rm -f "$f"
+}

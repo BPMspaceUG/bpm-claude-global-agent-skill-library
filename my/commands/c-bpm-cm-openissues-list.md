@@ -54,40 +54,20 @@ The full lifecycle requires these milestones:
 
    Skip milestones that already exist. Create only what's missing.
 
-2. **Update the local CLAUDE.md** — check if the file already contains a `## Mandatory: Milestone-Based Issue Lifecycle` section. If it does NOT exist, append the following section to the end of CLAUDE.md:
+2. **Point the local CLAUDE.md at the library — do not copy the lifecycle.** Check whether the repo's CLAUDE.md already references the milestone lifecycle. If it does not, append ONLY this short pointer (never the lifecycle itself):
 
    ```markdown
-   ## Mandatory: Milestone-Based Issue Lifecycle
+   ## Issue Lifecycle
 
-   **All issues in this repo MUST follow the milestone-based lifecycle. No exceptions.**
-
-   Every issue gets exactly ONE milestone at a time representing its current state. Milestones are progressed in order — no skipping states.
-
-   ### Lifecycle Flow
-
-   ```
-   new -> planned -> plan-approved -> test-designed -> test-design-approved
-     -> implemented -> tested-success / tested-failed -> test-approved -> DONE
-   any state except DONE -> CANCELLED   (human-only, terminal)
+   This repo follows the milestone-based issue lifecycle **defined and governed by the library skill `c-bpm-sk-milestone-type`** — the single source of truth. Do not copy the lifecycle here; a copy goes stale (#174; e.g. the #146 `CANCELLED` terminal state would otherwise have to re-land in every copied block by hand).
    ```
 
-   ### Non-Negotiable Rules
-
-   1. **One milestone at a time** per issue — no skipping states
-   2. **Dual approval required** at every gate — Team Lead AND Codex must both approve
-   3. **`DONE` and `CANCELLED` are human-only** — agents must NEVER set these milestones. On `CANCELLED`, the canceller documents in a comment whether teardown/rollback is needed; if yes, create a new linked issue (milestone `new`)
-   4. **One issue per discrete change** — all phases documented as comments on that issue
-   5. **Audit trail** — every Codex response posted as comment on the GitHub Issue
-   6. **On failure**: `tested-failed` bounces back to `planned` (wrong approach) or `implemented` (code bug), with documented reason
-   7. **Run `/c-bpm-cm-openissues-list` before any issue-related work** to check status and milestones
-   ```
-
-   If the section already exists, do NOT duplicate it.
+   If a lifecycle reference already exists, do NOT duplicate it.
 
 3. **Report what was done:**
    ```
    Created milestones: new, planned, plan-approved, ... (list only the ones created)
-   CLAUDE.md updated with mandatory milestone lifecycle section
+   CLAUDE.md pointed at c-bpm-sk-milestone-type (lifecycle not copied)
    ```
 
 ### If ALL milestones already exist:
