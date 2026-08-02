@@ -18,8 +18,8 @@
   "_done_creation_allowed": false,
   "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/issue-write-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/issue-write-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/issue-write-gate.ts dist/issue-write-gate.mjs and update _parity below.",
   "_parity": {
-    "my/hooks/issue-write-gate.ts": "cedf26dbc3841292a58b79f4562612dea5204fd29eb6e6a365e6a24b849dd149",
-    "dist/issue-write-gate.mjs": "db06d740f839fbcdf711513f52dbd8d29014a13441ca6778ff4f586eece60749"
+    "my/hooks/issue-write-gate.ts": "ef7734ce3329822302aab1d3d500aec8b53f3552c1b3494006c286ff6583a3c9",
+    "dist/issue-write-gate.mjs": "d2f65981fe8930268d8ae13416fe7982aec3ebf89d087593764a72a10945c457"
   },
   "fixtures": [
     {
@@ -1851,6 +1851,86 @@
       },
       "expected": {
         "decision": "allow"
+      }
+    },
+    {
+      "id": 115,
+      "_issue": 160,
+      "_note": "LIVE-REPRO REGRESSION PIN. Before #160 this DENIED (was DENY): checkHttpClient's GraphQL branch tested GH_GRAPHQL + POST_HINT + GQL_CREATE against the WHOLE command string, so a compliant gh issue create whose --body merely MENTIONS api.github.com/graphql, the createIssue mutation and --data tripped all three on co-occurrence. #160 binds the signals to one invocation; no HTTP client owns the URL here, so it falls through to decideGh and the compliant create is ALLOWED.",
+      "description": "compliant gh issue create whose body mentions graphql/createIssue/--data = ALLOW (was DENY, #160 co-occurrence FP)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --milestone new --label bug --title \"gate FP\" --body \"see api.github.com/graphql and the createIssue mutation with --data payloads\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 116,
+      "_issue": 160,
+      "description": "curl -X POST graphql with a createIssue mutation payload = DENY (endpoint+POST+create bound in one curl invocation)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "curl -X POST https://api.github.com/graphql -d '{\"query\":\"mutation{createIssue(input:{repositoryId:\\\"R\\\"}){issue{number}}}\"}'"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "GraphQL"
+      }
+    },
+    {
+      "id": 117,
+      "_issue": 160,
+      "description": "python requests.post to graphql with a createIssue mutation = DENY (endpoint+create inside the same inline call)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "python3 -c \"import requests; requests.post('https://api.github.com/graphql', json={'query':'mutation createIssue{createIssue(input:{}){issue{number}}}'})\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "GraphQL"
+      }
+    },
+    {
+      "id": 118,
+      "_issue": 160,
+      "description": "curl -X POST graphql with a read-only query (no createIssue) = ALLOW (real POST but not a create)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "curl -X POST https://api.github.com/graphql -d '{\"query\":\"query{repository(owner:\\\"o\\\",name:\\\"r\\\"){id}}\"}'"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 119,
+      "_issue": 160,
+      "_note": "Fail-closed inline path (Judge's non-blocking note). The inline requests.post( call to graphql is unterminated — argsOf() cannot find the matching close paren, returns null, and graphqlClientCreate denies rather than allowing an uninspectable create. Mirrors inlinePostsToIssues' fail-closed rule.",
+      "description": "malformed/unterminated inline graphql requests.post( = DENY (argsOf null, fail-closed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "python3 -c \"requests.post('https://api.github.com/graphql', data='mutation{createIssue'\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "GraphQL"
       }
     }
   ]

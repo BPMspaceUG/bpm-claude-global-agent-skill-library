@@ -710,6 +710,33 @@ stub_path() {
   run_fixture 114
 }
 
+# Fixtures 115-119 (#160) fix the GraphQL co-occurrence false positive: the old
+# checkHttpClient branch tested GH_GRAPHQL + POST_HINT + GQL_CREATE against the
+# WHOLE command string. 115 is the live-repro regression pin (was DENY). 116/117
+# prove real create paths still deny once the signals are bound to one
+# invocation; 118 keeps a read-only graphql POST allowed; 119 is the fail-closed
+# inline path. Fixture 47 (gh api graphql, decideGh argv path) is untouched.
+
+@test "fixture 115 (#160): compliant create, body mentions graphql/createIssue -> ALLOW (was DENY, co-occurrence FP)" {
+  run_fixture 115
+}
+
+@test "fixture 116 (#160): curl -X POST graphql createIssue mutation -> DENY (bound in one curl invocation)" {
+  run_fixture 116
+}
+
+@test "fixture 117 (#160): python requests.post graphql createIssue -> DENY (bound in one inline call)" {
+  run_fixture 117
+}
+
+@test "fixture 118 (#160): curl -X POST graphql read-only query, no createIssue -> ALLOW (real POST, not a create)" {
+  run_fixture 118
+}
+
+@test "fixture 119 (#160): unterminated inline graphql requests.post( -> DENY (argsOf null, fail-closed)" {
+  run_fixture 119
+}
+
 # ── ts <-> dist parity ────────────────────────────────────────────────────
 #
 # dist/issue-write-gate.mjs is what Claude Code executes; the .ts is the

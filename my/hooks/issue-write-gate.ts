@@ -136,7 +136,6 @@ const SUSPECT = /\bgh\s+(issue\s+create|api\b)|api\.github\.com/;
 // .../issues/123 and .../issues/comments — those are not creates.
 const GH_REST_ISSUES = /api\.github\.com\/repos\/([^/\s'"?]+)\/([^/\s'"?]+)\/issues(?![/\w])/;
 const GH_GRAPHQL = /api\.github\.com\/graphql/;
-const POST_HINT = /-X\s*POST|--request\s+POST|--data|--json|\s-d\s|requests\.post|session\.post|\.post\(|http\.client|urlopen|method\s*[:=]\s*['"]POST['"]/i;
 const GQL_CREATE = /createIssue|create_issue/i;
 
 function emit(decision: 'allow' | 'deny', reason = ''): never {
@@ -793,19 +792,47 @@ function inlinePostsToIssues(cmd: string): boolean {
   return false;
 }
 
+// #160: a GraphQL createIssue mutation, bound to ONE client invocation the way
+// curlPostsToIssues / inlinePostsToIssues bind the REST create. The old branch
+// tested GH_GRAPHQL + POST_HINT + GQL_CREATE against the WHOLE command string,
+// so a compliant `gh issue create --body "...api.github.com/graphql...createIssue
+// ...--data..."` was falsely denied on mere co-occurrence. Signals must now sit
+// in the same curl/wget/httpie invocation (or the same inline call's arglist).
+function graphqlClientCreate(cmd: string): boolean {
+  let argv: string[];
+  try { argv = tokenise(cmd); } catch { return false; }
+  // curl/wget/httpie: endpoint + a POST flag + createIssue, all in one call.
+  for (const seg of splitSegments(argv)) {
+    const i = findCommandIndex(seg, HTTP_CLIENTS);
+    if (i < 0) continue;
+    const args = seg.slice(i + 1);
+    if (args.some((t) => GH_GRAPHQL.test(t))
+        && args.some((t, k) => isPostFlag(t, args[k + 1]))
+        && args.some((t) => GQL_CREATE.test(t))) return true;
+  }
+  // inline code (`python3 -c "...requests.post(...)"`, `node -e "...fetch(...)"`):
+  // endpoint + createIssue inside the same call's argument list. Reuses the REST
+  // primitives exactly like inlinePostsToIssues, including its fail-closed rule.
+  INLINE_POST_CALL.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = INLINE_POST_CALL.exec(cmd)) !== null) {
+    const argsText = argsOf(cmd, m.index + m[0].length);
+    if (argsText === null) return true;   // unparseable arglist → fail closed
+    if (GH_GRAPHQL.test(argsText) && GQL_CREATE.test(argsText)) return true;
+  }
+  return false;
+}
+
 function checkHttpClient(cmd: string): string | null {
   // #156: this path deliberately still reads the RAW command text, heredoc
   // bodies included — `curl … -d @- <<EOF {json} EOF` carries its milestone and
   // labels in that body, and the body is exactly what has to be validated here.
-  // #136 RESIDUAL: the GraphQL branch below still tests POST_HINT and
-  // GQL_CREATE against the WHOLE command string. The false-positive class fixed
-  // for the REST path — an unrelated POST word and an unrelated URL merely
-  // CO-OCCURRING, with no syntactic connection — therefore survives here:
-  // `echo https://api.github.com/graphql --data 'createIssue'` still denies.
-  // Not fixed in this change; tracked in #160.
+  // #160: the co-occurrence false positive the #136 REST binding left here is
+  // now closed. GH_GRAPHQL stays the cheap prefilter; the endpoint/POST/create
+  // binding is delegated to graphqlClientCreate, so a create is denied only when
+  // all three signals sit in ONE invocation — not merely present in the string.
   if (GH_GRAPHQL.test(cmd)) {
-    if (!POST_HINT.test(cmd)) return null;    // read-only call
-    return GQL_CREATE.test(cmd)
+    return graphqlClientCreate(cmd)
       ? 'GraphQL createIssue mutation detected; milestone and type label cannot be validated here. Use `gh issue create --milestone <lifecycle> --label bug|enhancement`.'
       : null;
   }
