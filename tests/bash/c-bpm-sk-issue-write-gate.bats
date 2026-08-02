@@ -4,7 +4,7 @@
 # against the fixture set in my/hooks/__tests__/issue-write-gate.fixtures.json.
 #
 # Implements test plan from BPMspaceUG/bpm-claude-global-agent-skill-library#68,
-# plus #69 #70 #71 #72 #73 #74 #99 #100 #131 #133 #136.
+# plus #69 #70 #71 #72 #73 #74 #99 #100 #131 #133 #136 #156.
 # Run with: bats tests/bash/c-bpm-sk-issue-write-gate.bats
 
 set -u
@@ -584,6 +584,126 @@ stub_path() {
 
 @test "fixture 92 (#136): mysh -nvc wrapping a create -> DENY (bundled flag = shell shape)" {
   run_fixture 92
+}
+
+# Fixtures 93-113 (#156) are the acceptance set for the TOKENISER rewrite. The
+# old tokeniser split on WHITESPACE ONLY, which is one defect with three faces —
+# two false positives reported in the issue and three fail-OPEN bypasses nobody
+# had reported:
+#
+#   FALSE POSITIVES (both reproduced live before the fix)
+#     93  two individually compliant creates on separate lines pooled their
+#         --label flags into one validate() call -> "got 2 type labels".
+#     95  a heredoc body containing an apostrophe was tokenised as shell, so the
+#         quote never closed -> "command parse failed".
+#
+#   FAIL-OPEN (106-108, all ALLOW before the fix)
+#         `echo x|gh …`, `true&&gh …`, `true;gh …` — without operator splitting
+#         the command word was `x|gh` / `true&&gh` / `true;gh`, whose basename is
+#         not `gh`, so no invocation was found at all. Fixing tokenise() at the
+#         root closes these as a side effect; a pre-split ahead of it would not
+#         have.
+#
+# 96 is the must-still-reject control (AC3) and 97 proves the scan does not stop
+# at the first clean invocation. 98-101 pin heredoc semantics, including the
+# fail-closed hinge: a body is skipped ONLY when its terminator is found, so the
+# false heredoc in `$((1<<2))` cannot hide the create below it (101).
+#
+# 98 and 113 are the two WIDENED ALLOWs, and they are not the same thing: 98
+# fixes a false positive (the body goes to `cat`, nothing is executed), while
+# 113 makes an enumerated ACCEPTED BYPASS explicit — a body fed to a SHELL used
+# to deny by ACCIDENT (the body broke tokenisation) and now allows by DESIGN,
+# with the GitHub Actions layer on issues.opened (#42/#131) as the backstop.
+# 103 is the here-string form of the same boundary.
+#
+# 109-112 are the cross-segment regression backstops for #71 and #136: the
+# wrapper unwrap must still fire in a LATER segment (109), grep's `-c` operand
+# must still not be re-gated (110), the eval unwrap must compose with
+# per-invocation gating (111), and a `2>&1` redirect must not split the flags
+# away from the invocation they belong to (112).
+
+@test "fixture 93 (#156): two compliant creates, newline-separated -> ALLOW (was DENY)" {
+  run_fixture 93
+}
+
+@test "fixture 94 (#156): two compliant creates, unspaced ';' -> ALLOW (was ALLOW by accident)" {
+  run_fixture 94
+}
+
+@test "fixture 95 (#156): heredoc body with an apostrophe + create -> ALLOW (was DENY)" {
+  run_fixture 95
+}
+
+@test "fixture 96 (#156): ONE create with both type labels -> DENY (AC3, was DENY)" {
+  run_fixture 96
+}
+
+@test "fixture 97 (#156): clean create then milestone-less create -> DENY (no stop at first clean)" {
+  run_fixture 97
+}
+
+@test "fixture 98 (#156): cat <<EOF with a create in the body -> ALLOW (was DENY, false positive)" {
+  run_fixture 98
+}
+
+@test "fixture 99 (#156): <<- tab-indented terminator -> DENY (body skipped, create seen)" {
+  run_fixture 99
+}
+
+@test "fixture 100 (#156): heredoc with no terminator -> DENY (nothing skipped, fail-closed)" {
+  run_fixture 100
+}
+
+@test "fixture 101 (#156): false heredoc \$((1<<2)) cannot hide a create -> DENY (fail-closed)" {
+  run_fixture 101
+}
+
+@test "fixture 102 (#156): heredoc feeding gh itself, compliant -> ALLOW (was ALLOW)" {
+  run_fixture 102
+}
+
+@test "fixture 103 (#156): sh <<<\"gh issue create\" -> ALLOW (enumerated accepted bypass, pinned)" {
+  run_fixture 103
+}
+
+@test "fixture 104 (#156): curl POST with compliant JSON in a heredoc -> ALLOW (raw body still read)" {
+  run_fixture 104
+}
+
+@test "fixture 105 (#156): same curl heredoc, title only -> DENY (missing milestone)" {
+  run_fixture 105
+}
+
+@test "fixture 106 (#156): echo x|gh issue create -> DENY (was ALLOW, fail-open closed)" {
+  run_fixture 106
+}
+
+@test "fixture 107 (#156): true&&gh issue create -> DENY (was ALLOW, fail-open closed)" {
+  run_fixture 107
+}
+
+@test "fixture 108 (#156): true;gh issue create -> DENY (was ALLOW, fail-open closed)" {
+  run_fixture 108
+}
+
+@test "fixture 109 (#156): compliant create && sudo env bash -lc create -> DENY (#71 in a later segment)" {
+  run_fixture 109
+}
+
+@test "fixture 110 (#156): grep -c pattern && compliant create -> ALLOW (#136 operand survives)" {
+  run_fixture 110
+}
+
+@test "fixture 111 (#156): eval with two creates split by ';' -> ALLOW (was DENY, pooled labels)" {
+  run_fixture 111
+}
+
+@test "fixture 112 (#156): compliant create with 2>&1 -> ALLOW (redirect split keeps flags)" {
+  run_fixture 112
+}
+
+@test "fixture 113 (#156): sh <<EOF with a create in the body -> ALLOW (was DENY by accident)" {
+  run_fixture 113
 }
 
 # ── ts <-> dist parity ────────────────────────────────────────────────────

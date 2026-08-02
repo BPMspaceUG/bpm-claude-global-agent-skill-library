@@ -30,7 +30,12 @@
 //   * subshell / command substitution — `$(...)`, backticks producing the
 //     create at runtime;
 //   * base64 / other decode-then-exec — `echo <b64> | base64 -d | sh`;
-//   * here-strings / here-docs feeding a shell — `sh <<<"gh issue create ..."`;
+//   * here-strings / here-docs feeding a shell — `sh <<<"gh issue create ..."`,
+//     `sh <<EOF … EOF`. #156 made this EXPLICIT rather than accidental: heredoc
+//     bodies are now OPAQUE DATA by design (that is what stops a body full of
+//     apostrophes from breaking the parse), so a body handed to a shell is not
+//     inspected. It used to "deny" only as a side effect of the body breaking
+//     tokenisation — an accident, not enforcement. Pinned by fixtures 103/113.
 //   * URL or command assembled at runtime from pieces (see the inline-HTTP
 //     note below for the same limit on the curl/python path).
 // The backstop for ALL of these is the server-side GitHub Actions layer on
@@ -132,9 +137,33 @@ const deny  = (r)      => emit('deny',  `[issue-write-gate] ${r}`);
 
 // ── Argv tokeniser ────────────────────────────────────────────────────────
 
+// A heredoc introducer: `<<EOF`, `<<-EOF`, `<< 'EOF'`, `<<"EOF"`, `<<\EOF`.
+// The bare form deliberately stops at any shell metacharacter so that
+// `$((1<<2))` yields the (nonexistent) delimiter `2` instead of swallowing the
+// rest of the command — see skipHeredocBodies for why that fails CLOSED.
+const HEREDOC_START = /^<<(-?)\s*(?:'([^']*)'|"([^"]*)"|((?:\\.|[^\s;&|<>()'"])+))/;
+
+// #156: the tokeniser used to split on WHITESPACE ONLY, so it modelled neither
+// command separators nor heredocs. Three consequences, all fixed here rather
+// than in a pre-split, because the root cause is this function:
+//   (a) FALSE POSITIVE — two compliant creates separated by a newline or `;`
+//       landed in ONE segment, so extractFlags accumulated `--label` across
+//       both and reported "got 2 type labels" for two one-label commands;
+//   (b) FALSE POSITIVE — a heredoc body was tokenised as shell, so one
+//       apostrophe in prose opened a quote that never closed → throw →
+//       "command parse failed"; the body is DATA and is now skipped;
+//   (c) FAIL-OPEN — `echo x|gh issue create`, `true&&gh issue create` and
+//       `true;gh issue create` all ALLOWED, because without operator splitting
+//       the create's command word was `x|gh` / `true&&gh` / `true;gh`, whose
+//       basename is not `gh`. Closed by (e) below; fixtures 106-108.
+// The quote state machine below stays FIRST and unchanged — it is the only
+// throw site, and keeping it ahead of everything else is what keeps a quoted
+// newline, `;`, `|` or `<<` inert (fixture 88).
 function tokenise(cmd) {
   const out = [];
-  let i = 0, cur = '', inSingle = false, inDouble = false, started = false;
+  const pending = [];
+  let i = 0, cur = '', inSingle = false, inDouble = false, started = false, quoteAt = -1;
+  const flush = () => { if (started) { out.push(cur); cur = ''; started = false; } };
   while (i < cmd.length) {
     const c = cmd[i];
     if (inSingle) {
@@ -148,18 +177,79 @@ function tokenise(cmd) {
       }
       cur += c; i++; continue;
     }
-    if (c === "'") { inSingle = true; started = true; i++; continue; }
-    if (c === '"') { inDouble = true; started = true; i++; continue; }
+    if (c === "'") { inSingle = true; started = true; quoteAt = i; i++; continue; }
+    if (c === '"') { inDouble = true; started = true; quoteAt = i; i++; continue; }
+    // (a) line continuation — `\<newline>` is removed by the shell, so it must
+    // not become a token boundary NOR a literal newline.
+    if (c === '\\' && cmd[i + 1] === '\n') { i += 2; continue; }
     if (c === '\\' && i + 1 < cmd.length) { cur += cmd[i+1]; started = true; i += 2; continue; }
-    if (/\s/.test(c)) {
-      if (started) { out.push(cur); cur = ''; started = false; }
-      i++; continue;
+    // (b) here-STRING: `<<<word` is data on stdin, not a heredoc. Checked first
+    // so the `<<` branch cannot claim the third `<` as a delimiter.
+    if (c === '<' && cmd.startsWith('<<<', i)) { flush(); i += 3; continue; }
+    // (c) heredoc introducer: remember the delimiter, emit no redirect token.
+    if (c === '<' && cmd.startsWith('<<', i)) {
+      const m = HEREDOC_START.exec(cmd.slice(i));
+      if (m) {
+        flush();
+        const delim = m[2] !== undefined ? m[2]
+                    : m[3] !== undefined ? m[3]
+                    : m[4].replace(/\\(.)/g, '$1');
+        pending.push({ delim, strip: m[1] === '-' });
+        i += m[0].length; continue;
+      }
     }
+    // (d) newline ends a command like `;` does — and is where any pending
+    // heredoc BODY starts, which is data and never shell.
+    if (c === '\n') { flush(); out.push(';'); i = skipHeredocBodies(cmd, i + 1, pending); continue; }
+    // (e) unwhitespaced operators become their own tokens; splitSegments
+    // already keys on exactly these.
+    if (c === '&' || c === '|' || c === ';') {
+      flush();
+      const two = cmd.slice(i, i + 2);
+      if (two === '&&' || two === '||') { out.push(two); i += 2; continue; }
+      out.push(c); i++; continue;
+    }
+    if (/\s/.test(c)) { flush(); i++; continue; }
     cur += c; started = true; i++;
   }
-  if (inSingle || inDouble) throw new Error('unbalanced quotes');
-  if (started) out.push(cur);
+  // (f) name the construct: decideBash surfaces this message, so a denial says
+  // WHAT failed to parse instead of guessing "unbalanced quotes?".
+  if (inSingle || inDouble) {
+    throw new Error(`unterminated ${inSingle ? 'single' : 'double'} quote at offset ${quoteAt}`);
+  }
+  flush();
   return out;
+}
+
+// Skip the bodies of the heredocs opened on the line that just ended. `i` is the
+// first character of the first body; the return value is where shell parsing
+// resumes.
+//
+// FAIL-CLOSED HINGE (#156): the body is skipped ONLY when its terminator is
+// actually found. If it is not, this returns the position it was given —
+// unadvanced — and the "body" is tokenised as ordinary shell. That asymmetry is
+// what makes a FALSE heredoc harmless: `echo $((1<<2))` registers the delimiter
+// `2`, no line `2` follows, nothing is skipped, and a create further down stays
+// visible and is denied (fixture 101). Skipping on a found terminator is safe
+// because that text is a body the shell hands to a program as data, never
+// executes — with the one enumerated exception of a body fed to a SHELL, which
+// is the accepted residual bypass documented in the header (fixtures 103/113).
+function skipHeredocBodies(cmd, i, pending) {
+  let pos = i;
+  for (const h of pending) {
+    let found = false;
+    while (pos < cmd.length) {
+      const nl = cmd.indexOf('\n', pos);
+      const end = nl < 0 ? cmd.length : nl;
+      let line = cmd.slice(pos, end);
+      if (h.strip) line = line.replace(/^\t+/, '');   // `<<-` strips leading tabs
+      pos = nl < 0 ? end : end + 1;
+      if (line.trimEnd() === h.delim) { found = true; break; }
+    }
+    if (!found) { pending.length = 0; return i; }
+  }
+  pending.length = 0;
+  return pos;
 }
 
 // ── Command-word helpers ──────────────────────────────────────────────────
@@ -691,6 +781,9 @@ function inlinePostsToIssues(cmd) {
 }
 
 function checkHttpClient(cmd) {
+  // #156: this path deliberately still reads the RAW command text, heredoc
+  // bodies included — `curl … -d @- <<EOF {json} EOF` carries its milestone and
+  // labels in that body, and the body is exactly what has to be validated here.
   // #136 RESIDUAL: the GraphQL branch below still tests POST_HINT and
   // GQL_CREATE against the WHOLE command string. The false-positive class fixed
   // for the REST path — an unrelated POST word and an unrelated URL merely
@@ -789,9 +882,23 @@ function decideSegment(seg, cwd, depth) {
   // Independent fallback: a `gh` word visible in this segment, however it got
   // there. Runs regardless of the runner scan, so neither path can mask the
   // other.
-  const j = findCommandIndex(seg, GH_COMMAND);
-  if (j < 0) return null;
-  return decideGh(seg.slice(j), cwd);
+  //
+  // #156: EVERY gh invocation in the segment is evaluated on its OWN argv, not
+  // just the first one found. The tokeniser already puts separated creates in
+  // separate segments, so this is belt-and-braces — but it is what the issue
+  // literally asks for, and it removes the last way two invocations' flags can
+  // be pooled into one `validate()` call ("got 2 type labels" for two
+  // one-label commands). Each slice ends where the next invocation starts.
+  const hits = [];
+  for (let j = 0; j < seg.length; j++) {
+    const next = seg[j + 1];
+    if (GH_COMMAND.has(basename(seg[j])) && (next === 'issue' || next === 'api')) hits.push(j);
+  }
+  for (let k = 0; k < hits.length; k++) {
+    const reason = decideGh(seg.slice(hits[k], hits[k + 1]), cwd);
+    if (reason) return reason;
+  }
+  return null;
 }
 
 function decideBash(cmd, cwd, depth, strict = false) {
@@ -805,11 +912,15 @@ function decideBash(cmd, cwd, depth, strict = false) {
   let argv;
   try {
     argv = tokenise(cmd);
-  } catch {
+  } catch (err) {
+    // #156: name the construct that failed instead of guessing "unbalanced
+    // quotes?" — tokenise() reports which quote and at what offset. The strict
+    // branch keeps the verbatim "Fail-closed." sentence it always had.
+    const why = err instanceof Error ? err.message : String(err);
     // #71: a payload handed to a known shell runner that will not tokenise is
     // always fail-closed — it was already established as a wrapped command.
-    if (strict) return 'wrapped command payload failed to parse (unbalanced quotes?). Fail-closed.';
-    if (SUSPECT.test(cmd)) return 'command parse failed (unbalanced quotes?). Manual review required.';
+    if (strict) return `wrapped command payload failed to parse (${why}). Fail-closed.`;
+    if (SUSPECT.test(cmd)) return `command parse failed (${why}). Manual review required.`;
     return null;
   }
 

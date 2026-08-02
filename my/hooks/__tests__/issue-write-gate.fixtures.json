@@ -18,8 +18,8 @@
   "_done_creation_allowed": false,
   "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/issue-write-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/issue-write-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/issue-write-gate.ts dist/issue-write-gate.mjs and update _parity below.",
   "_parity": {
-    "my/hooks/issue-write-gate.ts": "b069a2b9b3e447820f2849fa54b8fcd57fcff9642efc31eb17c28dd4c5a1611c",
-    "dist/issue-write-gate.mjs": "24dd5dafab25f1b73d40ba25aba87ca8296a45c2361a8795560a8c84a8cead63"
+    "my/hooks/issue-write-gate.ts": "316160d2499264946619000f09438f837000117809000ce26e1bdd497d4c59cc",
+    "dist/issue-write-gate.mjs": "edc9c9ccf39823b37b7a5434abbb2f82960faea780a324f8e06db6b95709b61c"
   },
   "fixtures": [
     {
@@ -670,7 +670,7 @@
       },
       "expected": {
         "decision": "deny",
-        "reason_contains": "Fail-closed"
+        "reason_contains": "unterminated single quote"
       }
     },
     {
@@ -1498,6 +1498,344 @@
       "expected": {
         "decision": "deny",
         "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 93,
+      "_issue": 156,
+      "_regression": "LIVE REPRO from the issue: both creates are individually compliant, one carries `bug` and the other `enhancement`, and the whole-command tokeniser pooled their --label flags into a single validate() call -> \"exactly one type label allowed; got 2: bug, enhancement\". Returned DENY before the fix.",
+      "description": "two compliant creates separated by a NEWLINE = ALLOW (was DENY, pooled labels)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title a --body b --milestone new --label bug\ngh issue create --title c --body d --milestone new --label enhancement"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 94,
+      "_issue": 156,
+      "description": "two compliant creates separated by an UNSPACED \";\" = ALLOW (operator splitting)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title a --milestone new --label bug;gh issue create --title c --milestone new --label enhancement"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      },
+      "_note": "Old behaviour was ALLOW, but by ACCIDENT: without operator splitting the pooled token was `bug;gh`, which is not a type label, so only `enhancement` counted and the exactly-one rule passed. One character less luck (`--label bug ;gh ...`) and it would have denied. Pinned so the correct segmentation, not the coincidence, is what keeps it green."
+    },
+    {
+      "id": 95,
+      "_issue": 156,
+      "_regression": "LIVE REPRO from the issue: the heredoc body was tokenised as shell, so the apostrophe in \"It's\" opened a quote that never closed -> throw -> \"command parse failed (unbalanced quotes?)\". Returned DENY before the fix. Heredoc bodies are DATA and are now skipped.",
+      "description": "heredoc body-file with apostrophes and quotes, then a compliant create = ALLOW (was DENY, parse failed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "cat > /tmp/body.md <<'EOF'\nIt's a \"quoted\" body that the shell must not parse.\nEOF\ngh issue create --title x --body-file /tmp/body.md --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 96,
+      "_issue": 156,
+      "description": "ONE create carrying both type labels = DENY (AC3: per-invocation gating must not weaken the exactly-one rule)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x -m new -l bug -l enhancement"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "exactly one type label"
+      }
+    },
+    {
+      "id": 97,
+      "_issue": 156,
+      "description": "compliant create followed by a milestone-less one = DENY (the scan does not stop at the first clean invocation)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title a --milestone new --label bug\ngh issue create --title c --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 98,
+      "_issue": 156,
+      "description": "cat <<EOF with a create INSIDE the body = ALLOW (was DENY; body is data handed to cat, not a command)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "cat <<EOF\ngh issue create\nEOF"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      },
+      "_regression": "Returned DENY before the fix: the body was tokenised as shell, so a create written inside data handed to `cat` was gated. A false positive — nothing is executed here. Now ALLOW by design (heredoc bodies are opaque data). Contrast 113, where the body goes to a SHELL and the same widening is an enumerated ACCEPTED BYPASS rather than a fixed false positive."
+    },
+    {
+      "id": 99,
+      "_issue": 156,
+      "description": "<<- heredoc with a TAB-INDENTED terminator, then a bare create = DENY (terminator recognised, body skipped)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "cat <<-EOF\n\tIt's a body with \"quotes\".\n\tEOF\ngh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 100,
+      "_issue": 156,
+      "_note": "The terminator is missing entirely, so nothing is skipped and the \"body\" is parsed as shell — the create stays visible and is denied. Skipping only ever happens on a FOUND terminator; that asymmetry is the fail-closed hinge in skipHeredocBodies.",
+      "description": "heredoc with NO terminator = DENY (nothing skipped, fail-closed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "cat <<EOF\ngh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 101,
+      "_issue": 156,
+      "_note": "The left-shift `1<<2` matches the heredoc introducer and registers delimiter \"2\". No line \"2\" exists, so nothing is skipped and the create below stays visible. Proves a FALSE heredoc cannot be used to hide a create.",
+      "description": "false heredoc $((1<<2)) cannot swallow a later create = DENY",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "echo $((1<<2))\ngh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 102,
+      "_issue": 156,
+      "description": "heredoc feeding gh itself (--body-file -) on a compliant create = ALLOW",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --milestone new --label bug --body-file - <<EOF\nbody text\nEOF"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 103,
+      "_issue": 156,
+      "_note": "ENUMERATED ACCEPTED BYPASS, not a coverage gap — see the ACCEPTED RESIDUAL BYPASS SURFACE header. A here-string handed to a shell is data this layer does not interpret; the backstop is the GitHub Actions layer on issues.opened (#42/#131).",
+      "description": "sh <<<\"gh issue create\" here-string = ALLOW (documented bypass, pinned)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sh <<<\"gh issue create --title x\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 104,
+      "_issue": 156,
+      "_note": "checkHttpClient deliberately still reads the RAW command text, heredoc bodies included — the milestone and labels being validated live in that body.",
+      "description": "curl -X POST .../issues -d @- with a compliant JSON body in a heredoc = ALLOW",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "curl -X POST https://api.github.com/repos/o/r/issues -d @- <<EOF\n{\"title\":\"x\",\"milestone\":\"new\",\"labels\":[\"bug\"]}\nEOF"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 105,
+      "_issue": 156,
+      "description": "same curl heredoc POST with title only = DENY (missing milestone)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "curl -X POST https://api.github.com/repos/o/r/issues -d @- <<EOF\n{\"title\":\"x\"}\nEOF"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 106,
+      "_issue": 156,
+      "_regression": "Returned ALLOW before the fix. Without operator splitting the command word was the single token `x|gh`, whose basename is not `gh`, so no invocation was ever found. A live fail-OPEN bypass, not a hypothetical.",
+      "description": "echo x|gh issue create (unspaced pipe) = DENY (was ALLOW, fail-open closed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "echo x|gh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 107,
+      "_issue": 156,
+      "_regression": "Returned ALLOW before the fix — token `true&&gh`.",
+      "description": "true&&gh issue create (unspaced &&) = DENY (was ALLOW, fail-open closed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "true&&gh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 108,
+      "_issue": 156,
+      "_regression": "Returned ALLOW before the fix — token `true;gh`.",
+      "description": "true;gh issue create (unspaced ;) = DENY (was ALLOW, fail-open closed)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "true;gh issue create --title x"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 109,
+      "_issue": 156,
+      "description": "compliant create && sudo env bash -lc \"create\" = DENY (#71 unwrap still fires in a LATER segment)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title a --milestone new --label bug && sudo env bash -lc \"gh issue create --title b\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "deny",
+        "reason_contains": "milestone"
+      }
+    },
+    {
+      "id": 110,
+      "_issue": 156,
+      "description": "grep -c \"gh issue create\" notes.txt && compliant create = ALLOW (#136 -c operand survives per-segment evaluation)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "grep -c \"gh issue create\" notes.txt && gh issue create --title x --milestone new --label bug"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 111,
+      "_issue": 156,
+      "_regression": "Returned DENY (\"got 2 type labels\") before the fix: the eval payload was re-tokenised, but the `;` inside it did not split, so both creates pooled their labels. Pins #71 recursive unwrap composing with per-invocation gating.",
+      "description": "eval \"create -l bug; create -l enhancement\" = ALLOW (was DENY, pooled labels inside the payload)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "eval \"gh issue create -l bug -m new; gh issue create -l enhancement -m new\""
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 112,
+      "_issue": 156,
+      "description": "compliant create with a 2>&1 redirect = ALLOW (operator split does not strip the flags from the invocation)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh issue create --title x --milestone new --label bug 2>&1"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
+      }
+    },
+    {
+      "id": 113,
+      "_issue": 156,
+      "_note": "ACCEPTED-BYPASS PIN, not a coverage gap. This DENIED BY ACCIDENT before #156 — the body broke tokenisation — and ALLOWS BY DESIGN afterwards, because a heredoc body is opaque data. A body fed to a SHELL is the enumerated residual bypass in the header; the backstop is the GitHub Actions layer on issues.opened (#42/#131). Pinned so any change to that boundary has to pass review.",
+      "description": "sh <<EOF with a create in the body = ALLOW (shell-fed heredoc, enumerated accepted bypass)",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "sh <<EOF\ngh issue create --title x\nEOF"
+        },
+        "cwd": "/tmp/repo"
+      },
+      "expected": {
+        "decision": "allow"
       }
     }
   ]
