@@ -36,8 +36,9 @@
 //     tokenisation — an accident, not enforcement. Pinned by fixtures 103/113.
 //   * URL or command assembled at runtime from pieces (see the inline-HTTP
 //     note below for the same limit on the curl/python path).
-// The backstop for ALL of these is the server-side GitHub Actions layer on
-// issues.opened (#42/#131), which sees every issue however it was created.
+// The PLANNED backstop for ALL of these is a server-side GitHub Actions layer on
+// issues.opened (#42) — NOT YET IMPLEMENTED (no .github/workflows/ exists yet); once
+// it lands it would see every issue however it was created.
 // Widen the inspected argv shapes with care; never add a decode/eval emulator.
 //
 // Test mode env vars:
@@ -729,9 +730,9 @@ function curlPostsToIssues(cmd: string): boolean {
 // deliberately biased toward DENYING ON DOUBT, consistent with this file's
 // fail-closed posture, and the price is false positives on commands that quote
 // code; where indirection hides the URL it cannot fire at all, and the backstop
-// is the same as for the script-FILE limit above — the server-side GitHub
-// Actions layer on issues.opened (#131), which sees every issue however it was
-// created. Fixtures 87/88 pin the two false positives above so a future change
+// is the same as for the script-FILE limit above — the PLANNED server-side GitHub
+// Actions layer on issues.opened (#42), NOT YET IMPLEMENTED, which once it lands
+// would see every issue however it was created. Fixtures 87/88 pin the two false positives above so a future change
 // to this behaviour surfaces at review instead of passing unnoticed.
 //
 // What IS guaranteed: the literal is found wherever it sits inside the call's

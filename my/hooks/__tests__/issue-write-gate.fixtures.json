@@ -18,8 +18,8 @@
   "_done_creation_allowed": false,
   "_parity_doc": "TRIPWIRE, NOT A GUARANTEE OF EQUIVALENCE. dist/issue-write-gate.mjs is a HAND-MAINTAINED artifact — this repo has no package.json, no tsc and no build step, so nothing regenerates it from my/hooks/issue-write-gate.ts. These sha256 sums pin both files so neither can be edited without the other, which catches ACCIDENTAL drift only: anyone who edits both files and re-pins both hashes passes regardless of whether the two behave the same. Only the .mjs is ever executed. After changing either file, run: sha256sum my/hooks/issue-write-gate.ts dist/issue-write-gate.mjs and update _parity below.",
   "_parity": {
-    "my/hooks/issue-write-gate.ts": "ef7734ce3329822302aab1d3d500aec8b53f3552c1b3494006c286ff6583a3c9",
-    "dist/issue-write-gate.mjs": "d2f65981fe8930268d8ae13416fe7982aec3ebf89d087593764a72a10945c457"
+    "my/hooks/issue-write-gate.ts": "4ca308df2bb20cc0baf593206648c84acecda4ac71111fc1c3cd8890cd4211df",
+    "dist/issue-write-gate.mjs": "57416d1e31541ff670ddcb1ea45826ea6e98ed7afaa6457610192239d171d394"
   },
   "fixtures": [
     {
