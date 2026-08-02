@@ -73,6 +73,23 @@ Then retry the invocation **once**. If the pull fails or the single retry still
 returns 401, stop retrying (an older bundle can overwrite a good token) and descend
 the ladder. Do not run this for transport, prompt, or sandbox failures.
 
+## The Critic — adversarial stance, graded verdict
+
+This skill combines two concerns the review literature keeps separate, because neither alone converges on a cheap model:
+
+- **Judge** = *what comes out*: a graded verdict against the canonical rubric. Its failure mode is sycophancy — it nods everything through.
+- **Devil's Advocate** = *the stance the model takes*: deliberately adversarial — find the real defect, do not rubber-stamp. Its failure mode is noise — it always finds something, even when there is nothing.
+
+One role carries both — the **Critic**. Keep this one skill; do not split the two concerns into separate skills (the distinction is didactic). The adversarial stance keeps the verdict honest; the rubric threshold gives it a machine-evaluable stop signal.
+
+### Verdict output contract — every invocation MUST return
+
+1. **Per-dimension scores** (1-5) against the **canonical review rubric in `c-bpm-sk-llm-selection`**, their **TOTAL**, and an explicit **PASS** / **FAIL** against the threshold defined there. (The rubric numbers live only in #145 — never restated here.)
+2. On FAIL, **each finding tagged `blocking` or `residual-acceptable`** — a real defect that should not hold the gate is residual-acceptable, not blocking. A defect list with no such tag is an **incomplete verdict** — re-ask.
+3. Per finding, the **evidence the Critic actually verified** — what it ran or read ("verified against the live hook: DENY…"), never inferred from an indirect signal. A finding inferred rather than verified (e.g. read off `git status` without checking authorship, #135) is downgraded and must say so.
+
+The stance stays adversarial by default — that is where the honest criticism comes from. The threshold, not any count of rounds, ends the loop (#89: convergence, not a cap); the loop-level policy is in `c-bpm-sk-llm-selection`.
+
 ## Substitute-Judge ladder
 
 Ladder and family policy are defined in `c-bpm-sk-llm-selection`:

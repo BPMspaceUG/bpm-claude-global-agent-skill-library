@@ -761,3 +761,37 @@ CALL_SITE_COMMANDS=(
     return 1
   fi
 }
+
+# ==================================================================
+# #137 - the Critic: adversarial stance + graded verdict output contract
+# ==================================================================
+
+@test "[#137] devils-advocate documents the two concerns and the single Critic role" {
+  grep -qF 'Critic' "${DA_SKILL}"
+  grep -qiF 'stance' "${DA_SKILL}"
+  grep -qiF 'verdict' "${DA_SKILL}"
+}
+
+@test "[#137] every verdict returns per-dimension scores, TOTAL and an explicit PASS/FAIL by reference to the canonical rubric" {
+  grep -qiF 'per-dimension score' "${DA_SKILL}"
+  grep -qF 'TOTAL' "${DA_SKILL}"
+  grep -qF 'PASS' "${DA_SKILL}"
+  grep -qF 'FAIL' "${DA_SKILL}"
+  grep -qF 'canonical review rubric in `c-bpm-sk-llm-selection`' "${DA_SKILL}"
+}
+
+@test "[#137] the verdict tags each finding blocking vs residual-acceptable and names the incomplete-verdict rule" {
+  grep -qF 'blocking' "${DA_SKILL}"
+  grep -qF 'residual-acceptable' "${DA_SKILL}"
+  grep -qiF 'incomplete verdict' "${DA_SKILL}"
+}
+
+@test "[#137] the #135 noise guard: per-finding evidence-verified requirement" {
+  grep -qiF 'verified' "${DA_SKILL}"
+  grep -qiF 'inferred' "${DA_SKILL}"
+  grep -qF '#135' "${DA_SKILL}"
+}
+
+@test "[#137] single-source preserved: devils-advocate does not restate the numeric threshold" {
+  ! grep -qF 'TOTAL >= 20' "${DA_SKILL}"
+}
