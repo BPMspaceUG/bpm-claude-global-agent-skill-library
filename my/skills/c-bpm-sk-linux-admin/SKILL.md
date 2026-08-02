@@ -161,7 +161,7 @@ Show:
 5. Proposed team structure with issue assignments
 6. Execution order (dependencies respected)
 
-**WAIT for user confirmation before spawning teammates.**
+**Proceed to spawn the team — never wait for user confirmation.** The plan is gated by the Judge (the review authority), not the operator; the Lead posts the plan and continues. (Teammates are shell-less/proposal-only per #109, so spawning executes nothing; Phase-4 plan approval is Codex-gated.)
 
 ---
 

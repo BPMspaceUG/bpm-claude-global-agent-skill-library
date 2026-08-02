@@ -27,6 +27,7 @@ setup() {
   REFACTOR="${REPO_ROOT}/my/commands/c-bpm-cm-refactor-repo.md"
   CMDS=("${TEAM}" "${REFACTOR}")
   REFS=( "${REPO_ROOT}"/my/skills/*/references/team-orchestration.md )
+  LINUX_ADMIN="${REPO_ROOT}/my/skills/c-bpm-sk-linux-admin/SKILL.md"
 }
 
 require_cmds() {
@@ -300,5 +301,25 @@ ${hits}}"
   local f; f="$(mktemp)"
   printf '# a command with no per-issue verdict rule\n' > "$f"
   ! grep -qiF 'One issue, one invocation, one verdict' "$f"
+  rm -f "$f"
+}
+
+@test "[#173] linux-admin has no user-confirmation spawn gate (#116/#159 autonomy)" {
+  local hits bad
+  hits="$(grep -niE 'wait([[:alpha:]]*)? for (the )?user (confirmation|approval)' "$LINUX_ADMIN" || true)"
+  bad="$(printf '%s\n' "$hits" | grep -viE '(never|not|don.t|without)[[:space:]].*wait([[:alpha:]]*)? for (the )?user (confirmation|approval)' || true)"
+  if [ -n "$bad" ]; then echo "spawn-gate wait-for-user-confirmation survives in linux-admin:" >&2; echo "$bad" >&2; return 1; fi
+  ! grep -qiF 'WAIT for user confirmation before spawning' "$LINUX_ADMIN"
+}
+
+@test "[#173] linux-admin KEEPS the destructive-op confirmation gate (:133 legit)" {
+  grep -qiF 'explicit user confirmation' "$LINUX_ADMIN"
+  grep -qiE 'SSH access|service downtime|data loss|network partition' "$LINUX_ADMIN"
+}
+
+@test "[#173] guard bites: a spawn-confirmation gate is flagged" {
+  local f; f="$(mktemp)"
+  printf 'WAIT for user confirmation before spawning teammates.\n' > "$f"
+  grep -qiF 'WAIT for user confirmation before spawning' "$f"
   rm -f "$f"
 }
