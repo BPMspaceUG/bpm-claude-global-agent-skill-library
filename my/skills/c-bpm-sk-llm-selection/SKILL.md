@@ -109,6 +109,22 @@ This pattern is referenced by `c-bpm-sk-skill-creator`, `c-bpm-sk-skill-optimize
 review gate. It is the canonical definition; downstream skills must remain
 consistent with it.
 
+## Review Rubric (canonical)
+
+Every Judge verdict scores the artifact on **five fixed dimensions, scored 1-5 each** (25 max). The dimensions are constant across every gate — plan, test design, implementation, audit; each gate states in its own prompt what each dimension means for that artifact.
+
+1. **Correctness** — the artifact does what it claims; its reasoning and logic are sound.
+2. **Completeness** — every required part is present: test coverage, edge cases, and all acceptance criteria addressed.
+3. **Scope discipline** — confined to the intended files/contract; no unrelated change.
+4. **Risk & safety** — failure modes assessed, the fail-closed direction chosen, rollback present.
+5. **Evidence** — claims are verified by actually running or reading, not asserted.
+
+**PASS threshold:** `TOTAL >= 20` **and** no dimension below 4 (every dimension >= 4). Below either bound is a FAIL, and the artifact returns to the Producer.
+
+This threshold is the loop's **convergence criterion — a PASS threshold, never a cycle cap** (#89). The loop still runs uncapped (see the Hard rules above); it ends when the artifact clears the threshold on merit, not after any count of rounds.
+
+**Referenced, never restated.** This is the single canonical definition. Any command or skill that runs a scored gate — `c-bpm-cm-goal-openissue`, `c-bpm-cm-openissues-team`, and downstream — cites this section by name; it does not re-list the dimensions or the numbers.
+
 ## Codex Invocation (shell hygiene)
 
 This is the canonical shell form for invoking the Codex Judge. Since #113 it lives

@@ -160,11 +160,11 @@ conversation, because the evaluator reads only what you surfaced here:
 2. The plan is posted where it belongs — single-issue run: plan comment on the
    issue; multi-issue run (at any point of its life): the Plan Issue exists and
    covers the final in-scope set including the parallel/sequential split and
-   all amendments — and the latest plan-gate verdict is APPROVED
-   (TOTAL >= 20, no dimension below 4).
+   all amendments — and the latest plan-gate verdict is APPROVED under the
+   canonical review rubric in `c-bpm-sk-llm-selection`.
 3. Every deliverable named in the in-scope issues exists; you showed the tree.
 4. The test suite runs and exits 0; you showed the output.
-5. The implementation review verdict is APPROVED under the same rubric.
+5. The implementation review verdict is APPROVED under the canonical review rubric in `c-bpm-sk-llm-selection`.
 6. The acceptance criteria of each in-scope issue are demonstrated live in
    this conversation (run it, show the output) — not merely asserted.
 7. The score table in the Plan Issue (or, single-issue run, in the work

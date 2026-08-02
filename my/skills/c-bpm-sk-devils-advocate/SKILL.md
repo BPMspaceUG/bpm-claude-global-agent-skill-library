@@ -58,8 +58,7 @@ env -u BASH_ENV -u ENV bash --noprofile --norc -c \
 - `-s workspace-write` with `sandbox_workspace_write.network_access=true` lets the
   Judge actually read the workspace and reach the network (issue #117).
   `danger-full-access` is never sanctioned — workspace-write is the ceiling.
-- Ask for an explicit verdict: `APPROVE` or `REJECT` with specific, actionable
-  reasons. A verdict without reasons is not a verdict — re-ask.
+- Ask for an explicit verdict scored against the **canonical review rubric in `c-bpm-sk-llm-selection`** (five dimensions, 1-5, with the PASS threshold defined there): `APPROVE` or `REJECT` with per-dimension scores and specific, actionable reasons. A verdict without scores and reasons is not a verdict — re-ask.
 
 ### Auth failure recovery (exactly once)
 

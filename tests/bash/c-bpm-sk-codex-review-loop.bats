@@ -32,6 +32,8 @@ IN_SCOPE_FILES=(
 )
 
 LLM_SELECTION="${REPO_ROOT}/my/skills/c-bpm-sk-llm-selection/SKILL.md"
+GOAL_CMD="${REPO_ROOT}/my/commands/c-bpm-cm-goal-openissue.md"
+DEVILS="${REPO_ROOT}/my/skills/c-bpm-sk-devils-advocate/SKILL.md"
 
 # Negation / forbidding context markers. A grep hit on a forbidden
 # pattern is exempt if the SAME LINE also contains one of these words —
@@ -271,4 +273,43 @@ _assert_no_match() {
     printf '  %s\n' "${missing[@]}" >&2
     return 1
   fi
+}
+
+# ==================================================================
+# #145 - canonical review rubric (single source, referenced not restated)
+# ==================================================================
+
+@test "[#145] llm-selection defines the canonical review rubric with five named dimensions" {
+  grep -qF 'Review Rubric' "${LLM_SELECTION}"
+  local d
+  for d in Correctness Completeness "Scope discipline" "Risk & safety" Evidence; do
+    grep -qF "$d" "${LLM_SELECTION}" || { echo "missing dimension: $d" >&2; return 1; }
+  done
+}
+
+@test "[#145] the rubric states the 1-5 scale and both PASS-threshold bounds" {
+  grep -qF '1-5' "${LLM_SELECTION}"
+  grep -qF 'TOTAL >= 20' "${LLM_SELECTION}"
+  grep -qE 'no dimension below 4|every dimension >= 4' "${LLM_SELECTION}"
+}
+
+@test "[#145] the rubric threshold is a convergence criterion, not a cycle cap (#89)" {
+  grep -qiF 'convergence' "${LLM_SELECTION}"
+  grep -qiE 'never a cycle cap|not a cycle cap' "${LLM_SELECTION}"
+}
+
+@test "[#145] goal-openissue's rubric DoD references the canonical source, not a local restatement" {
+  grep -qF 'canonical review rubric in `c-bpm-sk-llm-selection`' "${GOAL_CMD}"
+  ! grep -qF 'TOTAL >= 20' "${GOAL_CMD}"
+}
+
+@test "[#145] the numeric rubric threshold is defined in exactly one file under my/" {
+  local hits
+  hits=$(grep -rlF 'TOTAL >= 20' "${REPO_ROOT}/my")
+  [ "$(printf '%s\n' "$hits" | grep -c .)" -eq 1 ]
+  [ "$hits" = "${LLM_SELECTION}" ]
+}
+
+@test "[#145] devils-advocate points at the canonical rubric" {
+  grep -qF 'canonical review rubric in `c-bpm-sk-llm-selection`' "${DEVILS}"
 }
