@@ -46,7 +46,7 @@ agent_tools_line() {
 }
 
 @test "SessionStart rules do not order any agent to invoke the reviewer themselves" {
-  run bash -c '"$1" SESSION_START' _ "${HOOK}"
+  run bash -c 'echo "{}" | "$1" SESSION_START' _ "${HOOK}"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
   ctx="$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext')"
@@ -58,7 +58,7 @@ agent_tools_line() {
 }
 
 @test "SessionStart names the Lead as sole invoker and teammate reports as non-state" {
-  run bash -c '"$1" SESSION_START' _ "${HOOK}"
+  run bash -c 'echo "{}" | "$1" SESSION_START' _ "${HOOK}"
   ctx="$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext')"
   [[ "$ctx" == *"TEAM LEAD ONLY"* ]]
   [[ "$ctx" == *"NARRATIVE, NEVER STATE"* ]]

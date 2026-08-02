@@ -31,7 +31,7 @@ setup() {
 }
 
 teardown() {
-  rm -rf "$BASE" /tmp/claude-codex-sod/t*
+  rm -rf "$BASE" /tmp/claude-codex-sod/t* /tmp/claude-codex-sod/g*
 }
 
 _edit() { # file cwd sid
@@ -132,4 +132,34 @@ _has() { [ -f "$(_logfile "$1")" ] && grep -qF "$(realpath -m -- "$2")" "$(_logf
   run bash -c 'jq -n --arg f "/tmp/nope.txt" --arg c "/tmp" --arg s "t14" \
     "{tool_input:{file_path:\$f},cwd:\$c,session_id:\$s}" | bash "'"$TRACKER"'" POST_EDIT'
   [ "$status" -eq 0 ]
+}
+
+@test "[#80] a Bash command containing 'codex exec' marks nothing and makes no compliance claim" {
+  _edit "$SREPO/src.txt" "$SREPO" g1
+  out="$(echo '{"tool_input":{"command":"echo codex exec"},"session_id":"g1"}' | bash "$TRACKER" POST_BASH)"
+  [ "$out" = '{}' ]
+  stop="$(echo '{"session_id":"g1"}' | bash "$TRACKER" STOP)"
+  echo "$stop" | grep -qvF 'SoD compliant' || { echo "STOP still claims compliant"; return 1; }
+  ! echo "$stop" | grep -qF 'SoD compliant'
+  ! echo "$stop" | grep -qF 'without Codex review'
+}
+
+@test "[#80] STOP output is neutral telemetry (no false compliance)" {
+  _edit "$SREPO/src.txt" "$SREPO" g2
+  stop="$(echo '{"session_id":"g2"}' | bash "$TRACKER" STOP)"
+  echo "$stop" | grep -qF 'changed this session'
+  ! echo "$stop" | grep -qF 'SoD compliant'
+  ! echo "$stop" | grep -qF 'without Codex review'
+}
+
+@test "[#80] POST_EDIT tracking is decoupled from POST_BASH content (arbitrary + codex-exec both inert)" {
+  _edit "$SREPO/src.txt" "$SREPO" g3
+  echo '{"tool_input":{"command":"ls -la"},"session_id":"g3"}' | bash "$TRACKER" POST_BASH >/dev/null
+  echo '{"tool_input":{"command":"echo codex exec now"},"session_id":"g3"}' | bash "$TRACKER" POST_BASH >/dev/null
+  _has g3 "$SREPO/src.txt"
+}
+
+@test "[#80] POST_BASH is unconditionally inert (arbitrary command yields {})" {
+  out="$(echo '{"tool_input":{"command":"true"},"session_id":"g4"}' | bash "$TRACKER" POST_BASH)"
+  [ "$out" = '{}' ]
 }
