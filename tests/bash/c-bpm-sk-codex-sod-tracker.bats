@@ -3,12 +3,15 @@
 # c-bpm-sk-codex-sod-tracker.bats - repo-confined, per-session SoD tracker (#168, #86)
 # Run with: bats tests/bash/c-bpm-sk-codex-sod-tracker.bats
 #
-# Fixture repos MUST live outside /tmp: the tracker excludes /tmp/* on purpose,
-# so a fixture repo rooted under /tmp would have its own tracked files wrongly
-# excluded, breaking the very tests meant to prove tracking works.
+# Fixtures live under /tmp (mktemp default). Since #176 the tracker no longer
+# blanket-excludes /tmp — a repo hosted under /tmp (e.g. the #162 throwaway gate
+# worktree) tracks its own git-tracked files; only paths OUTSIDE the session repo
+# are dropped, by containment. This also keeps these tests runnable inside the
+# #162 gate sandbox, which permits /tmp writes but not arbitrary $HOME writes.
+# Test 1 (in-repo file under a /tmp-hosted repo -> tracked) is itself the #176 proof.
 
 setup() {
-  BASE="$(mktemp -d "$HOME/.cache/sodtest.XXXXXX")"
+  BASE="$(mktemp -d)"
   SREPO="$BASE/session"
   OREPO="$BASE/other"
   mkdir -p "$SREPO" "$OREPO"

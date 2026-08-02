@@ -2,8 +2,12 @@
 # =============================================================================
 # Codex Segregation of Duty Tracker — repo-confined, per-session (#168, #86, #166)
 # Telemetry only. Always exits 0. Tracks ONLY git-tracked code inside the CURRENT
-# session's repo; everything outside (other repos, ~/.claude memory, /tmp,
-# per-host inventory, MEMORY.md, untracked scratch) is silently ignored.
+# session's repo; everything outside the session repo (other repos, ~/.claude
+# memory, /tmp scratch) is ignored by containment, and in-repo non-code
+# (per-host inventory, MEMORY.md, untracked scratch) is ignored explicitly.
+# Note: /tmp is NOT a blanket exclusion — a repo legitimately hosted under /tmp
+# (e.g. the #162 throwaway gate worktree) still tracks its own git-tracked files;
+# only paths OUTSIDE the session repo are dropped, which containment already does.
 # =============================================================================
 
 EVENT="${1:-unknown}"
@@ -35,7 +39,7 @@ is_trackable() {
   [ -n "$root" ] || return 1
   case "${rp}/" in "${root}/"*) : ;; *) return 1 ;; esac
   case "$rp" in
-    "$HOME"/.claude/*|"$HOME"/.config/claude/*|/tmp/*) return 1 ;;
+    "$HOME"/.claude/*|"$HOME"/.config/claude/*) return 1 ;;
     */MEMORY.md) return 1 ;;
     */my/hosts/*/agents.txt|*/my/hosts/*/commands.txt|*/my/hosts/*/skills.txt|*/my/hosts/*/tools.yaml) return 1 ;;
   esac

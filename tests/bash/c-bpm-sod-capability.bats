@@ -39,10 +39,14 @@ agent_tools_line() {
 }
 
 @test "POST_EDIT still emits valid JSON naming the changed file" {
-  run bash -c 'echo "{\"tool_input\":{\"file_path\":\"/x/y.sh\"}}" | "$1" POST_EDIT' _ "${HOOK}"
+  # Post-#168 the tracker is repo-confined: it names a file only when the file is
+  # git-tracked inside the CURRENT session repo. Use a real in-repo tracked file
+  # with cwd = the repo (an out-of-repo path like /x/y.sh now correctly yields {}).
+  run bash -c 'printf "{\"tool_input\":{\"file_path\":\"%s/tests/run_tests.sh\"},\"cwd\":\"%s\",\"session_id\":\"sodcap3\"}" "$2" "$2" | "$1" POST_EDIT' _ "${HOOK}" "${REPO_ROOT}"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"'
-  echo "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("/x/y.sh")'
+  echo "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("run_tests.sh")'
+  rm -rf /tmp/claude-codex-sod/sodcap3
 }
 
 @test "SessionStart rules do not order any agent to invoke the reviewer themselves" {
