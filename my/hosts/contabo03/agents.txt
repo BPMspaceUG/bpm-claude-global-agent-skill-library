@@ -1,5 +1,5 @@
 # Host: contabo03
-# Updated: 2026-07-26T11:33:24Z
+# Updated: 2026-08-02T17:53:25Z
 # Category: agents
 #
 c-bpm-ag-backend-bash-php.md
@@ -7,4 +7,5 @@ c-bpm-ag-data-mariadb-redis.md
 c-bpm-ag-orchestrator-planner.md
 c-bpm-ag-qa-tester.md
 c-bpm-ag-security-reviewer.md
+c-bpm-ag-teammate.md
 c-bpm-ag-workflow-n8n-api.md
