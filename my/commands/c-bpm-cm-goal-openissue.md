@@ -221,6 +221,16 @@ conversation, because the evaluator reads only what you surfaced here:
 - If the same failure repeats three times, stop retrying. Post the blocker as
   a comment on the affected issue, ask Codex for a different route, take it.
 
+## NO MID-RUN CHECKPOINTS (RUN TO TERMINAL)
+
+This command runs to completion without stopping to consult the operator. That is the whole difference from `/c-bpm-cm-openissues-team` (which does accept operator checkpoints). Under this command:
+
+- **The run ends ONLY when** every in-scope issue is terminal — `test-approved`, or after repeated attempts `tested-failed` / `documented-blocked` — **OR** the 60-turn cap is reached. Nothing else terminates the run.
+- **A finished batch is never a stopping point.** Completing a batch triggers an immediate re-resolve of the open-issue scope and the next batch — never a report-and-wait, and never a question such as "shall I continue?", "continue with the remaining issues?", or any equivalent. Such a question is forbidden; the answer is always yes.
+- **No-arg GOAL means ALL open issues.** With no explicit issue numbers, scope is every open issue (not `test-approved` / `DONE` / `CANCELLED` / `plan`-label). Prioritisation among them is the loop's to decide, never a question to the operator. The "operator decides which issues" rule applies only when the operator names specific numbers.
+- **A progress line is not a terminating output.** You may surface a one-line progress note ONLY if the same turn immediately continues into the next unit of work. A status summary that ends the turn while in-scope issues remain is the exact forbidden checkpoint.
+- **Self-check before ending any turn:** if any in-scope issue is not terminal and the 60-turn cap is not reached, you MUST continue — do not end the turn.
+
 ## TURN PROTOCOL
 
 - End every turn with a per-issue table: issue ID, milestone at start of

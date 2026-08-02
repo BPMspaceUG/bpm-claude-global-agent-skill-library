@@ -124,3 +124,19 @@ section() { # <heading-regex>
   grep -qF '<!-- BEGIN issue-comms' "${CMD}"
   grep -qF '<!-- END issue-comms' "${CMD}"
 }
+
+@test "[#167] goal-openissue carries the NO MID-RUN CHECKPOINTS run-to-terminal contract" {
+  grep -qF 'NO MID-RUN CHECKPOINTS' "$CMD"
+  grep -qiF 'run ends ONLY when' "$CMD"
+  grep -qiF 'finished batch is never a stopping point' "$CMD"
+  grep -qiF 'Self-check before ending' "$CMD"
+}
+
+@test "[#167] goal-openissue explicitly forbids the shall-I-continue checkpoint" {
+  grep -qiF 'shall I continue' "$CMD"
+  grep -qiF 'is forbidden; the answer is always yes' "$CMD"
+}
+
+@test "[#167] no-arg GOAL is defined as ALL open issues (not an operator prioritisation question)" {
+  grep -qiF 'No-arg GOAL means ALL open issues' "$CMD"
+}
