@@ -175,3 +175,16 @@ If `/c-bpm-cm-openissues-list` finds a non-compliant issue:
 
 1. Fix the issue immediately (set milestone + type)
 2. File a bug identifying which hook layer was missing — this finding is itself auto-filed per the "every finding becomes an issue" rule (see auto-memory and `c-bpm-sk-milestone-type`)
+
+## Repository Confinement
+
+A skill or agent acts **only within the repository it is currently working in — even when the skill is installed centrally.** Central installation is a delivery mechanism, never a licence to act across repos. Scope is per-repo, always.
+
+Forbidden against any repo other than the current one: editing, creating, or deleting files; committing; pushing; touching its `main`; closing or transitioning its Issues; running or probing its deployed systems; and tracking or reviewing its files.
+
+The **only** permitted cross-repo actions are:
+
+1. **Create a new Issue** in another repo for a finding that concerns it.
+2. **Comment on an Issue** in another repo that this same session created for that finding.
+
+Nothing beyond (1) and (2). This rule is injected into every session by the `SessionStart` hook (`my/hooks/codex-sod-tracker.sh`) and enforced for file-tracking by the per-session, repo-confined tracker (#166, #168/#86). A stronger session-pinned mutation lock is tracked in #170.
