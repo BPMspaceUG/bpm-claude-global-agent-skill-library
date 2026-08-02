@@ -252,12 +252,14 @@ Teammate submits plan (via ExitPlanMode)
   -> Team Lead posts plan as comment on the GitHub Issue
   -> Team Lead moves issue to milestone: planned
   -> Team Lead runs the independent review via `c-bpm-sk-devils-advocate`
-     (Issue #<N>), asking the Judge to review the implementation plan:
+     once for #<N> alone (Issue #<N>), asking the Judge to review #<N>'s
+     implementation plan:
      1) Test coverage must be included. 2) Changes must be scoped to assigned
      files. 3) Risk assessment present. 4) Rollback strategy present.
      Approve or reject with specific reasons.
 
-  -> Judge verdict posted as comment on the GitHub Issue
+  -> Judge verdict posted as a comment on #<N> only — never copied to a
+     sibling issue in the same bundle
   -> If BOTH Team Lead AND Codex approve:
        -> Team Lead moves issue to milestone: plan-approved
        -> Approve the teammate's plan (SendMessage type: plan_approval_response, approve: true)
@@ -285,12 +287,14 @@ Teammate submits test design (message to team-lead)
   -> Team Lead posts test design as comment on the GitHub Issue
   -> Team Lead moves issue to milestone: test-designed
   -> Team Lead runs the independent review via `c-bpm-sk-devils-advocate`
-     (Issue #<N>), asking the Judge to review the test design:
+     once for #<N> alone (Issue #<N>), asking the Judge to review #<N>'s
+     test design:
      edge cases covered, meaningful assertions, no false positives, adequate
      coverage, follows project test framework (test_framework.sh).
      Approve or reject.
 
-  -> Judge verdict posted as comment on the GitHub Issue
+  -> Judge verdict posted as a comment on #<N> only — never copied to a
+     sibling issue in the same bundle
   -> If BOTH approve:
        -> Team Lead moves issue to milestone: test-design-approved
        -> Teammate proceeds to implementation
@@ -326,12 +330,14 @@ Team Lead:
   -> Run ./tests/run_tests.sh to verify all tests pass
   -> Spot-check test quality
 
-Team Lead runs the independent review via `c-bpm-sk-devils-advocate` (Issue #<N>),
-  asking the Judge to verify implementation and test results:
+Team Lead runs the independent review via `c-bpm-sk-devils-advocate` once for
+  #<N> alone (Issue #<N>), asking the Judge to verify #<N>'s implementation and
+  test results:
   tests passing legitimately, no false positives, test coverage adequate,
   code quality acceptable. Approve or reject.
 
-  -> Verification results posted as comment on the GitHub Issue
+  -> Verification results posted as a comment on #<N> only — never copied to a
+     sibling issue in the same bundle
   -> If BOTH approve -> Team Lead moves issue to milestone: test-approved — ready for human DONE sign-off
   -> If EITHER rejects -> Team Lead moves issue to milestone: tested-failed, document reason, teammate revises
 ```
@@ -344,7 +350,43 @@ After all workable issues are addressed:
 
 1. Run full test suite: `./tests/run_tests.sh`
 2. Run shellcheck on all modified files
-3. Compile final report:
+3. **Verdict-ownership check (#273)** — over `$TEST_APPROVED`, the issues THIS
+   run moved to `test-approved`. A HARD line blocks the report: re-gate those
+   issues per issue before calling the run finished.
+
+```bash
+# HARD  a verdict body identical, or >=40% line-identical, to another issue's in the
+#       same run was copied across a bundle. Never legitimate.
+# soft  a verdict that never names its own issue — a 10-second read, not a failure.
+#       (A genuine verdict often cites AC numbers and file paths instead.)
+# ponytail: line overlap, not a similarity library. Ceiling: a copy with more than
+#       ~half its sentences rewritten scores under the threshold and is missed
+#       (measured: 26%). The control against that is the per-issue gate rule in
+#       CODEX RULES; this check is the cheap backstop, not the gate.
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+for n in $TEST_APPROVED; do
+  gh api "repos/$OWNER/$REPO/issues/$n/comments" --paginate \
+     --jq '[.[] | select(.body | test("VERDICT:")) | .body] | last // ""' > "$tmp/$n"
+  # score only the fenced verdict text, substantive lines only: the Lead's wrapper
+  # is identical on every issue by design and would inflate every pair
+  awk '/^```/{f=!f;next} f' "$tmp/$n" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//' \
+     | awk 'length>=40' | sort -u > "$tmp/$n.n"
+  grep -q "#$n" "$tmp/$n" || echo "soft #$n — its verdict never names #$n; read it against the issue"
+done
+for a in $TEST_APPROVED; do for b in $TEST_APPROVED; do
+  [ "$a" \< "$b" ] || continue
+  ca=$(wc -l < "$tmp/$a.n"); cb=$(wc -l < "$tmp/$b.n")
+  m=$(( ca < cb ? ca : cb )); [ "$m" -gt 0 ] || continue
+  s=$(comm -12 "$tmp/$a.n" "$tmp/$b.n" | wc -l)
+  if cmp -s "$tmp/$a" "$tmp/$b"; then
+    echo "HARD #$a and #$b carry the SAME verdict body — copied across a bundle"
+  elif [ $(( 100 * s / m )) -ge 40 ]; then
+    echo "HARD #$a and #$b share $(( 100 * s / m ))% of substantive lines ($s/$m) — copied-and-edited verdict"
+  fi
+done; done
+```
+
+4. Compile final report:
    - Security scan results
    - Issues addressed (with status)
    - Issues still blocked (and why)
@@ -352,11 +394,11 @@ After all workable issues are addressed:
    - Improvement suggestions (new issues to consider)
    - All Codex approval references
 
-4. Present report to user
+5. Present report to user
 
-5. **Do NOT commit or push** — automation handles this
+6. **Do NOT commit or push** — automation handles this
 
-6. Tell the user explicitly which issues are complete and ready for human review
+7. Tell the user explicitly which issues are complete and ready for human review
 
 ---
 
@@ -371,6 +413,17 @@ After all workable issues are addressed:
   1. Plan approval (Phase 4)
   2. Test design approval (Phase 5)
   3. Test verification (Phase 7)
+- **One issue, one invocation, one verdict.** Gates 4, 5 and 7 run once **per
+  issue**, never once per bundle. When one implementation covers N issues, the
+  Judge is invoked N times against N live Issue threads, and each verdict is
+  posted **only to the issue it reviewed**. Copying a verdict across a bundle is
+  forbidden: it awards a milestone on evidence about a different issue, and it
+  is silent — every issue shows an APPROVE and every listing looks correct
+  (#273: #245 and #246 inherited #243's Phase-7 verdict byte-for-byte).
+- **Every gate prompt names the issue under review.** The invocation states the
+  issue number and instructs the Judge to judge that issue's acceptance criteria
+  only, citing the artifacts that satisfy them. A verdict whose points never
+  touch its own issue's subject matter is void — re-run the gate.
 - If every Judge tier is unreachable: **STOP -> notify user -> do NOT proceed
   without an independent review**
 - Log ALL Judge verdicts as comments in the corresponding GitHub Issue, naming
