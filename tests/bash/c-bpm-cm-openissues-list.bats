@@ -78,9 +78,9 @@ authored() {
   ! grep -qiF '## Mandatory: Milestone-Based Issue Lifecycle' "$CMD"
 }
 
-@test "[#174] guard bites: a reintroduced copied block is caught" {
-  local f; f="$(mktemp)"
-  printf '### Non-Negotiable Rules\n1. Dual approval required\n' > "$f"
-  grep -qiF '### Non-Negotiable Rules' "$f"
-  rm -f "$f"
+@test "[#174] the lifecycle pointer is resolvable, not a dangling reference" {
+  grep -qF 'my/skills/c-bpm-sk-milestone-type/SKILL.md' "$CMD"
+  grep -qF '~/.claude/skills/c-bpm-sk-milestone-type/SKILL.md' "$CMD"
+  grep -qF 'github.com/BPMspaceUG/bpm-claude-global-agent-skill-library' "$CMD"
+  grep -qF 'target="_blank"' "$CMD"
 }

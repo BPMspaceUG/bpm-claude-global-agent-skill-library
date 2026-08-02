@@ -60,6 +60,12 @@ The full lifecycle requires these milestones:
    ## Issue Lifecycle
 
    This repo follows the milestone-based issue lifecycle **defined and governed by the library skill `c-bpm-sk-milestone-type`** — the single source of truth. Do not copy the lifecycle here; a copy goes stale (#174; e.g. the #146 `CANCELLED` terminal state would otherwise have to re-land in every copied block by hand).
+
+   Where to read it:
+
+   - Installed on this host: `~/.claude/skills/c-bpm-sk-milestone-type/SKILL.md`
+   - In the library repo: `my/skills/c-bpm-sk-milestone-type/SKILL.md` in <a href="https://github.com/BPMspaceUG/bpm-claude-global-agent-skill-library" target="_blank">bpm-claude-global-agent-skill-library</a>
+   - Not installed yet? Run `bcgasl` (or `c-bpm-cm-library-pull`) to install the skill on this host.
    ```
 
    If a lifecycle reference already exists, do NOT duplicate it.
