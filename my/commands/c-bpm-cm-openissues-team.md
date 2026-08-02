@@ -352,7 +352,7 @@ After all workable issues are addressed:
 
 1. Run full test suite: `./tests/run_tests.sh`
 2. Run shellcheck on all modified files
-3. **Verdict-ownership check (#273)** — over `$TEST_APPROVED`, the issues THIS
+3. **Verdict-ownership check** (motivated by pizza-sim#273) — over `$TEST_APPROVED`, the issues THIS
    run moved to `test-approved`. A HARD line blocks the report: re-gate those
    issues per issue before calling the run finished.
 
@@ -421,7 +421,7 @@ done; done
   posted **only to the issue it reviewed**. Copying a verdict across a bundle is
   forbidden: it awards a milestone on evidence about a different issue, and it
   is silent — every issue shows an APPROVE and every listing looks correct
-  (#273: #245 and #246 inherited #243's Phase-7 verdict byte-for-byte).
+  (pizza-sim#273: pizza-sim#245 and pizza-sim#246 inherited pizza-sim#243's Phase-7 verdict byte-for-byte).
 - **Every gate prompt names the issue under review.** The invocation states the
   issue number and instructs the Judge to judge that issue's acceptance criteria
   only, citing the artifacts that satisfy them. A verdict whose points never

@@ -268,3 +268,21 @@ ${hits}}"
   rm -rf "$d"
   [[ -n "$bad" ]]
 }
+
+@test "[#165] every pizza-sim cross-repo ref in openissues-team is qualified (no bare local-style #id)" {
+  local id total qual
+  for id in 243 245 246 273; do
+    total="$(grep -oE "#${id}([^0-9]|\$)" "$TEAM" | wc -l | tr -d ' ')"
+    qual="$(grep -oE "pizza-sim#${id}([^0-9]|\$)" "$TEAM" | wc -l | tr -d ' ')"
+    if [ "$total" -ne "$qual" ]; then echo "bare #${id} present in $TEAM (total=$total qual=$qual)"; return 1; fi
+  done
+}
+
+@test "[#165] guard bites: a bare pizza-sim id is flagged, a qualified one is not" {
+  local d bare good; d="$(mktemp -d)"
+  printf '(#273)\n' > "$d/bad.md"; printf '(pizza-sim#273)\n' > "$d/ok.md"
+  bare="$(grep -oE '#273([^0-9]|$)' "$d/bad.md" | wc -l)"; local bq; bq="$(grep -oE 'pizza-sim#273([^0-9]|$)' "$d/bad.md" | wc -l)"
+  good="$(grep -oE '#273([^0-9]|$)' "$d/ok.md" | wc -l)"; local gq; gq="$(grep -oE 'pizza-sim#273([^0-9]|$)' "$d/ok.md" | wc -l)"
+  rm -rf "$d"
+  [ "$bare" -ne "$bq" ] && [ "$good" -eq "$gq" ]
+}
