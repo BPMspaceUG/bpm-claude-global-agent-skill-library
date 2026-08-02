@@ -53,6 +53,7 @@ set -u
 
 REPO_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
 SKILLS_DIR="${REPO_ROOT}/my/skills"
+COMMANDS_DIR="${REPO_ROOT}/my/commands"
 
 CREATOR="${SKILLS_DIR}/c-bpm-sk-skill-creator/SKILL.md"
 OPTIMIZER="${SKILLS_DIR}/c-bpm-sk-skill-optimizer/SKILL.md"
@@ -156,6 +157,23 @@ _has_paths() {
 
 _has_intent_patterns() {
   _fm "$1" | grep -qE '^[[:space:]]*intentPatterns:[[:space:]]*\S'
+}
+
+# #143 — routing docs must document that flagged (disable-model-invocation) skills
+# do not auto-load and must be named literally. Section-scoped so unrelated prose
+# elsewhere in these long command files cannot false-pass.
+_skill_selection_section() {
+  awk '/^### Skill Selection per Teammate/{f=1;next} f&&/^#+ /{exit} f{print}' "$1"
+}
+_routing_section_documents_flag() {
+  local sec; sec="$(_skill_selection_section "$1")"
+  grep -q 'disable-model-invocation' <<<"$sec" || return 1
+  grep -qiE 'by name|named' <<<"$sec" || return 1
+  local s
+  for s in "${NO_AUTO_INVOKE_SKILLS[@]}"; do
+    grep -qF "$s" <<<"$sec" || return 1
+  done
+  return 0
 }
 
 # #141 — intentPatterns quality checker. Prints one "reason" line per problem;
@@ -1283,4 +1301,36 @@ MD
     return 1
   fi
   [[ -n "$(_fenced_yaml_errors "${mutated}")" ]]
+}
+
+# =============================================================================
+# #143 — team-command routing docs must caveat the flagged (disable-model-invocation)
+# skills: they do not auto-load from a natural-language trigger, so a teammate only
+# gets one if its exact skill name is in the spawn prompt.
+# =============================================================================
+
+@test "[#143] openissues-team skill-selection section documents the no-auto-load caveat for the full flagged set" {
+  _routing_section_documents_flag "${COMMANDS_DIR}/c-bpm-cm-openissues-team.md"
+}
+
+@test "[#143] refactor-repo skill-selection section documents the no-auto-load caveat for the full flagged set" {
+  _routing_section_documents_flag "${COMMANDS_DIR}/c-bpm-cm-refactor-repo.md"
+}
+
+@test "[#143] guard rejects a skill-selection section that routes a flagged skill without the caveat" {
+  local f="${TMPD}/no-caveat.md"
+  printf '### Skill Selection per Teammate\n- Release/CI -> `c-bpm-sk-release-ops`\n\n### Spawn Form\n' > "$f"
+  if _routing_section_documents_flag "$f"; then
+    printf 'Guard passed a routing list with no disable-model-invocation caveat.\n' >&2
+    return 1
+  fi
+}
+
+@test "[#143] guard rejects a caveat that omits part of the flagged set" {
+  local f="${TMPD}/partial-caveat.md"
+  printf '### Skill Selection per Teammate\nFlagged skills carry disable-model-invocation and must be named by name: `c-bpm-sk-release-ops`, `c-bpm-sk-linux-admin`, `c-bpm-sk-linux-archive`.\n\n### Spawn Form\n' > "$f"
+  if _routing_section_documents_flag "$f"; then
+    printf 'Guard passed a caveat missing c-bpm-sk-linux-audit.\n' >&2
+    return 1
+  fi
 }

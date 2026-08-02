@@ -212,6 +212,8 @@ Before spawning, review ALL available skills (`/skills` or check `~/.claude/skil
 
 Include the relevant skill names in each teammate's spawn prompt so they can leverage specialized knowledge.
 
+**Flagged skills do not auto-load — name them literally.** These skills carry `disable-model-invocation: true` and are NOT picked up by the natural-language router; a teammate that needs one only loads it if its exact skill name is in the spawn prompt. Always name them explicitly by name, never rely on a category phrase: `c-bpm-sk-linux-admin`, `c-bpm-sk-linux-archive`, `c-bpm-sk-linux-audit`, `c-bpm-sk-release-ops`. (Set + rationale pinned by `tests/bash/c-bpm-sk-library-cohesion.bats`, #143.)
+
 ---
 
 ## PHASE 4 — PLAN APPROVAL
