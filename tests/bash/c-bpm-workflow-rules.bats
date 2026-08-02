@@ -286,3 +286,19 @@ ${hits}}"
   rm -rf "$d"
   [ "$bare" -ne "$bq" ] && [ "$good" -eq "$gq" ]
 }
+
+@test "[#163] openissues-team pins the one-issue-one-invocation-one-verdict rule" {
+  grep -qiF 'One issue, one invocation, one verdict' "$TEAM"
+  grep -qiF 'never once per bundle' "$TEAM"
+  grep -qiF 'only to the issue it reviewed' "$TEAM"
+  grep -qiF 'Copying a verdict across a bundle is' "$TEAM"
+  grep -qiF 'forbidden: it awards a milestone on evidence about a different issue' "$TEAM"
+  grep -qiF 'Every gate prompt names the issue under review' "$TEAM"
+}
+
+@test "[#163] guard is non-vacuous: a command lacking the per-issue-verdict rule fails" {
+  local f; f="$(mktemp)"
+  printf '# a command with no per-issue verdict rule\n' > "$f"
+  ! grep -qiF 'One issue, one invocation, one verdict' "$f"
+  rm -f "$f"
+}
