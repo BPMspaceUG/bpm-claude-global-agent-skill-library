@@ -125,6 +125,15 @@ This threshold is the loop's **convergence criterion — a PASS threshold, never
 
 **Referenced, never restated.** This is the single canonical definition. Any command or skill that runs a scored gate — `c-bpm-cm-goal-openissue`, `c-bpm-cm-openissues-team`, and downstream — cites this section by name; it does not re-list the dimensions or the numbers.
 
+### Convergence & blocking policy
+
+The adversarial stance stays on at **every gate round**, not only the first. A neutral Judge that relaxed after the opening pass would ship real defects: on the 2026-07-26 run the hook suite was green while `sudo bash -lc` still returned allow, and only the sustained adversarial stance caught it (#137). What changes across rounds is not the stance but the **blocking bar**, and the rubric threshold sets it:
+
+- **Below threshold** — any dimension below 4, or TOTAL under 20: findings are blocking. The gate does not pass; the Producer revises and resubmits.
+- **At or above threshold** — the gate PASSES. Any remaining findings are **residual-acceptable**: they do not hold the gate, they are filed as their own issues (findings-to-issues rule), and they never restart the loop.
+
+This threshold is the loop's **convergence criterion** and the principled replacement for the fabricated cycle cap (#89): the loop stays **uncapped** — there is no fixed number of rounds — and it ends on merit when the artifact clears the rubric, never on a count. Every scored gate (plan, test design, implementation, audit) applies this one policy: it never passes on a bare defect list, and never blocks on a residual-acceptable nit.
+
 ## Codex Invocation (shell hygiene)
 
 This is the canonical shell form for invoking the Codex Judge. Since #113 it lives

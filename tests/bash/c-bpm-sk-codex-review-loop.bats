@@ -313,3 +313,31 @@ _assert_no_match() {
 @test "[#145] devils-advocate points at the canonical rubric" {
   grep -qF 'canonical review rubric in `c-bpm-sk-llm-selection`' "${DEVILS}"
 }
+
+# ==================================================================
+# #144 - loop-level convergence & blocking policy
+# ==================================================================
+
+@test "[#144] the adversarial stance is on every gate round with the threshold as the blocking bar" {
+  grep -qiF 'every gate round' "${LLM_SELECTION}"
+  grep -qiF 'not only the first' "${LLM_SELECTION}"
+  grep -qiF 'blocking bar' "${LLM_SELECTION}"
+}
+
+@test "[#144] both threshold branches are stated: below blocks, at/above passes with non-blocking residuals" {
+  grep -qiF 'Below threshold' "${LLM_SELECTION}"
+  grep -qiF 'At or above threshold' "${LLM_SELECTION}"
+  grep -qF 'PASSES' "${LLM_SELECTION}"
+  grep -qF 'residual-acceptable' "${LLM_SELECTION}"
+  grep -qiF 'never restart' "${LLM_SELECTION}"
+}
+
+@test "[#144] convergence reconciles #89 without a cap" {
+  grep -qiF 'convergence criterion' "${LLM_SELECTION}"
+  grep -qF '#89' "${LLM_SELECTION}"
+  grep -qiF 'uncapped' "${LLM_SELECTION}"
+}
+
+@test "[#144] the reserved threshold string TOTAL >= 20 still appears exactly once in llm-selection" {
+  [ "$(grep -oF 'TOTAL >= 20' "${LLM_SELECTION}" | wc -l)" -eq 1 ]
+}
