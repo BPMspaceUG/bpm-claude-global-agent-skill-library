@@ -155,10 +155,22 @@ downstream re-sources them.
 sandbox, Issue-sourced prompt on stdin:
 
 ```bash
+# #162: the Judge runs inside a throwaway detached worktree so it cannot write the
+# canonical tree; a pre/post tree-integrity check on the canonical tree is the mandatory backstop.
+payload="$(mktemp)"
 { gh api repos/${OWNER}/${REPO}/issues/${N} --jq .body
   gh api repos/${OWNER}/${REPO}/issues/${N}/comments --jq '.[].body'
-} | env -u BASH_ENV -u ENV bash --noprofile --norc -c \
-  'codex exec --skip-git-repo-check -s workspace-write -c sandbox_workspace_write.network_access=true 2>&1'
+} > "$payload"
+JUDGE_WT="$(mktemp -d)"; git worktree add --quiet --detach "$JUDGE_WT" HEAD
+BEFORE="$(git status --porcelain)"
+( cd "$JUDGE_WT" && env -u BASH_ENV -u ENV bash --noprofile --norc -c \
+    'codex exec --skip-git-repo-check -s workspace-write -c sandbox_workspace_write.network_access=true 2>&1' \
+    < "$payload" )
+if [ "$(git status --porcelain)" != "$BEFORE" ]; then
+  git checkout -- .; git clean -fdq        # revert tracked + remove untracked the review added
+  echo "TREE MUTATED mid-review — gate FAILS (#162)"
+fi
+git worktree remove --force "$JUDGE_WT"
 ```
 
 **Rules**
@@ -172,6 +184,7 @@ sandbox, Issue-sourced prompt on stdin:
   makes the Judge unable to read the workspace or reach the network, which it
   reports as an inability to review. `danger-full-access` is never sanctioned;
   workspace-write is the ceiling.
+- **Reviewer cannot write the canonical tree (#162).** `workspace-write` is required — the Judge must run `bats`, and on codex-cli 0.143.0 the `read-only` sandbox blocks `/tmp`, so the suite cannot run there. It is therefore confined to a throwaway detached `git worktree`, discarded after review, so the Judge's writes never reach the canonical tree. A mandatory pre/post `git status --porcelain` snapshot reverts (`git checkout -- .` + `git clean -fdq`) and fails the gate loud (`TREE MUTATED`) on any canonical-tree delta.
 - **Token order is load-bearing.** `codex exec --skip-git-repo-check` stays
   contiguous and the sandbox flags follow it, so the guard suites keep matching.
 - **Prompt on stdin, Issue-sourced.** Pipe the Issue body and its comments in on

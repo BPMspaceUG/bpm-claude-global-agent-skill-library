@@ -48,9 +48,16 @@ verbatim — sanitized non-login shell, network-enabled workspace sandbox, paylo
 stdin):
 
 ```bash
-env -u BASH_ENV -u ENV bash --noprofile --norc -c \
-  'codex exec --skip-git-repo-check -s workspace-write -c sandbox_workspace_write.network_access=true 2>&1' \
-  < "${payload}"
+JUDGE_WT="$(mktemp -d)"; git worktree add --quiet --detach "$JUDGE_WT" HEAD
+BEFORE="$(git status --porcelain)"
+( cd "$JUDGE_WT" && env -u BASH_ENV -u ENV bash --noprofile --norc -c \
+    'codex exec --skip-git-repo-check -s workspace-write -c sandbox_workspace_write.network_access=true 2>&1' \
+    < "$payload" )
+if [ "$(git status --porcelain)" != "$BEFORE" ]; then
+  git checkout -- .; git clean -fdq        # revert tracked + remove untracked the review added
+  echo "TREE MUTATED mid-review — gate FAILS (#162)"
+fi
+git worktree remove --force "$JUDGE_WT"
 ```
 
 - The sanitizing tokens (`env -u BASH_ENV -u ENV`, `--noprofile`, `--norc`) and the
@@ -58,6 +65,7 @@ env -u BASH_ENV -u ENV bash --noprofile --norc -c \
 - `-s workspace-write` with `sandbox_workspace_write.network_access=true` lets the
   Judge actually read the workspace and reach the network (issue #117).
   `danger-full-access` is never sanctioned — workspace-write is the ceiling.
+- **Confined to a throwaway worktree (#162).** The Judge runs from `cd "$JUDGE_WT"` inside a detached `git worktree`, so its `workspace-write` sandbox root is the temp worktree, not the canonical tree; the worktree is removed after review. The pre/post `git status --porcelain` snapshot is the mandatory backstop — on any canonical-tree delta it reverts (`git checkout -- .` + `git clean -fdq`) and fails loud (`TREE MUTATED`).
 - Ask for an explicit verdict scored against the **canonical review rubric in `c-bpm-sk-llm-selection`** (five dimensions, 1-5, with the PASS threshold defined there): `APPROVE` or `REJECT` with per-dimension scores and specific, actionable reasons. A verdict without scores and reasons is not a verdict — re-ask.
 
 ### Auth failure recovery (exactly once)

@@ -148,3 +148,45 @@ EOF
     return 1
   fi
 }
+
+# ==================================================================
+# #162 - SoD reviewer confined to a throwaway worktree + tree-integrity backstop
+# ==================================================================
+
+@test "[#162] both Judge skills wrap the invocation in a throwaway detached worktree" {
+  local f
+  for f in "${LLM_SELECTION}" "${DEVILS_ADVOCATE}"; do
+    grep -qF 'git worktree add' "$f"    || { echo "no worktree add in $f" >&2; return 1; }
+    grep -qF -- '--detach' "$f"         || { echo "no --detach in $f" >&2; return 1; }
+    grep -qF 'git worktree remove' "$f" || { echo "no worktree remove in $f" >&2; return 1; }
+  done
+}
+
+@test "[#162] the Judge invocation is cd'd into the throwaway worktree in both skills" {
+  grep -qF 'cd "$JUDGE_WT"' "${LLM_SELECTION}"
+  grep -qF 'cd "$JUDGE_WT"' "${DEVILS_ADVOCATE}"
+}
+
+@test "[#162] both skills mandate the tree-integrity backstop reverting tracked AND untracked, with a loud fail" {
+  local f
+  for f in "${LLM_SELECTION}" "${DEVILS_ADVOCATE}"; do
+    grep -qF 'git status --porcelain' "$f" || { echo "no snapshot in $f" >&2; return 1; }
+    grep -qF 'git checkout -- .' "$f"       || { echo "no tracked revert in $f" >&2; return 1; }
+    grep -qF 'git clean -fdq' "$f"          || { echo "no untracked cleanup in $f" >&2; return 1; }
+    grep -qF 'TREE MUTATED' "$f"            || { echo "no loud fail in $f" >&2; return 1; }
+    grep -qF '#162' "$f"                    || { echo "no #162 ref in $f" >&2; return 1; }
+  done
+}
+
+@test "[#162] read-only is documented as non-viable because the Judge must run bats" {
+  grep -qF 'read-only' "${LLM_SELECTION}"
+  grep -qF '/tmp' "${LLM_SELECTION}"
+  grep -qF 'bats' "${LLM_SELECTION}"
+}
+
+@test "[#162] the sanitized inner invocation survived the wrapper (no-drift regression)" {
+  local a b
+  a="$(normalize_shell_lines "${LLM_SELECTION}" | grep -cF -- "${CANONICAL_INVOCATION}" || true)"
+  b="$(normalize_shell_lines "${DEVILS_ADVOCATE}" | grep -cF -- "${CANONICAL_INVOCATION}" || true)"
+  [ "$a" -ge 1 ] && [ "$b" -ge 1 ]
+}
