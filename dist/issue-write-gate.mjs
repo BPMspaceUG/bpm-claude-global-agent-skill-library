@@ -21,6 +21,22 @@
 //           rate limit, DNS failure, gh missing, login-shell banners on the
 //           same stream per #94/#130). Never do that.
 //
+// ── ACCEPTED RESIDUAL BYPASS SURFACE (#71 action item 3) ─────────────────
+// This layer inspects the argv it is handed. Any indirection that hides the
+// create from that argv is a KNOWN, ACCEPTED limit, not a bug to chase here —
+// chasing it means interpreting arbitrary embedded languages, which this hook
+// deliberately does not do (that is how the sibling shape heuristic burned
+// four review rounds). Enumerated so the boundary is explicit:
+//   * subshell / command substitution — `$(...)`, backticks producing the
+//     create at runtime;
+//   * base64 / other decode-then-exec — `echo <b64> | base64 -d | sh`;
+//   * here-strings / here-docs feeding a shell — `sh <<<"gh issue create ..."`;
+//   * URL or command assembled at runtime from pieces (see the inline-HTTP
+//     note below for the same limit on the curl/python path).
+// The backstop for ALL of these is the server-side GitHub Actions layer on
+// issues.opened (#42/#131), which sees every issue however it was created.
+// Widen the inspected argv shapes with care; never add a decode/eval emulator.
+//
 // Test mode env vars (used by tests/bash/c-bpm-sk-issue-write-gate.bats):
 //   FIXTURE_MILESTONES      JSON object {name: number} mocking gh api milestones
 //   FIXTURE_REPO            "owner/repo" string skipping git resolution
