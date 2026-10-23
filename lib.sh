@@ -446,38 +446,26 @@ write_host_inventory() {
   local ts
   ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-  # Skills (directories)
-  {
-    echo "# Host: $host_name"
-    echo "# Updated: $ts"
-    echo "# Category: skills"
-    echo "#"
-    if [[ -d "$claude_dir/skills" ]]; then
-      ls -1 "$claude_dir/skills/" 2>/dev/null | grep "^${ITEM_PREFIX}-${ORG_PREFIX}-" | sort
+  # One file per category. A file is rewritten only when its item list
+  # changed, so a routine pull does not leave a timestamp-only diff behind.
+  local category file items
+  for category in skills commands agents; do
+    file="$host_dir/$category.txt"
+    items=""
+    if [[ -d "$claude_dir/$category" ]]; then
+      items="$({ ls -1 "$claude_dir/$category/" 2>/dev/null | grep "^${ITEM_PREFIX}-${ORG_PREFIX}-" || true; } | sort)"
     fi
-  } > "$host_dir/skills.txt"
-
-  # Commands (files)
-  {
-    echo "# Host: $host_name"
-    echo "# Updated: $ts"
-    echo "# Category: commands"
-    echo "#"
-    if [[ -d "$claude_dir/commands" ]]; then
-      ls -1 "$claude_dir/commands/" 2>/dev/null | grep "^${ITEM_PREFIX}-${ORG_PREFIX}-" | sort
+    if [[ -f "$file" ]] && [[ "$(grep -v '^#' "$file" || true)" == "$items" ]]; then
+      continue
     fi
-  } > "$host_dir/commands.txt"
-
-  # Agents (files)
-  {
-    echo "# Host: $host_name"
-    echo "# Updated: $ts"
-    echo "# Category: agents"
-    echo "#"
-    if [[ -d "$claude_dir/agents" ]]; then
-      ls -1 "$claude_dir/agents/" 2>/dev/null | grep "^${ITEM_PREFIX}-${ORG_PREFIX}-" | sort
-    fi
-  } > "$host_dir/agents.txt"
+    {
+      echo "# Host: $host_name"
+      echo "# Updated: $ts"
+      echo "# Category: $category"
+      echo "#"
+      [[ -z "$items" ]] || printf '%s\n' "$items"
+    } > "$file"
+  done
 
   log_verbose "Host inventory written to $host_dir"
 }
