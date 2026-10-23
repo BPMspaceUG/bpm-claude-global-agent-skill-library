@@ -69,9 +69,10 @@ cd ~/bpm-claude-global-agent-skill-library && git pull
 c-bpm-cm-library-pull    # refresh the installed copies in ~/.claude/
 ```
 
-### The agent cleanup hook
+### The hooks
 
-`c-bpm-cm-library-pull` installs one hook, `c-bpm-hk-agent-cleanup-guard`, and
+`c-bpm-cm-library-pull` installs two hooks, `c-bpm-hk-agent-cleanup-guard` and
+`c-bpm-hk-skills-refresh`, and
 registers it in `~/.claude/settings.json` (plus `~/.config/claude/settings.json`
 when that file exists). Re-running the pull is idempotent and also replaces the
 older stand-alone `agent-cleanup-guard.sh` registration.
@@ -80,11 +81,12 @@ older stand-alone `agent-cleanup-guard.sh` registration.
 |-------|--------------|
 | `TeammateIdle` | The teammate that just finished its turn is stopped by Claude Code (`continue: false`). |
 | `Stop` | The user sees a line listing every teammate, subagent and shell still in flight. Open teammates and shells get one request to `TaskStop` them; never twice in a row. |
-| `SessionStart` | Claude is told to run `ListAgents` and stop leftover teammates before answering. |
+| `SessionStart` (startup, /clear) | Claude is told to run `ListAgents` and stop leftover teammates before answering. |
+| `SessionStart` (startup, resume) | The installed Pocock skills are unlocked at once, without network. At most once per 24 h a detached worker updates the plugin, unlocks again and runs `c-bpm-cm-library-pull`; the result applies from the next session. Log: `~/.claude/hooks/c-bpm-hk-skills-refresh.log`. |
 
 Restart Claude Code after the first pull so the registration is loaded. The
-hook writes every payload it sees to `~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.log`
-(capped at 256 KiB).
+cleanup hook writes every payload it sees, without the assistant's text, to
+`~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.log`. Both logs are capped at 256 KiB.
 
 ### Removing the former enforcement hooks
 
@@ -120,7 +122,7 @@ done
 |------|-----------|---------|
 | `c-bpm-cm-spec-oneshot` | `/c-bpm-cm-spec-oneshot [major\|minor\|patch]` | Write or version a self-contained specification under `/specification/` and the overnight build prompt under `/prompts/`. One optional grilling round with Rob; every other open point is decided in the spec or delegated to Codex. |
 | `c-bpm-sk-gogo` | `/c-bpm-sk-gogo [spec issue \| label]` | Unattended overnight run over the ready, unblocked tickets of the current repo: agent team, one worktree per ticket, Codex plan and implementation reviews, draft PR per integration branch. `TEAMMATE.md` is the teammate contract. |
-| `c-bpm-cm-pocock-update` | `/c-bpm-cm-pocock-update [--check] [--no-update]` | Update the Pocock plugin and remove `disable-model-invocation: true` from every installed SKILL.md. Re-run after each plugin update; the patch lives in the installed copy and is overwritten by updates. |
+| `c-bpm-cm-pocock-update` | `/c-bpm-cm-pocock-update [--check] [--no-update]` | Manual, immediate Pocock update and unlock; the `c-bpm-hk-skills-refresh` hook does the same at session start. |
 | `c-bpm-cm-library-pull` | `/c-bpm-cm-library-pull` or the CLI | Sync c-bpm items from this repo into `~/.claude/` |
 | `c-bpm-cm-library-push` | `/c-bpm-cm-library-push` or the CLI | Sync c-bpm items from `~/.claude/` into this repo; auto-commits and pushes |
 | `c-bpm-cm-library-compare` | `/c-bpm-cm-library-compare` or the CLI | Show which c-bpm items differ between `~/.claude/` and the repo; optionally repair |
@@ -164,7 +166,7 @@ scripts (`install.bats`, `sync-dedup.bats`, `sync-only-flags.bats`,
 `c-bpm-hosts-inventory.bats`), drift guards over this README
 (`readme-guards.bats`), content guards over the custom items
 (`c-bpm-items.bats`) and the agent cleanup hook with its installation
-(`c-bpm-hk-agent-cleanup-guard.bats`).
+(`c-bpm-hk-agent-cleanup-guard.bats`) and the skills refresh hook (`c-bpm-hk-skills-refresh.bats`).
 
 ## 5. Maintenance
 

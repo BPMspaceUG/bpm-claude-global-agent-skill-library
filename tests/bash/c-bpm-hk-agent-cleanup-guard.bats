@@ -125,9 +125,12 @@ events_with_guard() { # <settings file>
   jq -r '.hooks | to_entries[] | select([.value[].hooks[].command] | any(contains("c-bpm-hk-agent-cleanup-guard.sh"))) | .key' "$1" | sort | tr '\n' ' '
 }
 
-@test "fragment: registers exactly SessionStart, Stop, TeammateIdle and points at the installed path" {
+@test "fragment: registers exactly SessionStart, Stop, TeammateIdle and points at installed c-bpm-hk scripts" {
   [ "$(jq -r 'keys | sort | join(" ")' "${FRAGMENT}")" = "SessionStart Stop TeammateIdle" ]
-  ! jq -r '.. | .command? // empty' "${FRAGMENT}" | grep -vq '^~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh '
+  ! jq -r '.. | .command? // empty' "${FRAGMENT}" | grep -vqE '^~/\.claude/hooks/c-bpm-hk-[a-z-]+\.sh [a-z]+$'
+  local s; for s in $(jq -r '.. | .command? // empty' "${FRAGMENT}" | awk '{print $1}' | sed 's|^~/.claude/hooks/||' | sort -u); do
+    [ -x "${REPO_ROOT}/my/hooks/${s}" ] || { echo "fragment names missing script ${s}" >&2; return 1; }
+  done
 }
 
 @test "install: copies the hook, registers three events, keeps unrelated settings" {

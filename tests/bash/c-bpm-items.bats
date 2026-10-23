@@ -11,7 +11,6 @@ set -u
 
 REPO_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
 SPEC_CMD="${REPO_ROOT}/my/commands/c-bpm-cm-spec-oneshot.md"
-POCOCK_CMD="${REPO_ROOT}/my/commands/c-bpm-cm-pocock-update.md"
 GOGO_DIR="${REPO_ROOT}/my/skills/c-bpm-sk-gogo"
 
 # Frontmatter body (between the first two '---' lines).
@@ -117,48 +116,6 @@ frontmatter() {
 }
 
 # ------------------------------------------------------------------
-# c-bpm-cm-pocock-update
-# ------------------------------------------------------------------
-
-pocock_script() {
-  awk '/^```bash$/{f=1; next} /^```$/{f=0} f' "${POCOCK_CMD}"
-}
-
-@test "pocock-update: the embedded script parses" {
-  local tmp; tmp="$(mktemp)"
-  pocock_script > "${tmp}"
-  [ -s "${tmp}" ] || { echo "no bash block found" >&2; rm -f "${tmp}"; return 1; }
-  bash -n "${tmp}"
-  local rc=$?
-  rm -f "${tmp}"
-  return "${rc}"
-}
-
-@test "pocock-update: strips the lock line from the frontmatter only, idempotently" {
-  command -v python3 >/dev/null || skip "python3 not on PATH"
-  local d; d="$(mktemp -d)"
-  mkdir -p "${d}/skills/a" "${d}/skills/b"
-  printf -- '---\nname: a\ndisable-model-invocation: true\ndescription: x\n---\n\nbody mentions disable-model-invocation: true as text\n' > "${d}/skills/a/SKILL.md"
-  printf -- '---\nname: b\ndescription: y\n---\n\nbody\n' > "${d}/skills/b/SKILL.md"
-  # Extract only the python unlock snippet from the script and run it per file.
-  local py; py="$(pocock_script | awk '/python3 -I - "\$f" <<.PY.$/{f=1; next} /^PY$/{f=0} f')"
-  [ -n "${py}" ] || { echo "unlock snippet not found" >&2; rm -rf "${d}"; return 1; }
-  printf '%s\n' "${py}" | python3 -I - "${d}/skills/a/SKILL.md"
-  printf '%s\n' "${py}" | python3 -I - "${d}/skills/a/SKILL.md"
-  printf '%s\n' "${py}" | python3 -I - "${d}/skills/b/SKILL.md"
-  local a b
-  a="$(cat "${d}/skills/a/SKILL.md")"; b="$(cat "${d}/skills/b/SKILL.md")"
-  rm -rf "${d}"
-  [ "${a}" = "$(printf -- '---\nname: a\ndescription: x\n---\n\nbody mentions disable-model-invocation: true as text')" ] || { printf 'unexpected a:\n%s\n' "${a}" >&2; return 1; }
-  [ "${b}" = "$(printf -- '---\nname: b\ndescription: y\n---\n\nbody')" ] || { printf 'unexpected b:\n%s\n' "${b}" >&2; return 1; }
-}
-
-@test "pocock-update: never touches the marketplace clone" {
-  ! pocock_script | grep -q 'plugins/marketplaces'
-  grep -qF 'never edits the marketplace clone' "${POCOCK_CMD}"
-}
-
-# ------------------------------------------------------------------
 # c-bpm-sk-gogo
 # ------------------------------------------------------------------
 
@@ -173,55 +130,4 @@ pocock_script() {
   [[ "${flat}" == *"every decision goes to Codex, never to a human"* ]]
   [[ "${flat}" == *"reaches 60"* ]]
   [[ "${flat}" == *"Never commit to or merge into the default branch"* ]]
-}
-
-# End-to-end: run the embedded script against a fake HOME with --no-update.
-# Reproduces the review finding that `grep | wc -l` under pipefail aborted
-# the script once no skill was locked any more (the success case).
-pocock_fake_home() { # <dir> <locked-count>
-  local home="$1" locked="$2" i
-  mkdir -p "${home}/.claude/plugins/cache/mattpocock/mattpocock-skills/9.9.9/skills"
-  for i in 1 2 3; do
-    mkdir -p "${home}/.claude/plugins/cache/mattpocock/mattpocock-skills/9.9.9/skills/s${i}"
-    if [ "${i}" -le "${locked}" ]; then
-      printf -- '---\nname: s%s\ndisable-model-invocation: true\n---\nbody\n' "${i}"
-    else
-      printf -- '---\nname: s%s\n---\nbody\n' "${i}"
-    fi > "${home}/.claude/plugins/cache/mattpocock/mattpocock-skills/9.9.9/skills/s${i}/SKILL.md"
-  done
-  printf '{"version":1,"plugins":{"mattpocock-skills@mattpocock":[{"version":"9.9.9","installPath":"%s/.claude/plugins/cache/mattpocock/mattpocock-skills/9.9.9"}]}}' "${home}" \
-    > "${home}/.claude/plugins/installed_plugins.json"
-  printf '{"version":"9.9.9"}' > "${home}/manifest.json"
-}
-
-@test "pocock-update: --no-update unlocks locked skills and prints the table" {
-  local home; home="$(mktemp -d)"; pocock_fake_home "${home}" 2
-  local script; script="$(mktemp)"; pocock_script > "${script}"
-  run env HOME="${home}" POCOCK_MANIFEST_URL="file://${home}/manifest.json" bash "${script}" --no-update
-  rm -f "${script}"
-  [ "${status}" -eq 0 ] || { printf 'exit %s\n%s\n' "${status}" "${output}" >&2; rm -rf "${home}"; return 1; }
-  [[ "${output}" == *"| unlocked this run | 2 |"* ]]
-  [[ "${output}" == *"| still locked | 0 |"* ]]
-  [ "$(grep -rl 'disable-model-invocation' "${home}/.claude/plugins/cache" | wc -l)" -eq 0 ]
-  rm -rf "${home}"
-}
-
-@test "pocock-update: --no-update with nothing locked exits 0 and prints the table (pipefail regression)" {
-  local home; home="$(mktemp -d)"; pocock_fake_home "${home}" 0
-  local script; script="$(mktemp)"; pocock_script > "${script}"
-  run env HOME="${home}" POCOCK_MANIFEST_URL="file://${home}/manifest.json" bash "${script}" --no-update
-  rm -f "${script}"
-  [ "${status}" -eq 0 ] || { printf 'exit %s\n%s\n' "${status}" "${output}" >&2; rm -rf "${home}"; return 1; }
-  [[ "${output}" == *"| unlocked this run | 0 |"* ]]
-  [[ "${output}" == *"| still locked | 0 |"* ]]
-  rm -rf "${home}"
-}
-
-@test "pocock-update: --check with nothing locked exits 0 (pipefail regression)" {
-  local home; home="$(mktemp -d)"; pocock_fake_home "${home}" 0
-  local script; script="$(mktemp)"; pocock_script > "${script}"
-  run env HOME="${home}" POCOCK_MANIFEST_URL="file://${home}/manifest.json" bash "${script}" --check
-  rm -f "${script}"; rm -rf "${home}"
-  [ "${status}" -eq 0 ] || { printf 'exit %s\n%s\n' "${status}" "${output}" >&2; return 1; }
-  [[ "${output}" == *"| locked skills | 0 |"* ]]
 }

@@ -39,6 +39,9 @@ Language: everything you write is in **English**, regardless of the conversation
 |---|---|---|
 | Inside a git repo with a clean or committed working tree | `git status --porcelain` — if dirty, commit or stash first, with Rob's one-word OK | yes |
 | Pocock skills present (`to-spec`, `domain-modeling`, `grilling`, `research`, `codebase-design`) | skill listing | yes |
+| Pocock skills model-callable in this session (`to-spec`, `to-tickets`, `implement-spec`, `retro` appear in your own skill list, not only as user commands) | your skill listing, and `~/.claude/hooks/c-bpm-hk-skills-refresh.sh check` shows `locked skills` = 0 | yes — if locked: run `~/.claude/hooks/c-bpm-hk-skills-refresh.sh unlock`, then stop and tell Rob to restart Claude Code |
+
+This step never runs the plugin update or `c-bpm-cm-library-pull` itself: the SessionStart hook `c-bpm-hk-skills-refresh` keeps both current, and changes only take effect after a restart. If `check` shows an upstream version newer than the installed one, say so in the check table and continue.
 | `codex` CLI present | `codex --version`, `codex exec --help` | no — note it; the spec review in step 6 then falls back to a self-review and the build prompt keeps the Codex lines for the build machine |
 | `gh` authenticated (only needed to read open issues) | `gh auth status` | no |
 | Repo standing docs | `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`/`GLOSSARY-MAP.md`, ADRs, `README.md` — read them fully | — |

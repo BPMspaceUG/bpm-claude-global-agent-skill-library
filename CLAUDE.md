@@ -20,11 +20,13 @@ All custom items use the `c-{org}-{type}-{name}` prefix convention
 |---|---|---|
 | `c-bpm-cm-spec-oneshot` | command | Write or version a one-shot specification under `/specification/` plus the overnight build prompt under `/prompts/`. Rob is asked at most one grilling round; everything else is decided in the spec or delegated to Codex. |
 | `c-bpm-sk-gogo` | skill | Unattended overnight run: implements every ready, unblocked ticket of the current repo with an agent team and Codex reviews (`TEAMMATE.md` is the teammate contract). |
-| `c-bpm-cm-pocock-update` | command | Update the Pocock plugin and strip `disable-model-invocation: true` from every installed SKILL.md so Claude can call the skills itself. Re-run after every plugin update. |
+| `c-bpm-cm-pocock-update` | command | Manual, immediate run of `c-bpm-hk-skills-refresh.sh` (`update`, `check`, `unlock`): update the Pocock plugin and strip `disable-model-invocation: true` from every installed SKILL.md so Claude can call the skills itself. |
 | `c-bpm-cm-library-pull` / `-push` / `-compare` | command + CLI | Sync `my/` items between this repo and `~/.claude/`. |
 | `c-bpm-hk-agent-cleanup-guard` | hook | Stops a teammate as soon as it finishes its turn (`TeammateIdle` → `continue: false`), shows the user what is still running at every turn end (`Stop`, from `background_tasks`), asks once for `TaskStop` on open teammates and shells, and demands an agent sweep at `SessionStart`. |
 
-This is the only hook. `c-bpm-cm-library-pull` installs it: it copies
+| `c-bpm-hk-skills-refresh` | hook + script | At `SessionStart` (startup, resume) unlocks the installed Pocock skills locally, then at most once per 24 h starts a detached worker: plugin update, unlock, `c-bpm-cm-library-pull`. Changes apply from the next session. `/c-bpm-cm-pocock-update` calls the same script. |
+
+`c-bpm-cm-library-pull` installs both hooks: it copies
 `my/hooks/c-bpm-hk-*.sh` to `~/.claude/hooks/` and merges
 `my/hooks/c-bpm-hooks.json` into `~/.claude/settings.json` (and into
 `~/.config/claude/settings.json` when that file exists), replacing any earlier

@@ -1,6 +1,7 @@
 {
   "SessionStart": [
-    {"matcher": "startup|clear", "hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh start", "timeout": 10}]}
+    {"matcher": "startup|clear", "hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh start", "timeout": 10}]},
+    {"matcher": "startup|resume", "hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-skills-refresh.sh hook", "timeout": 10}]}
   ],
   "TeammateIdle": [
     {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh idle", "timeout": 10, "statusMessage": "Teammate finished - stopping it"}]}
