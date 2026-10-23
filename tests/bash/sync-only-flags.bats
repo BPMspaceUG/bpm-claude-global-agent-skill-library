@@ -14,10 +14,8 @@
 #   - sync is copied into a temp sandbox "extracted tarball" together with
 #     lib.sh and a small fake payload, so the working tree is never the source
 #     and never the target.
-#   - install-hooks is deliberately NOT copied into the sandbox: sync only runs
-#     it when it is executable at SCRIPT_DIR, so these tests never touch any
-#     settings.json. Both-settings behaviour is covered by
-#     install-hooks-both-settings.bats.
+#   - sync no longer installs hooks (removed 2026-10-23), so these tests never
+#     touch any settings.json.
 
 REPO_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
 

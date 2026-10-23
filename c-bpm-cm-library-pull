@@ -352,10 +352,9 @@ fi
 
 # ── Post-pull completeness check (issue #129) ──────────────────────────────
 #
-# Deployment drift is silent otherwise: this script reported "Already up to
-# date" on a host where c-bpm-sk-devils-advocate existed in my/skills/ but had
-# never landed in ~/.claude/skills/ — i.e. a skill CLAUDE.md mandates as the
-# only sanctioned Judge call site was simply not installed, and nothing said so.
+# Deployment drift is silent otherwise: this script once reported "Already up
+# to date" on a host where a skill existed in my/skills/ but had never landed
+# in ~/.claude/skills/ — the skill was simply not installed, and nothing said so.
 # After a real pull, every item in the repo MUST exist in the install target;
 # if one does not, fail loudly rather than exit 0 on an incomplete install.
 #

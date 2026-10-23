@@ -1,14 +1,9 @@
 # Host: contabo03
-# Updated: 2026-08-02T17:53:25Z
+# Updated: 2026-10-23T07:11:24Z
 # Category: commands
 #
-c-bpm-cm-goal-issue.md
-c-bpm-cm-goal-openissue.md
 c-bpm-cm-library-compare.md
 c-bpm-cm-library-pull.md
 c-bpm-cm-library-push.md
-c-bpm-cm-openissues-list.md
-c-bpm-cm-openissues-team.md
-c-bpm-cm-refactor-repo.md
-c-bpm-cm-skill-creator.md
-c-bpm-cm-skill-optimizer.md
+c-bpm-cm-pocock-update.md
+c-bpm-cm-spec-oneshot.md

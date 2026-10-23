@@ -2,9 +2,9 @@
 #
 # Global Claude Agents & Skills installation script
 #
-# This script copies the contents of the `agents/`, `skills/`, `runbooks/` and
-# `templates/` directories into the user's global Claude configuration
-# directory. It supports an optional `--n8n` flag to also install the
+# This script copies the contents of the `agents/` and `skills/` directories
+# (plus `runbooks/` and `templates/` where a release still ships them) into
+# the user's global Claude configuration directory. It supports an optional `--n8n` flag to also install the
 # external n8n skills pack. The script may be invoked via
 # `curl -fsSL <repo>/sync | bash`.
 
@@ -108,16 +108,6 @@ if [ "$UNINSTALL" -eq 1 ]; then
       fi
     fi
   done
-  # Hook uninstall must run before exit 0 (sync's main install-hooks block is unreachable here)
-  INSTALL_HOOKS_SCRIPT="$SCRIPT_DIR/install-hooks"
-  if [ -x "$INSTALL_HOOKS_SCRIPT" ]; then
-    echo ""
-    if [ "$DRY_RUN" -eq 1 ]; then
-      "$INSTALL_HOOKS_SCRIPT" --uninstall --dry-run || true
-    else
-      "$INSTALL_HOOKS_SCRIPT" --uninstall || true
-    fi
-  fi
   if [ "$DRY_RUN" -eq 1 ]; then
     echo ""
     echo "DRY RUN - No changes made"
@@ -416,27 +406,5 @@ if [ "$DRY_RUN" -eq 0 ] && [ "$SKILLS_SELECTED" -eq 1 ]; then
   if [ "$ZIP_COUNT" -gt 0 ]; then
     rm -f "$TARGET_DIR/skills"/*.zip
     echo "🧹 Cleaned up $ZIP_COUNT .zip artifact(s)"
-  fi
-fi
-
-# Hook installation: copy dist/*.mjs to ~/.claude/hooks/dist/ and merge
-# PreToolUse entries into both supported settings.json paths. Idempotent.
-#
-# Issue #65: --ensure-both is passed UNCONDITIONALLY. install-hooks skips a
-# settings path that does not exist unless that flag is given, so a sync on a
-# host where only ~/.claude/settings.json had been created left
-# ~/.config/claude/settings.json without the hook registration — and hooks
-# silently do not fire for whichever build reads that path. Both supported
-# paths must always end up registered; this is not an opt-in.
-# (--ensure-both is a no-op under --uninstall and never writes under --dry-run.)
-INSTALL_HOOKS_SCRIPT="$SCRIPT_DIR/install-hooks"
-if [ -x "$INSTALL_HOOKS_SCRIPT" ]; then
-  echo ""
-  if [ "$UNINSTALL" -eq 1 ]; then
-    "$INSTALL_HOOKS_SCRIPT" --uninstall
-  elif [ "$DRY_RUN" -eq 1 ]; then
-    "$INSTALL_HOOKS_SCRIPT" --dry-run --ensure-both
-  else
-    "$INSTALL_HOOKS_SCRIPT" --ensure-both
   fi
 fi

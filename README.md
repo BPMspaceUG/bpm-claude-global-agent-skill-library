@@ -1,28 +1,25 @@
 # BPMspace Claude Global Skills Library
 
-Skills, agents, commands and hooks for the Claude Code CLI, installed once per
-machine and reused across every project. This README is the operating manual —
-install, run, test. Architecture and the reasoning behind the conventions live
-in [CLAUDE.md](CLAUDE.md).
+A small library of custom commands and skills for the Claude Code CLI, installed
+once per machine and used in any repository, plus the scripts that keep the
+installed copies in sync with this repo. Architecture and conventions live in
+[CLAUDE.md](CLAUDE.md).
 
 ## 1. What This Is
 
-Every custom item follows the `c-{org}-{type}-{name}` convention — `c-bpm-sk-`
-for skills, `c-bpm-cm-` for commands, `c-bpm-ag-` for agents. The prefix lets
-several organisations' libraries coexist in one `~/.claude/`, and lets an
-upstream item and a customised fork live side by side.
+Process skills come from Matt Pocock's plugin `mattpocock-skills@mattpocock`
+(grilling, to-spec, to-tickets, implement, tdd, code-review, domain-modeling,
+research, retro and the rest). This library holds only what that plugin does
+not cover. Every custom item follows the `c-{org}-{type}-{name}` convention —
+`c-bpm-sk-` for skills, `c-bpm-cm-` for commands, `c-bpm-ag-` for agents — so
+several organisations' libraries can coexist in one `~/.claude/`.
 
 | Path | Holds | Format |
 |------|-------|--------|
 | `my/skills/` | custom skills | directory per skill with `SKILL.md` |
 | `my/commands/` | slash commands | one flat `.md` per command |
-| `my/agents/` | teammate role definitions | one flat `.md` per agent |
-| `my/hooks/` | enforcement hooks (TypeScript source, built to `dist/`) | `.ts` → `.mjs` |
-| `my/shared/` | text blocks stamped into many items | `.md` fragments |
-| `runbooks/`, `templates/` | standard operational guides, issue/PR templates | `.md` |
-
-Items under `my/` are distributed by `c-bpm-cm-library-pull` / `-push`;
-everything else is repo-local reference material.
+| `my/agents/` | teammate role definitions (currently none) | one flat `.md` per agent |
+| `my/hosts/` | per-host inventory written by the sync scripts | `.txt` |
 
 ## 2. Installation
 
@@ -33,8 +30,6 @@ git clone git@github.com:BPMspaceUG/bpm-claude-global-agent-skill-library.git ~/
 cd ~/bpm-claude-global-agent-skill-library
 ./install --global --with-c-bpm-library   # installs bcgasl + the c-bpm-library CLIs
 c-bpm-cm-library-pull                     # copies all c-bpm items into ~/.claude/
-sudo ./install-hooks --system             # one-time, multi-user: hooks to /usr/local/bin
-./install-hooks                           # per-user: register the hooks in settings.json
 ```
 
 Without a clone, the installer can be piped — the repo is cloned on the first
@@ -44,259 +39,85 @@ Without a clone, the installer can be piped — the repo is cloned on the first
 curl -fsSL https://raw.githubusercontent.com/BPMspaceUG/bpm-claude-global-agent-skill-library/main/install | bash -s -- --global --with-c-bpm-library
 ```
 
-`bcgasl` installs the standard (non-`c-bpm`) agents, skills, runbooks and
-templates from a **pinned release tarball**, so it does not deliver the latest
-`c-bpm` items — `c-bpm-cm-library-pull` is the path for those.
-
-### Hooks — the enforcement machinery in depth
-
-`install-hooks` installs `dist/*.mjs` and registers them as `PreToolUse` hooks.
-The `HOOK_REGISTRY` array inside `install-hooks` is the single source of truth
-for what ships. Two hooks are registered:
-
-| Hook | Event | Matchers | What it decides | On internal error |
-|------|-------|----------|-----------------|-------------------|
-| `issue-write-gate` | `PreToolUse` | `Bash`, `mcp__github__issue_write`, `mcp__github__create_issue` | Denies any GitHub Issue creation that lacks a milestone or exactly one `bug`/`enhancement` type label — across `gh issue create`, `gh api` POSTs to `.../issues`, inline `curl`/`python` HTTP calls, and the GitHub MCP tools | fail-closed (deny) |
-| `plan-doc-gate` | `PreToolUse` | `Write`, `Edit`, `MultiEdit`, `NotebookEdit` | Denies authored plan/doc side-car files (`plan.md`, `PLAN.md`, scratchpad `prompt.md`, `~/.claude/plans/*`, `ISSUE_<n>_PLAN.md`, …) — the GitHub Issue is the only durable record (#104 / #105). Decides on path and name only, never on file content | fail-closed (deny) |
-
-A third source file, `skill-activation-prompt`, was removed as unregistered dead code — it sat in `my/hooks/` with no registry row, no `dist/` artifact and broken imports (#151). The registry-parity guard (`tests/bash/c-bpm-hooks-registry-parity.bats`) now fails on any such unmanaged drop-in.
-
-#### What happens on every tool call
-
-Both hooks speak the same contract. Claude Code pipes the tool invocation as
-JSON on **stdin** (`{tool_name, tool_input, cwd}`); the hook prints a
-permission decision on stdout — the nested
-`hookSpecificOutput{permissionDecision, permissionDecisionReason}` shape plus a
-legacy flat mirror so older builds read the same verdict (#99) — and always
-exits with code 0 (the `exit 0` contract). A hook that hits an internal error
-emits `deny`: **fail-closed**, because a non-zero exit with empty stdout would
-deliver no decision at all and silently fail open (#133). There is no build
-step — each `dist/*.mjs` is the hand-maintained runnable artifact, pinned to
-its TypeScript source by the test suite.
-
-At session start nothing from this repo executes: registration lives in
-`settings.json`, and the hooks fire per matching tool call, every time.
-
-What an agent experiences when it tries to create a non-compliant issue:
-
-```mermaid
-%% diagram: issue-create-sequence
-sequenceDiagram
-    participant A as Agent (any Claude Code session)
-    participant H as issue-write-gate (PreToolUse)
-    participant G as GitHub
-    A->>H: Bash tool call: gh issue create ...
-    H->>H: tokenise + classify the command
-    alt milestone AND exactly one type label present
-        H-->>A: allow
-        A->>G: command executes
-        G-->>A: issue URL
-    else missing milestone or type label (or unparseable)
-        H-->>A: deny + reason
-        Note over A,G: the command never reaches GitHub
-    end
-```
-
-Inside the gate, the decision logic:
-
-```mermaid
-%% diagram: gate-decision
-flowchart TD
-    IN["tool call JSON on stdin"] --> T{"tool name?"}
-    T -->|"Bash"| P["tokenise command (strict, fail-closed)"]
-    T -->|"GitHub MCP issue tools"| F["read tool_input fields"]
-    T -->|"anything else"| OK["allow"]
-    P -->|"parse error"| D2["deny (fail-closed)"]
-    P --> S{"issue-creating shape? (issue-write-gate matchers: gh issue create, gh api POST .../issues, curl/python inline)"}
-    S -->|"no"| OK
-    S -->|"yes"| C{"milestone present AND exactly one type label (bug or enhancement)?"}
-    F --> C
-    C -->|"yes"| OK
-    C -->|"no"| D["deny with reason"]
-```
-
-#### Enforcement layers — which layer catches which bypass
-
-| Layer | Status | Catches |
-|-------|--------|---------|
-| `PreToolUse` hooks (this repo) | **live** | every issue-creating or file-writing tool call inside a Claude Code session, including MCP tools |
-| GitHub Actions | **planned** — the GitHub-Actions layer (`.github/workflows/`) does not exist yet | everything created outside Claude Code: web UI, raw API calls, other agents, other machines |
-| CLI wrappers in `/usr/local/bin` | forbidden anti-pattern (see CLAUDE.md) | — |
-
-Until the Actions layer lands, issue creation from outside Claude Code is
-unenforced — treat the hook layer as necessary, not sufficient.
-
-#### How a change reaches every machine
-
-```mermaid
-%% diagram: distribution
-flowchart LR
-    R["repo main branch"] -->|"c-bpm-cm-library-pull"| L["~/.claude/ installed copies"]
-    R -->|"./install-hooks"| REG["hook registration"]
-    REG --> S1["~/.claude/settings.json"]
-    REG --> S2["~/.config/claude/settings.json"]
-    S1 --> LIVE["PreToolUse hooks fire in every session"]
-    S2 --> LIVE
-```
-
-`install-hooks` registers each hook in **both** standard settings paths
-(`~/.claude/settings.json` and `~/.config/claude/settings.json`)
-**where they exist — a missing settings file is skipped, not created**
-(see #65 / #76). Ensure both files exist before running it if your Claude builds
-read different paths. The script is idempotent; `--dry-run` previews and `--uninstall` reverses
-it.
+`bcgasl` installs the standard (non-`c-bpm`) items from a **pinned release
+tarball**; `c-bpm-cm-library-pull` is the path for the current `c-bpm` items.
 
 ### Required environment
 
 - `gh` authenticated for the target repositories (`gh auth status`)
-- `codex` CLI on `PATH` — the review authority for every gate
-- `~/.env` (user level, never a project `.env`) with `OPENROUTER_API_KEY` for
-  the substitute-Judge tier
-- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` for the agent-team commands
-- `bats` for the test suite, `node` for the hooks
+- `codex` CLI on `PATH` — the read-only reviewer used by `c-bpm-cm-spec-oneshot` and `c-bpm-sk-gogo`
+- Matt Pocock's plugin installed: `claude plugin install mattpocock-skills@mattpocock`, then `/c-bpm-cm-pocock-update` once so the model may call its skills
+- `bats` for the test suite
 
 ### Verification
 
 ```bash
-ls ~/.claude/skills | grep -c '^c-bpm-sk-'            # 1. skills landed
-command -v bcgasl c-bpm-cm-library-pull               # 2. CLIs on PATH
-# 3. hook registered in every settings file that exists
-for f in ~/.claude/settings.json ~/.config/claude/settings.json; do \
-  [ -f "$f" ] && { grep -q issue-write-gate "$f" && echo "OK $f" || echo "GAP $f"; }; done
-echo '{"tool_name":"Bash","tool_input":{"command":"gh issue create --title p --body p"},"cwd":"'"$PWD"'"}' \
-  | node ~/.claude/hooks/dist/issue-write-gate.mjs    # 4. must print "deny"
-gh auth status && codex --version                      # 5. review authority reachable
+ls ~/.claude/commands | grep -c '^c-bpm-cm-'            # 1. commands landed (expect 5)
+ls ~/.claude/skills | grep -c '^c-bpm-sk-'              # 2. skills landed (expect 1)
+command -v bcgasl c-bpm-cm-library-pull                 # 3. CLIs on PATH
+gh auth status && codex --version                       # 4. reviewer reachable
 ```
-
-Step 3 must report the hook in **every settings file that exists**. If only one
-of the two exists, that is the #65 / #76 gap — fix it before relying on the
-gate, do not read it as a successful install.
 
 ### Updating an existing installation
 
-After changes land on `main`, every machine needs all three steps — pulling the
-repo alone leaves the installed copies under `~/.claude/` stale, which is how
-superseded content keeps executing (see #114):
+After changes land on `main`, every machine needs both steps — pulling the repo
+alone leaves the installed copies under `~/.claude/` stale:
 
 ```bash
 cd ~/bpm-claude-global-agent-skill-library && git pull
 c-bpm-cm-library-pull    # refresh the installed copies in ~/.claude/
-./install-hooks          # idempotent re-registration of the current hooks
 ```
 
-Then re-run the verification block above. The same "only existing settings
-files are updated" caveat (#65 / #76) applies to the re-registration.
+### Removing the former hooks
 
-## 3. How the Agent Teams Work
-
-The team commands implement segregation of duty as a capability, not a
-guideline. The Team Lead coordinates, reviews and approves but writes no code;
-teammates implement and report; the Lead never approves alone.
-
-**Codex is the review authority.** Three gates are Codex-gated —
-plan approval, test-design approval, and test verification — each invoked
-through `c-bpm-sk-devils-advocate`, which fetches the live Issue, sanitises the
-payload, and falls back down a substitute-Judge ladder when Codex is
-unreachable. A gate never passes on a missing review.
-
-**Milestones are the state machine.** Every issue moves
-`new` → `planned` → `plan-approved` → `test-designed` →
-`test-design-approved` → `implemented` → `tested-success` / `tested-failed` →
-`test-approved`, updated at each transition. `DONE` is **human-only** — agents
-never set it, and so is the terminal abort `CANCELLED`, reachable from any
-state except `DONE`. Every issue also carries exactly one type label, `bug` or
-`enhancement`; `issue-write-gate` enforces both mechanically.
-
-```mermaid
-%% diagram: milestone-lifecycle
-stateDiagram-v2
-    [*] --> new
-    new --> planned
-    planned --> plan_approved
-    plan_approved --> test_designed
-    test_designed --> test_design_approved
-    test_design_approved --> implemented
-    implemented --> tested_success
-    implemented --> tested_failed
-    tested_failed --> planned : wrong approach
-    tested_failed --> implemented : code bug
-    tested_success --> test_approved
-    test_approved --> DONE : human only
-    DONE --> [*]
-    state "CANCELLED (human only, from any state except DONE)" as CANCELLED
-    new --> CANCELLED
-    planned --> CANCELLED
-    test_approved --> CANCELLED
-    CANCELLED --> [*]
-```
-
-**Communication is Issues-only.** The plan, rejected plans, progress and every
-decision go in the Issue body or comments — never into side-car `.md` files.
-Codex is handed an Issue reference, not a pasted document.
-
-**Teammate lifecycle** is currently written policy, not yet encoded in the
-commands: finished teammates should be shut down rather than left idle, and
-fresh spawns are preferred over reusing a context-rotted teammate. Tracked in
-#120.
-
-Entry points:
-
-- `/c-bpm-cm-openissues-team` — interactive run over the open issues, user sees
-  the plan before the team spawns.
-- `/c-bpm-cm-goal-issue` — unattended run (typically overnight); never waits for
-  user confirmation, loops Codex-gated batches until every in-scope issue meets
-  its definition of done.
-
-## 4. Model Policy
-
-`c-bpm-sk-llm-selection` is the **single source of truth** for model selection
-and orchestration. No skill, command or script may hard-wire a model name or
-version — not for Codex (`codex exec` runs bare, with no `-m`), not for
-Claude, not for the OpenRouter fallback tier. This README therefore names zero
-model versions, and `tests/bash/c-bpm-sk-codex-flag.bats` fails the build if a
-pin reappears (see #98).
-
-## 5. Testing
+Until 2026-10-23 this library registered `PreToolUse` and `SessionStart` hooks
+(`issue-write-gate`, `plan-doc-gate`, `codex-sod-tracker`). They are gone from
+the repo, but a host that installed them still has the registrations in its
+settings files. Clean such a host once:
 
 ```bash
-./tests/run_tests.sh     # requires bats on PATH; equivalent to: bats tests/bash/
-bats tests/bash/readme-guards.bats   # a single suite
+rm -rf ~/.claude/hooks/dist
+for f in ~/.claude/settings.json ~/.config/claude/settings.json; do
+  [ -f "$f" ] || continue
+  python3 - "$f" <<'EOF'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); hooks = d.get("hooks", {})
+names = ("issue-write-gate", "plan-doc-gate", "codex-sod-tracker")
+for ev in list(hooks):
+    kept = []
+    for entry in hooks[ev]:
+        entry["hooks"] = [h for h in entry.get("hooks", []) if not any(n in h.get("command", "") for n in names)]
+        if entry["hooks"]:
+            kept.append(entry)
+    if kept: hooks[ev] = kept
+    else: del hooks[ev]
+json.dump(d, open(p, "w"), indent=2); print("cleaned", p)
+EOF
+done
 ```
 
-The suite is offline and deterministic. It covers the installer and sync scripts
-(`install.bats`, `sync-dedup.bats`, `bpm-bootstrap.bats`,
-`c-bpm-cm-library-compare.bats`), the enforcement hook
-(`c-bpm-sk-issue-write-gate.bats`), and drift guards over the skills and
-commands themselves — model-version pins, Codex invocation hygiene, the review
-loop, the Issues-only communication block, the goal-issue command, and this
-README.
+## 3. Items
 
-**Fully green:** a clean checkout runs with 0 failures. The formerly
-known-red `issue-write-gate` fixtures were a test-harness defect (the runner
-never exported `FIXTURE_REPO`), fixed under #100. End-to-end execution of
-skills (as opposed to static guards) is not covered yet; that harness is #122.
+| Item | Invoke as | Purpose |
+|------|-----------|---------|
+| `c-bpm-cm-spec-oneshot` | `/c-bpm-cm-spec-oneshot [major\|minor\|patch]` | Write or version a self-contained specification under `/specification/` and the overnight build prompt under `/prompts/`. One optional grilling round with Rob; every other open point is decided in the spec or delegated to Codex. |
+| `c-bpm-sk-gogo` | `/c-bpm-sk-gogo [spec issue \| label]` | Unattended overnight run over the ready, unblocked tickets of the current repo: agent team, one worktree per ticket, Codex plan and implementation reviews, draft PR per integration branch. `TEAMMATE.md` is the teammate contract. |
+| `c-bpm-cm-pocock-update` | `/c-bpm-cm-pocock-update [--check] [--no-update]` | Update the Pocock plugin and remove `disable-model-invocation: true` from every installed SKILL.md. Re-run after each plugin update; the patch lives in the installed copy and is overwritten by updates. |
+| `c-bpm-cm-library-pull` | `/c-bpm-cm-library-pull` or the CLI | Sync c-bpm items from this repo into `~/.claude/` |
+| `c-bpm-cm-library-push` | `/c-bpm-cm-library-push` or the CLI | Sync c-bpm items from `~/.claude/` into this repo; auto-commits and pushes |
+| `c-bpm-cm-library-compare` | `/c-bpm-cm-library-compare` or the CLI | Show which c-bpm items differ between `~/.claude/` and the repo; optionally repair |
 
-## 6. Key Commands
-
-Slash commands, invocable in any Claude Code session once installed:
-
-| Command | Purpose |
-|---------|---------|
-| `/c-bpm-cm-openissues-list` | Open-issues dashboard with status, type and milestone; creates missing milestones |
-| `/c-bpm-cm-openissues-team` | Spawn a teammate team to work the open issues in parallel; Codex-reviewed, tests mandatory |
-| `/c-bpm-cm-goal-issue` | Unattended goal run; loops Codex-gated teams per batch until every in-scope issue is done |
-| `/c-bpm-cm-refactor-repo` | Spawn a teammate team for parallel refactoring; Codex-reviewed, milestone-tracked |
-| `/c-bpm-cm-library-pull` | Sync c-bpm items from this repo into `~/.claude/` |
-| `/c-bpm-cm-library-push` | Sync c-bpm items from `~/.claude/` into this repo; auto-commits and pushes |
-| `/c-bpm-cm-library-compare` | Show which c-bpm items differ between `~/.claude/` and the repo; optionally repair |
-| `/c-bpm-cm-skill-creator` | Create a skill; detects an existing `c-bpm-sk-` version and delegates to the optimizer |
-| `/c-bpm-cm-skill-optimizer` | Fork, customise or upgrade an existing skill under Codex-reviewed quality gates |
+How the two overnight flows relate: `c-bpm-cm-spec-oneshot` produces a spec and
+a build prompt that rebuilds a whole project from an empty directory; the run is
+started by pasting that prompt into `claude`. `c-bpm-sk-gogo` works the ticket
+graph of an existing repo (tickets from `/to-spec` and `/to-tickets` carrying the
+"ready for agent" label). Both never ask a human; both route decisions to Codex.
 
 Shell CLIs installed by `./install`: `bcgasl` (standard items from the pinned
 release) and `c-bpm-cm-library-pull` / `-push` / `-compare` — the sync engines
-behind the slash commands above. `./install-hooks` stays in the repo. Common
-sync flags: `--dry-run`, `--verbose`, `--force`, `--clean`, `--only-skills`,
-`--only-agents`, `--only-commands`; push adds `--message`, compare `--repair`.
+behind the slash commands above. Common sync flags: `--dry-run`, `--verbose`,
+`--force`, `--clean`, `--only-skills`, `--only-agents`, `--only-commands`; push
+adds `--message`, compare `--repair`.
 
 ### Sync conflict handling
 
@@ -311,6 +132,31 @@ last sync is flagged and skipped rather than silently overwritten.
 | Both changed | **CONFLICT** (skipped) | **CONFLICT** (skipped) |
 | Both changed + `--force` | Repo wins | Local wins |
 | No baseline (first sync) | Updates local | Updates repo |
+
+## 4. Testing
+
+```bash
+./tests/run_tests.sh     # requires bats on PATH; equivalent to: bats tests/bash/
+bats tests/bash/readme-guards.bats   # a single suite
+```
+
+The suite is offline and deterministic. It covers the installer and sync
+scripts (`install.bats`, `sync-dedup.bats`, `sync-only-flags.bats`,
+`bpm-bootstrap.bats`, `c-bpm-cm-library-compare.bats`,
+`c-bpm-hosts-inventory.bats`), drift guards over this README
+(`readme-guards.bats`) and content guards over the custom items
+(`c-bpm-items.bats`).
+
+## 5. Maintenance
+
+- After editing any root script, refresh `checksums.sha256` (command in CLAUDE.md).
+- No item pins a model name or version; `readme-guards.bats` and
+  `c-bpm-items.bats` fail if one appears.
+- When a build's `RETRO.md` finds a recurring gap in `c-bpm-cm-spec-oneshot` or
+  `c-bpm-sk-gogo`, file an issue here and fix the item here, never in a
+  project repo.
+- Former hooks, agents, runbooks, templates and skills were removed on
+  2026-10-23 in favour of the Pocock plugin; git history is the archive.
 
 ## External Skill Packs
 

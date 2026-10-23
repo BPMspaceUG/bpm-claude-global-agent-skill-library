@@ -4,187 +4,88 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is the **BPMspace** global skills library for Claude Code CLI. It contains task playbooks (skills), operational guides (runbooks), commands, and collaboration templates. All custom items use the `c-{org}-{type}-{name}` prefix convention (e.g., `c-bpm-sk-`, `c-bpm-cm-`) and are versioned under `my/`.
+This is the **BPMspace** global skills library for Claude Code CLI: a small set of
+custom commands and skills, installed once per machine and used in any repo, plus
+the sync scripts that distribute them. Process skills (grilling, spec, tickets,
+TDD, code review, domain modelling, research) come from Matt Pocock's plugin
+`mattpocock-skills@mattpocock`; this library holds only what that plugin does not
+cover.
 
-## Skills Are Absolute
+All custom items use the `c-{org}-{type}-{name}` prefix convention
+(`c-bpm-sk-` skills, `c-bpm-cm-` commands, `c-bpm-ag-` agents) and live under `my/`.
 
-By the convention this library establishes:
+## Items
 
-- **Skills** under `my/skills/c-bpm-sk-*` and their installed copies in `~/.claude/skills/` are the canonical home for process rules — how the agent works, when Codex is invoked, what gates apply, how phases transition, what the cycle policy is. Skills are versioned, reviewed, and distributed via `bcgasl` / `c-bpm-cm-library-pull`.
+| Item | Type | Job |
+|---|---|---|
+| `c-bpm-cm-spec-oneshot` | command | Write or version a one-shot specification under `/specification/` plus the overnight build prompt under `/prompts/`. Rob is asked at most one grilling round; everything else is decided in the spec or delegated to Codex. |
+| `c-bpm-sk-gogo` | skill | Unattended overnight run: implements every ready, unblocked ticket of the current repo with an agent team and Codex reviews (`TEAMMATE.md` is the teammate contract). |
+| `c-bpm-cm-pocock-update` | command | Update the Pocock plugin and strip `disable-model-invocation: true` from every installed SKILL.md so Claude can call the skills itself. Re-run after every plugin update. |
+| `c-bpm-cm-library-pull` / `-push` / `-compare` | command + CLI | Sync `my/` items between this repo and `~/.claude/`. |
 
-- **Memory** under `~/.claude/projects/*/memory/` is the home for user preferences, project facts, references to external systems, and verbatim user statements. By this library's convention, memory does not encode process rules.
-
-- **CLAUDE.md** describes repository architecture and the conventions of this library. It does not redefine process rules; those live in the skills.
-
-- **agent.md** carries *only* Codex-specific deltas — the reviewer's role, its input contract, and what it needs to know to review this repo. Everything common stays here in CLAUDE.md and is never copied into `agent.md`; a duplicated block is drift waiting to happen (#114). There is deliberately no `gemini.md` or `vibe.md`: only `CLAUDE.md`, `SHARED_TASK_NOTES.md` and `agent.md` are loaded (`my/commands/c-bpm-cm-openissues-team.md`, Phase 0d). The split is pinned by `tests/bash/c-bpm-agent-md-drift.bats`.
-
-The operative Codex review pattern is defined in `c-bpm-sk-llm-selection`; issue #89 tracks correcting that skill to the Producer-LLM ↔ Codex-as-Judge loop with no cycle cap and no user escalation. Enforcement of this convention — write-time blocks on memory directories, install-time audits — is implemented in skills and hooks, not in this file.
+There are no hooks in this library. Enforcement through hooks was removed on
+2026-10-23; the git history holds the former hooks, agents, runbooks and skills.
 
 ## Architecture
 
-### Directory Structure
-
 ```
 bpm-claude-global-agent-skill-library/
-├── my/                      # All c-bpm-prefixed custom items
-│   ├── skills/              # Directories (c-bpm-sk-<name>/SKILL.md)
-│   ├── commands/            # Flat files (c-bpm-cm-<name>.md)
-│   └── runbooks/            # Flat files (c-bpm-rb-<name>.md)
-├── runbooks/                # Standard operational guides
-├── templates/               # Issue and PR templates
-├── c-bpm-cm-library-pull    # Pull c-bpm-items from repo to local
-├── c-bpm-cm-library-push    # Push c-bpm-items from local to repo
-├── bcgasl               # Main install/update command
-├── install              # Installer script
-├── sync                 # Sync script
-└── lib.sh               # Shared library functions
+├── my/
+│   ├── skills/              # c-bpm-sk-<name>/SKILL.md (+ companion files)
+│   ├── commands/            # c-bpm-cm-<name>.md (flat)
+│   ├── agents/              # c-bpm-ag-<name>.md (currently empty)
+│   └── hosts/<host>/        # per-host inventory, written by the sync scripts
+├── c-bpm-cm-library-pull    # repo -> ~/.claude/
+├── c-bpm-cm-library-push    # ~/.claude/ -> repo (commits and pushes)
+├── c-bpm-cm-library-compare # diff both sides, --repair
+├── bcgasl                   # pinned-release installer for the standard items
+├── install                  # installs bcgasl + the c-bpm-cm-library CLIs
+├── sync                     # copy engine used by bcgasl
+├── lib.sh                   # shared functions (prefix handling, baselines, conflicts)
+├── bpm-bootstrap.sh         # host bootstrap
+├── checksums.sha256         # sha256 of the root scripts (update after editing them)
+└── tests/bash/*.bats        # offline test suite, ./tests/run_tests.sh
 ```
 
-### The `c-{org}-{type}-{name}` Naming Convention
+### Naming convention
 
-Custom items use the `c-{org}-{type}-{name}` pattern:
-- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"` with type codes: `sk` (skills), `cm` (commands), `rb` (runbooks)
-- Example: `c-bpm-sk-bash-secure-script` (a skill), `c-bpm-cm-refactor-repo` (a command)
-- This allows multiple organizations' libraries to coexist without conflicts
-- Original/installed items (without `c-` prefix) keep their original name
-- Two versions can coexist: original for reference, custom for use
+- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"`; type codes `sk`, `cm`, `ag` (`rb` for runbooks is a legacy code the sync scripts still accept; the library ships none).
+- Installed copies keep the same name, so `/c-bpm-cm-spec-oneshot` is the slash
+  command once `c-bpm-cm-library-pull` has run.
+- Items without the `c-` prefix are upstream originals and are never edited here.
 
-### Key Patterns
+### Key patterns
 
-- Never hardcode secrets; use `.env` files
-- Scripts must be idempotent
-- Use skills for domain knowledge (see `c-bpm-sk-llm-selection` for orchestration and MCP discovery)
+- Never hardcode secrets; use `.env` files.
+- Scripts are idempotent and run under `set -euo pipefail`.
+- No item pins a model name or version. Build-time models (the Claude session,
+  Codex) never appear in product code or specs; `c-bpm-cm-spec-oneshot` enforces
+  that rule for the specs it writes.
+- Everything written here is in English.
 
-## Installation
+## Installation and workflow
 
 ```bash
-# Install bcgasl + c-bpm-library tools
 curl -fsSL .../install | bash -s -- --global --with-c-bpm-library
-
-# Then use
-bcgasl                    # Install/update skills
-c-bpm-cm-library-pull     # Pull c-bpm-items from repo
-c-bpm-cm-library-push     # Push c-bpm-items to repo
+c-bpm-cm-library-pull          # install or refresh the c-bpm items in ~/.claude/
+c-bpm-cm-library-push          # after editing an item locally
+c-bpm-cm-library-pull --dry-run
 ```
 
-## c-bpm-library Workflow
+After editing any root script: `sha256sum lib.sh sync install c-bpm-cm-library-pull c-bpm-cm-library-push c-bpm-cm-library-compare bcgasl > checksums.sha256`.
+
+## Testing
 
 ```bash
-# Pull latest from repo
-c-bpm-cm-library-pull
-
-# After creating/modifying items locally
-c-bpm-cm-library-push
-
-# Preview without changes
-c-bpm-cm-library-pull --dry-run
-c-bpm-cm-library-push --dry-run
+./tests/run_tests.sh      # bats tests/bash/
 ```
 
-## Target Technology Stack (what skills in this library cover)
+The suite is offline and deterministic: installer and sync behaviour, host
+inventory scoping, README drift guards, and content guards for the three
+custom items.
 
-- **Bash** - Automation scripts with strict mode (`set -euo pipefail`)
-- **PHP/Flight** - MVC backend framework
-- **MariaDB** - Database with forward-only migrations
-- **Redis** - Caching with namespaced keys and TTL policies
-- **n8n** - Workflow automation
-- **php-crud-api** - REST API generation
+## Maintenance rule for the commands
 
-## Enforcement: Hooks, Not Wrappers
-
-**Rule:** Cross-machine rules are enforced via Claude Code hooks and GitHub Actions — not via CLI wrappers, shims, or replacement binaries in `/usr/local/bin/`.
-
-**Why:** wrappers are OS-dependent and require installing a separate shim on every machine for every rule. Hook configuration lives in this repo (`my/hooks/`) and is deployed consistently via `bcgasl` / `c-bpm-cm-library-pull`. GitHub Actions live in `.github/workflows/` and run server-side. Both centralise the enforcement logic; only the install-once step is per-machine.
-
-### Required hook layers
-
-| Layer | Mechanism | Catches |
-|---|---|---|
-| Claude Code `SessionStart` hook | `settings.json` → `hooks.SessionStart` (sources distributed via `my/hooks/`) | Loads project rules, host context, and required defaults at the start of every Claude session. |
-| Claude Code `PreToolUse` hook | `hooks.PreToolUse` matchers on `Bash`, `Edit`, `Write`, and MCP tool names | Intercepts every code path that mutates external state — `gh issue create`, `git commit`, `gh api`, `curl`/`python` against GitHub REST/GraphQL, MCP tools that wrap GitHub. Blocks on rule violation. |
-| GitHub Actions | `.github/workflows/*.yml` on `issues.opened`, `pull_request.opened`, `push` | Catches everything created outside Claude Code (web UI, raw API, other agents, other machines). Auto-corrects or comments. |
-
-### Settings.json locations
-
-The repo's install scripts write to **both** of the standard Claude Code settings paths so hooks fire regardless of which path the user's Claude Code build reads first:
-
-- `~/.claude/settings.json`
-- `~/.config/claude/settings.json`
-
-Verify both exist after `bcgasl` / `c-bpm-cm-library-pull`. If only one is populated and the other Claude build is in use on a host, hooks will silently not fire.
-
-### Minimal hook example (issue-create guard)
-
-The issue-create guard is implemented as `my/hooks/issue-write-gate.ts` (built to `dist/issue-write-gate.mjs`) and registered by `install-hooks` on the `Bash`, `mcp__github__issue_write`, and `mcp__github__create_issue` matchers. A minimal single-matcher registration looks like:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/dist/issue-write-gate.mjs",
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-The hook reads the tool invocation as JSON on **stdin** (`{tool_name, tool_input, cwd}`), matches `gh issue create` / `gh api repos/.../issues` (POST) / `mcp__github__create_issue` / `mcp__github__issue_write`, and returns a **PreToolUse permission decision on stdout** (`deny` with a reason, `allow` otherwise) while **exiting 0** — it does not block via non-zero exit. If `--milestone` or a single `bug`/`enhancement` type label is missing, it denies.
-
-**Verified against** the authoritative Claude Code hooks docs (event names, matcher syntax, `{type, command, timeout}` shape, and the PreToolUse decision/stdin schema):
-- <a href="https://code.claude.com/docs/en/hooks-guide.md" target="_blank">hooks-guide</a>
-- <a href="https://code.claude.com/docs/en/hooks.md" target="_blank">hooks reference</a>
-
-### Required coverage for issue creation
-
-Every code path that creates a GitHub Issue must be intercepted:
-
-1. `gh issue create` via Bash — `PreToolUse` on `Bash` matcher
-2. `gh api repos/.../issues -X POST` via Bash — same matcher, broader regex
-3. `curl` / `python` / any direct HTTP client hitting GitHub REST or GraphQL — same matcher, regex on URL
-4. MCP-server issue creation (e.g., `mcp__github__create_issue`) — `PreToolUse` on the MCP tool-name matcher
-5. `git`-trailer-triggered issue creation (rare) — `PreToolUse` + GitHub Action
-6. Web UI / external clients / other agents — GitHub Action on `issues.opened`
-
-If any of these paths can create an issue without milestone + type label, the rule is unenforced.
-
-### Anti-patterns (do not do)
-
-- `/usr/local/bin/gh-issue-create` wrapper script
-- Shell function in `~/.bashrc` overriding `gh`
-- Symlink replacing the real `gh` binary
-- Per-machine install steps for enforcement logic beyond the one-time hook deployment
-- Documentation-only "remember to set milestone" — must be machine-enforced
-
-### Findings → Issues (mandatory, #62)
-
-Every finding-surfacing skill files each finding as a GitHub Issue
-**immediately** (milestone `new`, exactly one `bug`/`enhancement` type label)
-and never asks first — guarded by `tests/bash/c-bpm-sk-findings-to-issues.bats`.
-
-### When the audit finds a gap
-
-If `/c-bpm-cm-openissues-list` finds a non-compliant issue:
-
-1. Fix the issue immediately (set milestone + type)
-2. File a bug identifying which hook layer was missing — this finding is itself auto-filed per the "every finding becomes an issue" rule (see auto-memory and `c-bpm-sk-milestone-type`)
-
-## Repository Confinement
-
-A skill or agent acts **only within the repository it is currently working in — even when the skill is installed centrally.** Central installation is a delivery mechanism, never a licence to act across repos. Scope is per-repo, always.
-
-Forbidden against any repo other than the current one: editing, creating, or deleting files; committing; pushing; touching its `main`; closing or transitioning its Issues; running or probing its deployed systems; and tracking or reviewing its files.
-
-The **only** permitted cross-repo actions are:
-
-1. **Create a new Issue** in another repo for a finding that concerns it.
-2. **Comment on an Issue** in another repo that this same session created for that finding.
-
-Nothing beyond (1) and (2). This rule is injected into every session by the `SessionStart` hook (`my/hooks/codex-sod-tracker.sh`) and enforced for file-tracking by the per-session, repo-confined tracker (#166, #168/#86). A stronger session-pinned mutation lock is tracked in #170.
+When a build's `RETRO.md` or a spec review finds a recurring gap in
+`c-bpm-cm-spec-oneshot` or `c-bpm-sk-gogo` itself, file an issue in this repo
+and fix the item here. Never patch an installed copy inside a project repo.
