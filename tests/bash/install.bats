@@ -103,3 +103,13 @@ teardown() {
   run grep 'c-bpm-cm-library-compare' "${INSTALL}"
   [ "$status" -eq 0 ]
 }
+
+@test "piped install (curl | bash) does not trip over an unset BASH_SOURCE" {
+  # Isolated HOME and an unreachable download URL: the script may run, but can
+  # never write outside the temp dir or fetch anything.
+  local h; h="$(mktemp -d)"
+  run env HOME="${h}" PATH="/usr/bin:/bin" BCGASL_URL="file:///nonexistent" \
+    bash -c 'cd "$HOME" && bash -s -- --user < "$1" 2>&1' _ "${BATS_TEST_DIRNAME}/../../install"
+  rm -rf "${h}"
+  [[ "${output}" != *"unbound variable"* ]] || { echo "${output}" >&2; return 1; }
+}

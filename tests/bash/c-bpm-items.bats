@@ -98,7 +98,7 @@ frontmatter() {
   count="$(printf '%s\n' "${block}" | grep -cE '^[1-7]\. ')"
   [ "${count}" -eq 7 ] || { printf 'expected 7 DONE items in the build prompt, found %s\n' "${count}" >&2; return 1; }
   printf '%s\n' "${block}" | grep -q '^/goal '
-  printf '%s\n' "${block}" | grep -q 'codex exec --skip-git-repo-check --sandbox read-only'
+  printf '%s\n' "${block}" | grep -q 'codex exec <CODEX_MODEL_FLAG> --skip-git-repo-check --sandbox read-only'
   printf '%s\n' "${block}" | grep -q 'There is no human'
 }
 
@@ -130,4 +130,43 @@ frontmatter() {
   [[ "${flat}" == *"every decision goes to Codex, never to a human"* ]]
   [[ "${flat}" == *"reaches 60"* ]]
   [[ "${flat}" == *"Never commit to or merge into the default branch"* ]]
+}
+
+# ------------------------------------------------------------------
+# spec-oneshot: team authoring, reviewer model, visible skill use (2026-10-23)
+# ------------------------------------------------------------------
+
+SPEC_CMD_FILE="${BATS_TEST_DIRNAME}/../../my/commands/c-bpm-cm-spec-oneshot.md"
+
+section() { # <step number> -> body of that step
+  awk -v n="$1" '$0 ~ "^## Step " n " "{f=1;next} /^## /{f=0} f' "${SPEC_CMD_FILE}"
+}
+
+@test "spec-oneshot: discovery is fanned out to parallel subagents" {
+  local s; s="$(section 1)"
+  [[ "${s}" == *"subagent"* ]]
+  [[ "${s}" == *"in parallel"* ]]
+}
+
+@test "spec-oneshot: sections are drafted by a subagent team, the author integrates" {
+  local s; s="$(section 3)"
+  [[ "${s}" == *"drafting team"* ]]
+  [[ "${s}" == *"Sections 11 and 13"* ]]
+}
+
+@test "spec-oneshot: the review runs as a team of parallel reviewers plus one whole-spec pass" {
+  local s; s="$(section 6)"
+  [[ "${s}" == *"review team"* ]]
+  [[ "${s}" == *"whole-spec"* ]]
+}
+
+@test "spec-oneshot: --review-model is an argument, applied as codex exec -m, never hard-coded" {
+  grep -qF -- '--review-model <model>' "${SPEC_CMD_FILE}"
+  grep -qF -- 'codex exec -m <REVIEW_MODEL>' "${SPEC_CMD_FILE}"
+}
+
+@test "spec-oneshot: every Pocock skill is invoked with the Skill tool and listed in the report" {
+  grep -qF 'with the Skill tool' "${SPEC_CMD_FILE}"
+  local s; s="$(section 7)"
+  [[ "${s}" == *"skills invoked"* ]]
 }

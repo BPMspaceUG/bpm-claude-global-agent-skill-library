@@ -12,8 +12,13 @@
 set -euo pipefail
 
 # Source shared library if available (may not exist during piped install)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/lib.sh" ]]; then
+# Piped through `curl | bash`, BASH_SOURCE is empty: there is no script dir and
+# no local lib.sh, so fall through to the built-in fallback below.
+SCRIPT_DIR=""
+if [[ -n "${BASH_SOURCE[0]:-}" ]] && [[ -f "${BASH_SOURCE[0]}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+if [[ -n "$SCRIPT_DIR" ]] && [[ -f "$SCRIPT_DIR/lib.sh" ]]; then
   # shellcheck source=lib.sh
   source "$SCRIPT_DIR/lib.sh"
   BCGASL_URL="${BCGASL_URL:-}"

@@ -1,7 +1,7 @@
 ---
 name: c-bpm-cm-spec-oneshot
 description: "Create or version a one-shot specification and its overnight build prompt — spec oneshot, write the spec, new spec version, overnight build prompt, rebuild from empty directory. Produces /specification/<FAMILY>-<X.Y.Z>.md and /prompts/<FAMILY>-<X.Y.Z>__impl-…__rev-…__harness-claude.md in the current repo."
-argument-hint: "[major|minor|patch] [--implementer <model>] [--reviewer <model>] [-- author notes]"
+argument-hint: "[major|minor|patch] [--implementer <model>] [--reviewer <model>] [--review-model <model>] [-- author notes]"
 ---
 
 # /c-bpm-cm-spec-oneshot — Create or version a one-shot specification and its overnight build prompt
@@ -9,7 +9,7 @@ argument-hint: "[major|minor|patch] [--implementer <model>] [--reviewer <model>]
 > Command text for Rob's global skill library `BPMspaceUG/bpm-claude-global-agent-skill-library` (item `c-bpm-cm-spec-oneshot`; user-invokable as `/c-bpm-cm-spec-oneshot`; installed per machine, used in any repo).
 > Maintenance: when a build's `RETRO.md` or a spec review finds a recurring gap in this command itself (not in the project), file it as an issue in the library repo — never patch the command inside a project repo.
 > Repo-agnostic: it never contains domain knowledge. The domain comes from the repo it is run in.
-> Arguments (all optional): `major | minor | patch` to force the version bump; `--implementer <model>` and `--reviewer <model>` for the prompt file name; free text after `--` as author notes for this version.
+> Arguments (all optional): `major | minor | patch` to force the version bump; `--implementer <model>` and `--reviewer <model>` for the prompt file name; `--review-model <model>` for the Codex model that reviews the spec and the build (passed as `codex exec -m <REVIEW_MODEL>`; omitted = Codex's configured default; `--reviewer` defaults to it); free text after `--` as author notes for this version.
 
 Arguments passed by the user: $ARGUMENTS
 
@@ -24,10 +24,11 @@ The bar for the spec: a capable engineer who has never seen this repo, with no a
 ## Roles
 
 - **You** (this session) are the spec author. You read, you decide, you write. You do not implement.
-- **Codex** is the read-only reviewer of the spec: `codex exec --skip-git-repo-check --sandbox read-only "REQUEST"` (run `codex exec --help` once first; flags differ between versions). Codex never writes.
+- **Subagent teams** do the reading, drafting and reviewing (steps 1, 3 and 6), so that a large repo never floods your context. You orchestrate, integrate and decide; you read their structured results, not the raw files. Every subagent gets: the repo path, its exact scope, the output format, the glossary path, and the rule "report facts with file:line evidence; never edit files".
+- **Codex** is the read-only reviewer of the spec: `codex exec -m <REVIEW_MODEL> --skip-git-repo-check --sandbox read-only "REQUEST"`, with `-m <REVIEW_MODEL>` only when `--review-model` was passed (run `codex exec --help` once first; flags differ between versions). Codex never writes.
 - **Rob** is available in this session only for the questions in step 4 — at most one short grilling round. Everything else you decide yourself and record as a decision in the spec.
 
-Use Matt Pocock's skills (and only those): `domain-modeling` for every term, `grilling` for the single human round, `research` for facts outside the repo, `to-spec` as the writing discipline, `code-review`'s two axes (standards, spec) as the frame for the acceptance criteria, `codebase-design` to describe the architecture. Do not reference Superpowers skills.
+Use Matt Pocock's skills (and only those): `domain-modeling` for every term, `grilling` for the single human round, `research` for facts outside the repo, `to-spec` as the writing discipline, `code-review`'s two axes (standards, spec) as the frame for the acceptance criteria, `codebase-design` to describe the architecture. Invoke each one with the Skill tool (`mattpocock-skills:<name>`) at the step that names it — reading or paraphrasing a skill does not count — and keep a log of every invocation for the report in step 7. Subagents that need a skill invoke it themselves. Do not reference Superpowers skills.
 
 Language: everything you write is in **English**, regardless of the conversation language. Spelling conventions from the repo's `CLAUDE.md`/`GLOSSARY.md` win.
 
@@ -50,6 +51,8 @@ This step never runs the plugin update or `c-bpm-cm-library-pull` itself: the Se
 
 ## Step 1 — Discover the current state
 
+Fan the discovery out to subagents running in parallel, one per area below; each returns a structured digest (facts, file:line evidence, open questions) of at most about 1 500 words. Default areas: (a) existing specs, prompts and previous build runs (items 1–3); (b) architecture, runtime and configuration; (c) domain model, schemas and migrations; (d) interfaces: HTTP/CLI/UI/integrations; (e) tests, CI and tooling; (f) history: git log, closed issues and PRs, ADRs and glossary since the last spec. Split an area further when the repo is large. Facts outside the repo go to a subagent that invokes `research`. You read only the digests, reconcile contradictions (the code wins), and keep a list of questions for step 3.
+
 1. **Existing specs**: list `/specification/*.md` (also accept `spec/`, `specs/`, root `SPEC*.md` if that is what the repo uses — then keep the repo's folder and say so). Parse versions from file names of the form `<FAMILY>-<MAJOR>.<MINOR>.<PATCH>.md`. Identify the latest version and its status line. If none: this run creates `1.0.0` and the family name is derived from the repo name unless `CLAUDE.md` names one.
 2. **What changed since the last spec**: `git log --stat <last-spec-commit>..HEAD`, closed issues/PRs since then (`gh issue list --state closed --search "closed:>=<date>"`), new or changed tests, new config keys, new dependencies, new entries in `GLOSSARY.md` and ADRs, any `decisions/` or `reviews/` folders from previous overnight runs (`build-*/**/decisions/qa.md` is gold: every question an implementer had to ask Codex is a hole in the previous spec — each one becomes a decided item in this version).
 3. **Previous build prompts**: `/prompts/*.md` — reuse their structure and run-naming scheme; never change the scheme without a reason recorded in the spec changelog.
@@ -67,6 +70,8 @@ Run `domain-modeling` over the repo: every noun in the spec must be a term from 
 ## Step 3 — Write the specification `/specification/<FAMILY>-<X.Y.Z>.md`
 
 Fixed skeleton. Every section is mandatory; "not applicable" is a valid content, "TBD" is not. Sections 11 and 13 are what make the overnight run possible — write them last and with the most care.
+
+Writing runs as a drafting team: invoke `to-spec` yourself for the discipline, then give subagents in parallel one section group each — default groups 3–5, 6 (with `domain-modeling`), 7 (with `codebase-design`), 8, 9, 10, 14–16 — together with the step 1 digests for their area, the glossary and the writing rules below. Each returns its sections as final Markdown plus the open decisions it hit. You integrate: one voice, one vocabulary, no contradictions between sections. Sections 11 and 13 you write yourself from the collected open decisions, because they need the whole picture; then 1, 2, 12, 15, 17 and 18.
 
 1. **Header** — family, version, date, status (`DRAFT` until step 6 passes, then `APPROVED <date>` with the review link), supersedes `<previous version>`, author notes from the argument.
 2. **Changelog vs. previous version** — added / changed / removed / clarified / decided (every previous `decisions/qa.md` question that is now answered in the spec is listed here with its answer). For `1.0.0`: "initial".
@@ -124,7 +129,7 @@ DONE means all of the following hold AND each has been demonstrated in this conv
 ROLES:
 - You are the implementer. Nothing else writes code.
 - Codex is the reviewer and the oracle. It runs read-only and never writes:
-  codex exec --skip-git-repo-check --sandbox read-only "REQUEST"
+  codex exec <CODEX_MODEL_FLAG> --skip-git-repo-check --sandbox read-only "REQUEST"
   Run "codex exec --help" once first; flags differ between versions.
 - There is no human. Nobody is awake. Do not ask questions to the conversation; the decision policy is SPEC.md section "Decision policy for the unforeseen".
 
@@ -150,17 +155,19 @@ WORKING RULES:
 - Stop after <MAX_TURNS> turns even if not done, and summarise the state in <RUN_DIR>/STATE.md.
 ```
 
-Defaults: `<RUN_DIR>` = `build-claude/<FAMILY>-<X.Y.Z>__impl-<IMPLEMENTER>__rev-<REVIEWER>/`, `<THRESHOLD_TOTAL>` = 20, `<THRESHOLD_MIN>` = 4, `<MAX_TURNS>` = 60, `<PARALLELISM>` = 4 — unless the repo's `CLAUDE.md` or a previous prompt says otherwise. Also write or update `/prompts/README.md`: naming scheme, how to instantiate, how the morning review works (`STATE.md`, `reviews/scores.md`, `decisions/qa.md`), and the rule that the first commit touching a run directory is the untouched one-shot output.
+`<CODEX_MODEL_FLAG>` is `-m <REVIEW_MODEL>` when `--review-model` was passed, otherwise empty. Defaults: `<RUN_DIR>` = `build-claude/<FAMILY>-<X.Y.Z>__impl-<IMPLEMENTER>__rev-<REVIEWER>/`, `<THRESHOLD_TOTAL>` = 20, `<THRESHOLD_MIN>` = 4, `<MAX_TURNS>` = 60, `<PARALLELISM>` = 4 — unless the repo's `CLAUDE.md` or a previous prompt says otherwise. Also write or update `/prompts/README.md`: naming scheme, how to instantiate, how the morning review works (`STATE.md`, `reviews/scores.md`, `decisions/qa.md`), and the rule that the first commit touching a run directory is the untouched one-shot output.
 
 ---
 
 ## Step 6 — Review the spec with Codex until it is one-shot-able
 
-Ask Codex, read-only, with the whole spec attached:
+Review runs as a review team. In parallel, one review subagent per section group from step 3 asks Codex (the command from "Roles", read-only) to check that group against the repo: correctness of every fact, missing numbers, untestable statements. Alongside them, one whole-spec subagent runs the one-shot-ability review below. Each review subagent returns only the findings list and the score; it never sees your reasoning, only the spec and the repo.
+
+The whole-spec subagent asks Codex, read-only, with the whole spec attached:
 
 > "You are to rebuild this project from an empty directory using only this specification, overnight, with no human. List every question you would have to ask a human before or during the build, every ambiguity, every missing number, every external fact you cannot verify, and every acceptance criterion you could not demonstrate with a command. Then score the spec on the rubric in its own 'Review rubric' section."
 
-For every question Codex returns: answer it in the spec (section 11 if it is a decision, the relevant section if it is missing detail, section 16 if it is an external fact to verify at build time). Re-run the review. Stop when Codex returns **no human-blocking questions** and the score meets the threshold, or after 5 rounds — then record the remaining items in section 11 as "decided by default" with your default. Save each round as `/specification/reviews/<FAMILY>-<X.Y.Z>-round-<n>.md` and the scores in `/specification/reviews/scores.md`. Without `codex`, do the same review yourself in a fresh subagent and say so in the status line.
+For every question Codex returns: answer it in the spec (section 11 if it is a decision, the relevant section if it is missing detail, section 16 if it is an external fact to verify at build time). Re-run the review team on the changed sections plus the whole-spec pass. Stop when Codex returns **no human-blocking questions** and the score meets the threshold, or after 5 rounds — then record the remaining items in section 11 as "decided by default" with your default. Save each round as `/specification/reviews/<FAMILY>-<X.Y.Z>-round-<n>.md` and the scores in `/specification/reviews/scores.md`. Without `codex`, do the same review yourself in a fresh subagent and say so in the status line.
 
 Set the status line to `APPROVED <date>` only after this step.
 
@@ -170,7 +177,7 @@ Set the status line to `APPROVED <date>` only after this step.
 
 - Commits, in this order: glossary changes; `/specification/<FAMILY>-<X.Y.Z>.md` (+ reviews); `/prompts/...` (+ README). Conventional messages: `docs(spec): <FAMILY> <X.Y.Z> — <one-line changelog>`, `docs(prompts): build prompt for <FAMILY> <X.Y.Z>`.
 - Never delete or edit a previous spec version; if the previous version's status line should say "superseded by X.Y.Z", add that one line and nothing else.
-- Report to Rob, in his language, in this order: version and bump reason; changelog gist; the decisions you took alone (section 11, as a short list); what Rob confirmed in the human round (if any); the Codex review score and remaining defaults; the exact prompt file path and the one command to start the overnight run (`cd <repo> && claude` then paste the prompt). No advice beyond that.
+- Report to Rob, in his language, in this order: version and bump reason; changelog gist; the decisions you took alone (section 11, as a short list); what Rob confirmed in the human round (if any); the Codex review score (and the review model) and remaining defaults; the Pocock skills invoked, one line each with the step and what it produced; the exact prompt file path and the one command to start the overnight run (`cd <repo> && claude` then paste the prompt). No advice beyond that.
 
 ---
 
