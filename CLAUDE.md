@@ -22,9 +22,17 @@ All custom items use the `c-{org}-{type}-{name}` prefix convention
 | `c-bpm-sk-gogo` | skill | Unattended overnight run: implements every ready, unblocked ticket of the current repo with an agent team and Codex reviews (`TEAMMATE.md` is the teammate contract). |
 | `c-bpm-cm-pocock-update` | command | Update the Pocock plugin and strip `disable-model-invocation: true` from every installed SKILL.md so Claude can call the skills itself. Re-run after every plugin update. |
 | `c-bpm-cm-library-pull` / `-push` / `-compare` | command + CLI | Sync `my/` items between this repo and `~/.claude/`. |
+| `c-bpm-hk-agent-cleanup-guard` | hook | Stops a teammate as soon as it finishes its turn (`TeammateIdle` → `continue: false`), shows the user what is still running at every turn end (`Stop`, from `background_tasks`), asks once for `TaskStop` on open teammates and shells, and demands an agent sweep at `SessionStart`. |
 
-There are no hooks in this library. Enforcement through hooks was removed on
-2026-10-23; the git history holds the former hooks, agents, runbooks and skills.
+This is the only hook. `c-bpm-cm-library-pull` installs it: it copies
+`my/hooks/c-bpm-hk-*.sh` to `~/.claude/hooks/` and merges
+`my/hooks/c-bpm-hooks.json` into `~/.claude/settings.json` (and into
+`~/.config/claude/settings.json` when that file exists), replacing any earlier
+registration of the same script. Edit the hook here, never in `~/.claude/hooks/`;
+`c-bpm-cm-library-push` does not carry hook edits back. The enforcement hooks
+of the former library (issue gates, plan-doc gate, SoD tracker) were removed on
+2026-10-23; the git history holds them and the former agents, runbooks and
+skills.
 
 ## Architecture
 
@@ -34,6 +42,7 @@ bpm-claude-global-agent-skill-library/
 │   ├── skills/              # c-bpm-sk-<name>/SKILL.md (+ companion files)
 │   ├── commands/            # c-bpm-cm-<name>.md (flat)
 │   ├── agents/              # c-bpm-ag-<name>.md (currently empty)
+│   ├── hooks/               # c-bpm-hk-<name>.sh + c-bpm-hooks.json (settings fragment)
 │   └── hosts/<host>/        # per-host inventory, written by the sync scripts
 ├── c-bpm-cm-library-pull    # repo -> ~/.claude/
 ├── c-bpm-cm-library-push    # ~/.claude/ -> repo (commits and pushes)
@@ -49,7 +58,7 @@ bpm-claude-global-agent-skill-library/
 
 ### Naming convention
 
-- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"`; type codes `sk`, `cm`, `ag` (`rb` for runbooks is a legacy code the sync scripts still accept; the library ships none).
+- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"`; type codes `sk`, `cm`, `ag`, `hk` (`rb` for runbooks is a legacy code the sync scripts still accept; the library ships none).
 - Installed copies keep the same name, so `/c-bpm-cm-spec-oneshot` is the slash
   command once `c-bpm-cm-library-pull` has run.
 - Items without the `c-` prefix are upstream originals and are never edited here.

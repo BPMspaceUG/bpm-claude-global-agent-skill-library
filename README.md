@@ -19,6 +19,7 @@ several organisations' libraries can coexist in one `~/.claude/`.
 | `my/skills/` | custom skills | directory per skill with `SKILL.md` |
 | `my/commands/` | slash commands | one flat `.md` per command |
 | `my/agents/` | teammate role definitions (currently none) | one flat `.md` per agent |
+| `my/hooks/` | the agent cleanup hook and its settings fragment | `c-bpm-hk-*.sh` + `c-bpm-hooks.json` |
 | `my/hosts/` | per-host inventory written by the sync scripts | `.txt` |
 
 ## 2. Installation
@@ -68,7 +69,24 @@ cd ~/bpm-claude-global-agent-skill-library && git pull
 c-bpm-cm-library-pull    # refresh the installed copies in ~/.claude/
 ```
 
-### Removing the former hooks
+### The agent cleanup hook
+
+`c-bpm-cm-library-pull` installs one hook, `c-bpm-hk-agent-cleanup-guard`, and
+registers it in `~/.claude/settings.json` (plus `~/.config/claude/settings.json`
+when that file exists). Re-running the pull is idempotent and also replaces the
+older stand-alone `agent-cleanup-guard.sh` registration.
+
+| Event | What happens |
+|-------|--------------|
+| `TeammateIdle` | The teammate that just finished its turn is stopped by Claude Code (`continue: false`). |
+| `Stop` | The user sees a line listing every teammate, subagent and shell still in flight. Open teammates and shells get one request to `TaskStop` them; never twice in a row. |
+| `SessionStart` | Claude is told to run `ListAgents` and stop leftover teammates before answering. |
+
+Restart Claude Code after the first pull so the registration is loaded. The
+hook writes every payload it sees to `~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.log`
+(capped at 256 KiB).
+
+### Removing the former enforcement hooks
 
 Until 2026-10-23 this library registered `PreToolUse` and `SessionStart` hooks
 (`issue-write-gate`, `plan-doc-gate`, `codex-sod-tracker`). They are gone from
@@ -144,8 +162,9 @@ The suite is offline and deterministic. It covers the installer and sync
 scripts (`install.bats`, `sync-dedup.bats`, `sync-only-flags.bats`,
 `bpm-bootstrap.bats`, `c-bpm-cm-library-compare.bats`,
 `c-bpm-hosts-inventory.bats`), drift guards over this README
-(`readme-guards.bats`) and content guards over the custom items
-(`c-bpm-items.bats`).
+(`readme-guards.bats`), content guards over the custom items
+(`c-bpm-items.bats`) and the agent cleanup hook with its installation
+(`c-bpm-hk-agent-cleanup-guard.bats`).
 
 ## 5. Maintenance
 
@@ -155,7 +174,7 @@ scripts (`install.bats`, `sync-dedup.bats`, `sync-only-flags.bats`,
 - When a build's `RETRO.md` finds a recurring gap in `c-bpm-cm-spec-oneshot` or
   `c-bpm-sk-gogo`, file an issue here and fix the item here, never in a
   project repo.
-- Former hooks, agents, runbooks, templates and skills were removed on
+- The former enforcement hooks, agents, runbooks, templates and skills were removed on
   2026-10-23 in favour of the Pocock plugin; git history is the archive.
 
 ## External Skill Packs

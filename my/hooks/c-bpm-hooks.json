@@ -1,0 +1,11 @@
+{
+  "SessionStart": [
+    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh start", "timeout": 10}]}
+  ],
+  "TeammateIdle": [
+    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh idle", "timeout": 10, "statusMessage": "Teammate finished - stopping it"}]}
+  ],
+  "Stop": [
+    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh stop", "timeout": 10}]}
+  ]
+}
