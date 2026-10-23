@@ -18,6 +18,8 @@
 # Contract source: https://code.claude.com/docs/en/hooks.md (TeammateIdle,
 # Stop input and decision control). Always exits 0.
 
+# Deliberately no `set -e`: a hook must always print its decision and exit 0,
+# so a failing helper (e.g. a missing jq) must not abort it half-way.
 set -uo pipefail
 
 MODE="${1:-stop}"
@@ -27,15 +29,19 @@ INPUT="$(cat)"
 if [ -f "$LOG" ] && [ "$(wc -c <"$LOG")" -gt 262144 ]; then
   tail -c 131072 "$LOG" >"$LOG.tmp" && mv "$LOG.tmp" "$LOG"
 fi
-printf '%s %s %s\n' "$(date -Is)" "$MODE" "$(printf '%s' "$INPUT" | tr '\n' ' ')" >>"$LOG" 2>/dev/null
+# Log the payload shape for later refinement, never the assistant's text.
+if command -v jq >/dev/null 2>&1; then
+  LOGGED="$(printf '%s' "$INPUT" | jq -c 'del(.last_assistant_message)' 2>/dev/null)"
+else
+  LOGGED="(jq missing; payload not logged)"
+fi
+printf '%s %s %s\n' "$(date -Is)" "$MODE" "$LOGGED" >>"$LOG" 2>/dev/null
 
 case "$MODE" in
   idle)
-    who="$(printf '%s' "$INPUT" | jq -r '.teammate_name // .agent_id // "teammate"' 2>/dev/null)"
-    jq -n --arg who "${who:-teammate}" '{
-      continue: false,
-      stopReason: ("Agent cleanup: teammate " + $who + " finished its turn and was stopped.")
-    }'
+    # Plain printf, no jq: stopping the teammate must never depend on jq.
+    who="$(printf '%s' "$INPUT" | sed -n 's/.*"teammate_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | tr -cd 'A-Za-z0-9._-')"
+    printf '{"continue": false, "stopReason": "Agent cleanup: teammate %s finished its turn and was stopped."}\n' "${who:-teammate}"
     ;;
 
   start)

@@ -191,3 +191,56 @@ events_with_guard() { # <settings file>
   run bash -c 'DRY_RUN=0; VERBOSE=0; source "$1/lib.sh"; remove_legacy_skill_rules "$HOME/.claude"' _ "${REPO_ROOT}"
   [ -e "${HOME}/.claude/skills/skill-rules.json" ]
 }
+
+# ------------------------------------------------------------------
+# review round 1 (2026-10-23)
+# ------------------------------------------------------------------
+
+@test "fragment: the sweep fires only on startup and /clear, never on compact or resume" {
+  [ "$(jq -r '.SessionStart[0].matcher' "${FRAGMENT}")" = "startup|clear" ]
+}
+
+@test "TeammateIdle: still stops the teammate when jq is missing" {
+  local bin; bin="$(mktemp -d)"
+  local t; for t in bash cat date tr wc tail mv printf; do
+    [ -x "$(command -v "${t}")" ] && ln -s "$(command -v "${t}")" "${bin}/${t}"
+  done
+  run env PATH="${bin}" bash -c 'printf "%s" "{\"teammate_name\":\"x\"}" | "$1" idle' _ "${HOOK}"
+  rm -rf "${bin}"
+  [ "${status}" -eq 0 ]
+  [[ "${output}" == *'"continue": false'* ]]
+}
+
+@test "hook log never stores last_assistant_message" {
+  hook stop '{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"SECRET-TEXT","background_tasks":[]}'
+  ! grep -q 'SECRET-TEXT' "${HOME}/.claude/hooks/c-bpm-hk-agent-cleanup-guard.log"
+}
+
+@test "install: the script always lands in ~/.claude/hooks, even when the target dir is ~/.config/claude" {
+  mkdir -p "${HOME}/.config/claude"; printf '{}' > "${HOME}/.config/claude/settings.json"
+  run bash -c 'DRY_RUN=0; VERBOSE=0; source "$1/lib.sh"; install_c_bpm_hooks "$1" "$HOME/.config/claude"' _ "${REPO_ROOT}"
+  [ "${status}" -eq 0 ] || { echo "${output}" >&2; return 1; }
+  [ -x "${HOME}/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh" ]
+  [ "$(events_with_guard "${HOME}/.config/claude/settings.json")" = "SessionStart Stop TeammateIdle " ]
+}
+
+@test "install: keeps non-ASCII text in settings.json verbatim" {
+  printf '{"statusLine":{"text":"Übersicht ✓"}}' > "${HOME}/.claude/settings.json"
+  install_hooks
+  [ "${status}" -eq 0 ]
+  grep -q 'Übersicht ✓' "${HOME}/.claude/settings.json"
+}
+
+@test "install: warns when jq is not installed" {
+  grep -q 'jq' "${REPO_ROOT}/lib.sh"
+  run bash -c 'source "$1/lib.sh"; type install_c_bpm_hooks' _ "${REPO_ROOT}"
+  [[ "${output}" == *"command -v jq"* ]]
+}
+
+@test "lib.sh: the dead parse_frontmatter_field is gone" {
+  ! grep -q 'parse_frontmatter_field' "${REPO_ROOT}/lib.sh"
+}
+
+@test "gogo teammate contract: blocking work runs in the foreground because idle teammates are stopped" {
+  grep -qF 'Run tests and Codex in the foreground' "${REPO_ROOT}/my/skills/c-bpm-sk-gogo/TEAMMATE.md"
+}

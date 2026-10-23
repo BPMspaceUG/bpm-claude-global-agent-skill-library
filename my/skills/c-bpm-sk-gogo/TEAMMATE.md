@@ -34,6 +34,10 @@ APPROVED only under the approval rule in reviews/RUBRIC.md.
 
 ## Rules
 
+- Run tests and Codex in the foreground and wait for them. Your turn ends only
+  with your status block: a teammate that goes idle is stopped at once by the
+  lead's agent cleanup hook, so anything still running in the background is lost.
+
 - Max 3 review rounds for the plan and 3 for the implementation. If the same
   failure repeats three times, ask Codex for a different route and take it.
   If that also fails, or the ticket is ambiguous in a way that changes
