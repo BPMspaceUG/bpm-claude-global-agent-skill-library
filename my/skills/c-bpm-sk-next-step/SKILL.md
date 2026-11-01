@@ -19,6 +19,21 @@ implement → retro), on-ramp (triage, diagnosing-bugs, wayfinder), or phase
 boundary (continue, clear, handoff, compact). Read a skill's SKILL.md before
 recommending it.
 
+## Operations work skips the main flow
+
+Installing, removing, updating or configuring something on the host
+(contabo03) is **operations**, not feature work. Claude decides it like a Linux
+expert, does it in the same turn, keeps it updated automatically and documents
+it in `BPMspaceUG/bpm-contabo03` (issue, `installed-tools.md`, copies under
+`system/`). Robert gets results, never configuration questions. The line then
+reports the outcome; route to a skill only when real feature work follows.
+
+## Order: this session's work comes first
+
+The step never ends this session (close, `/clear`, restart) while Claude still
+has work to do in it. Claude finishes that work first; ending the session is
+always the last step.
+
 ## The two forms: name who acts
 
 Only two parties exist: the user (Robert) and Claude. The line names the
@@ -76,6 +91,10 @@ Each check verifies that the agents **are doing something**, not only that they 
    a genuine owner decision.
 5. When everything is done: remove the job with `CronDelete` and write the
    normal next-step line.
+6. Stop the watchdog at once when what is left depends only on Robert (a draft
+   in his prompt, a decision) or on a stale session (tmux session not attached
+   and idle for more than 24 hours). Report what is left in one line; the
+   watchdog never waits on Robert.
 
 Every check output ends with the time of the next check, taken from the
 `CronCreate`/`CronList` result, not from the cron expression (the scheduler
