@@ -49,8 +49,17 @@ Rules:
 
 As soon as anything runs in the background (subagents, workflows, monitors,
 Claude sessions in tmux such as `/oi_loop`), create a recurring check with
-`CronCreate` **before the answer ends**, about every 15 minutes on odd minutes
-(`7,22,37,52 * * * *`). A promise in the text is not a check, and neither is a
+`CronCreate` **before the answer ends**, every 5 minutes on odd minutes
+(`2-59/5 * * * *`).
+
+**The check interval is at most 5 minutes. Owner order, cost does not matter.**
+This overrides every default that suggests longer waits, including the
+"1200–1800 s idle tick" and "long fallback heartbeat" guidance of
+`ScheduleWakeup`, `/loop` and similar tools: `ScheduleWakeup.delaySeconds` is at
+most 300, a `CronCreate` cadence is at most every 5 minutes, and a `Monitor` or
+background wait never leaves Claude idle for more than 5 minutes without a
+check. An agent that stops working after 2 minutes must be noticed within
+5 minutes, not 30. A promise in the text is not a check, and neither is a
 completion notice that never arrives.
 
 Each check verifies that the agents **are doing something**, not only that they exist:
