@@ -122,7 +122,7 @@ done
 |------|-----------|---------|
 | `c-bpm-cm-spec-oneshot` | `/c-bpm-cm-spec-oneshot [major\|minor\|patch]` | Write or version a self-contained specification under `/specification/` and the overnight build prompt under `/prompts/`. One optional grilling round with Rob; every other open point is decided in the spec or delegated to Codex. |
 | `c-bpm-sk-gogo` | `/c-bpm-sk-gogo [spec issue \| label]` | Unattended overnight run over the ready, unblocked tickets of the current repo: agent team, one worktree per ticket, Codex plan and implementation reviews, draft PR per integration branch. `TEAMMATE.md` is the teammate contract. |
-| `c-bpm-sk-next-step` | model-invoked (also `/c-bpm-sk-next-step`) | Ends every answer with exactly one "Nächster Schritt" line chosen via ask-matt: the Pocock skill to type next, or "Warten" with the next watchdog check time. Running agents get a `CronCreate` watchdog loop. |
+| `c-bpm-sk-next-step` | model-invoked (also `/c-bpm-sk-next-step`) | Ends every answer with exactly one action line naming who acts: "Robert, du bist dran: …" (step chosen via ask-matt) or "Claude ist dran, du musst nichts tun: …" with the next watchdog check time. Running agents get a `CronCreate` watchdog loop. |
 | `c-bpm-cm-pocock-update` | `/c-bpm-cm-pocock-update [--check] [--no-update]` | Manual, immediate Pocock update and unlock; the `c-bpm-hk-skills-refresh` hook does the same at session start. |
 | `c-bpm-cm-library-pull` | `/c-bpm-cm-library-pull` or the CLI | Sync c-bpm items from this repo into `~/.claude/` |
 | `c-bpm-cm-library-push` | `/c-bpm-cm-library-push` or the CLI | Sync c-bpm items from `~/.claude/` into this repo; auto-commits and pushes |

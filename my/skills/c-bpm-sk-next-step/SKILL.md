@@ -1,11 +1,11 @@
 ---
 name: c-bpm-sk-next-step
-description: "End every answer with exactly one 'Nächster Schritt' line chosen via ask-matt: either the Pocock skill to type next or 'Warten' with the next watchdog check time. Use before finishing any answer, and whenever background agents, workflows, monitors or tmux Claude sessions are running."
+description: "End every answer with exactly one action line that names who acts: 'Robert, du bist dran: …' (the step ask-matt recommends) or 'Claude ist dran, du musst nichts tun: …' with the next watchdog check time. Use before finishing any answer, and whenever background agents, workflows, monitors or tmux Claude sessions are running."
 ---
 
 # Next step line
 
-Every answer ends with **exactly one** next-step line. The owner asked for it;
+Every answer ends with **exactly one** action line. The owner asked for it;
 it is not an unsolicited suggestion. The line is written in the language of the
 conversation (German for Robert); the templates below are the German wording.
 
@@ -19,29 +19,30 @@ implement → retro), on-ramp (triage, diagnosing-bugs, wayfinder), or phase
 boundary (continue, clear, handoff, compact). Read a skill's SKILL.md before
 recommending it.
 
-## The two forms
+## The two forms: name who acts
 
-No actor labels such as "(ich)", "(Robert)", "(du)" or "(AI)". The line always
-addresses the user directly, in the imperative.
+Only two parties exist: the user (Robert) and Claude. The line names the
+actor by name at the very start, so it is never unclear who has to act. Never
+use a bare "Nächster Schritt", "ich" or "(Robert)" label; "ich" and "du" are
+ambiguous to the reader. Claude refers to itself as "Claude".
 
-    **Nächster Schritt:** `/mattpocock-skills:<skill>` eintippen. <why, per ask-matt, one sentence>
-    **Nächster Schritt:** Warten. Nächster Check um <HH:MM> (Job <id>), bis dahin musst du nichts tun.
+Robert has to act (type a skill, answer a question, decide):
 
-"Warten" is preceded by one status line:
+    **Robert, du bist dran:** <exact action, e.g. `/mattpocock-skills:triage` eintippen | Q1 beantworten>. ask-matt empfiehlt das, weil <one sentence>.
+
+Claude or background agents act, Robert does nothing:
 
     **Gerade läuft:** <which agents/sessions, what they work on, state at the last check>
+    **Claude ist dran, du musst nichts tun:** <what Claude does next>. Nächster Check um <HH:MM> (Job <id>).
 
 Rules:
 
-- The skill in the first form is the one ask-matt proposes for the current situation.
-- If a question or decision is waiting for the user, the line is
-  `**Nächster Schritt:** <Frage> beantworten.`
-- If you can take the step yourself, take it now instead of ending with an
-  offer. Write the line afterwards.
-- Never a second action line ("Was du jetzt tust" or similar). "Gerade läuft"
-  is status only.
-- "Warten" is a full next step: the watchdog loop works, the user waits. Do not
-  start anything just because an answer is ending.
+- The recommended step is the one ask-matt proposes for the current situation.
+- If Claude can take the step itself, Claude takes it now instead of ending
+  with an offer; the line comes afterwards.
+- Exactly one action line. "Gerade läuft" is status only.
+- Waiting is a full next step: the watchdog loop works, Robert does nothing.
+  Do not start anything just because an answer is ending.
 - Never end open ("melde dich") or with status and no direction.
 
 ## Running agents get a real watchdog loop

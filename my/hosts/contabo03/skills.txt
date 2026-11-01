@@ -1,5 +1,6 @@
 # Host: contabo03
-# Updated: 2026-10-23T08:11:51Z
+# Updated: 2026-11-01T10:42:35Z
 # Category: skills
 #
 c-bpm-sk-gogo
+c-bpm-sk-next-step
