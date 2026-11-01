@@ -63,7 +63,7 @@ Rules:
 ## Running agents get a real watchdog loop
 
 As soon as anything runs in the background (subagents, workflows, monitors,
-Claude sessions in tmux such as `/oi_loop`), create a recurring check with
+Claude sessions in tmux such as `/c-bpm-sk-gogo`), create a recurring check with
 `CronCreate` **before the answer ends**, every 5 minutes on odd minutes
 (`2-59/5 * * * *`).
 
