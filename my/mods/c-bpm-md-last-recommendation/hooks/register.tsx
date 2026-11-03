@@ -4,10 +4,10 @@ import type { EngineInterface, Register } from 'claude-code'
 // The last action line of an answer (skill c-bpm-sk-next-step). The Stop hook
 // c-bpm-hk-ask-matt-after-clear caches the same line per tmux pane, so the pane
 // shows it again right after /clear.
-const PANE = 'letzte-empfehlung'
-const TITLE = 'Letzte Empfehlung'
+const PANE = 'last-recommendation'
+const TITLE = 'Last recommendation'
 const LINE_RE = /\*\*(Robert, du bist dran|Claude ist dran[^*]*):\*\*.*$/gm
-const line = atom({ plugin: 'letzte-empfehlung', key: 'line' } as const, '', { shape: 'line-1' })
+const line = atom({ plugin: 'c-bpm-md-last-recommendation', key: 'line' } as const, '', { shape: 'line-1' })
 
 const lastLine = (text: string): string => {
   const all = text.match(LINE_RE)
@@ -30,14 +30,14 @@ const saved = async ($: EngineInterface): Promise<string> => {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'empfehlung', description: 'Open the pane with the last recommended next step' })
+    await $.command.register({ name: 'last-recommendation', description: 'Open the pane with the last recommended next step' })
     void $.ui.open({ id: PANE, title: TITLE })
     return next(e)
   })
 
-  on('command.run', { command: 'empfehlung' }, async $ => {
+  on('command.run', { command: 'last-recommendation' }, async $ => {
     await $.ui.open({ id: PANE, title: TITLE })
-    return { text: 'Panel „Letzte Empfehlung“ geöffnet.' }
+    return { text: 'Pane "Last recommendation" opened.' }
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -55,7 +55,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
     const text = (await read($, line)) || (await saved($))
-    if (!text) return <Text dimColor>Noch keine Empfehlung.</Text>
+    if (!text) return <Text dimColor>No recommendation yet.</Text>
     const m = text.match(/^\*\*([^*]+):\*\*\s*(.*)$/)
     const who = m?.[1] ?? ''
     const rest = (m?.[2] ?? text).replace(/\*\*/g, '')

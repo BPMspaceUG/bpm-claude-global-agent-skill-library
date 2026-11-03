@@ -106,7 +106,7 @@ fi
 log "from=${FROM:-none} line=${LINE:0:200}"
 
 if [ -z "$LINE" ]; then
-  jq -n '{systemMessage: "Nach /clear: kein gespeicherter Hinweis gefunden. Frag nach dem nächsten Schritt."}'
+  jq -n '{systemMessage: "After /clear: no saved next step found. Ask for the next step."}'
   exit 0
 fi
 
@@ -136,7 +136,7 @@ if [ -n "$CMD" ] && [ -n "${TMUX_PANE:-}" ] && command -v tmux >/dev/null 2>&1; 
 fi
 
 jq -n --arg a "$LINE" '{
-  systemMessage: ("Letzter Hinweis vor /clear: " + $a),
+  systemMessage: ("Last recommendation before /clear: " + $a),
   hookSpecificOutput: {hookEventName: "SessionStart", additionalContext:
     ("Before /clear, the last answer ended with this next-step line, and Robert has been shown it: " + $a +
      " If Robert asks what to do, start from it; it may be outdated if it named work of the cleared session.")}}'

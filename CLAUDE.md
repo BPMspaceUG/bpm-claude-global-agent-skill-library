@@ -12,7 +12,7 @@ TDD, code review, domain modelling, research) come from Matt Pocock's plugin
 cover.
 
 All custom items use the `c-{org}-{type}-{name}` prefix convention
-(`c-bpm-sk-` skills, `c-bpm-cm-` commands, `c-bpm-ag-` agents) and live under `my/`.
+(`c-bpm-sk-` skills, `c-bpm-cm-` commands, `c-bpm-ag-` agents, `c-bpm-hk-` hooks, `c-bpm-md-` mods) and live under `my/`.
 
 ## Items
 
@@ -26,7 +26,7 @@ All custom items use the `c-{org}-{type}-{name}` prefix convention
 | `c-bpm-hk-agent-cleanup-guard` | hook | Stops a teammate as soon as it finishes its turn (`TeammateIdle` → `continue: false`), shows the user what is still running at every turn end (`Stop`, from `background_tasks`), asks once for `TaskStop` on open teammates and shells, and demands an agent sweep at `SessionStart`. |
 
 | `c-bpm-hk-ask-matt-after-clear` | hook | At `Stop` caches the last "Robert, du bist dran: …" / "Claude ist dran, …" line of the answer (per tmux pane and per directory, `~/.cache/c-bpm-next-step/`); at `SessionStart` (`clear`) shows Robert that line at once (also handed to the new session) and, in tmux, types its `/command` into the prompt without Enter; writes `session-<id>` for the host status line, which shows the hint below the prompt until the first answer ends. Fallback: scan the cleared transcript. No model run. |
-| `letzte-empfehlung` | mod | Pane on the right of the chat, "Letzte Empfehlung": the last next-step line, kept across `/clear` (reads the after-clear hook's pane cache). Opens itself from 144 columns, `/empfehlung` at any width. Loaded in every session via `CLAUDE_CODE_PLUGIN_DIRS` in `~/.claude/settings.json` (`env`), pointing at `my/mods/letzte-empfehlung` in this checkout; edits reload live. |
+| `c-bpm-md-last-recommendation` | mod | Pane on the right of the chat, "Last recommendation": the last next-step line, kept across `/clear` (reads the after-clear hook's pane cache). Opens itself from 144 columns, `/last-recommendation` at any width. Loaded in every session via `CLAUDE_CODE_PLUGIN_DIRS` in `~/.claude/settings.json` (`env`), pointing at `my/mods/c-bpm-md-last-recommendation` in this checkout; edits reload live. |
 | `c-bpm-hk-skills-refresh` | hook + script | At `SessionStart` (startup, resume) unlocks the installed Pocock skills locally, then at most once per 24 h starts a detached worker: plugin update, unlock, `c-bpm-cm-library-pull`. Changes apply from the next session. `/c-bpm-cm-pocock-update` calls the same script. |
 
 `c-bpm-cm-library-pull` installs the hooks: it copies
@@ -64,7 +64,7 @@ bpm-claude-global-agent-skill-library/
 
 ### Naming convention
 
-- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"`; type codes `sk`, `cm`, `ag`, `hk` (`rb` for runbooks is a legacy code the sync scripts still accept; the library ships none).
+- `ITEM_PREFIX="c"`, `ORG_PREFIX="bpm"`; type codes `sk`, `cm`, `ag`, `hk`, `md` (`rb` for runbooks is a legacy code the sync scripts still accept; the library ships none).
 - Installed copies keep the same name, so `/c-bpm-cm-spec-oneshot` is the slash
   command once `c-bpm-cm-library-pull` has run.
 - Items without the `c-` prefix are upstream originals and are never edited here.

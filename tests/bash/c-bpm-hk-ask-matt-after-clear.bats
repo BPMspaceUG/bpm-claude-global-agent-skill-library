@@ -41,7 +41,7 @@ clear_input() {
   stop_input "$msg" | "$HOOK" save
   run bash -c "$(declare -f clear_input); clear_input clear | '$HOOK' clear"
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e --arg r "$ROBERT" '.systemMessage == ("Letzter Hinweis vor /clear: " + $r)'
+  echo "$output" | jq -e --arg r "$ROBERT" '.systemMessage == ("Last recommendation before /clear: " + $r)'
   echo "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("mattpocock-skills:triage")'
 }
 
@@ -72,7 +72,7 @@ clear_input() {
 @test "clear with nothing found: exit 0 and a notice" {
   run bash -c "$(declare -f clear_input); clear_input clear | '$HOOK' clear"
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.systemMessage | contains("kein gespeicherter Hinweis")'
+  echo "$output" | jq -e '.systemMessage | contains("no saved next step")'
 }
 
 @test "startup and resume: no output" {
