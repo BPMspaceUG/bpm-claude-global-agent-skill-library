@@ -80,16 +80,38 @@ readme_fences() {
   return "${bad}"
 }
 
-@test "every item under my/ is named in the README" {
-  local bad=0 f name
-  for f in "${REPO_ROOT}"/my/commands/c-bpm-cm-*.md; do
-    name="$(basename "${f}" .md)"
-    grep -qF -- "${name}" "${README}" || { printf 'README does not mention command %s\n' "${name}" >&2; bad=1; }
-  done
-  for f in "${REPO_ROOT}"/my/skills/c-bpm-sk-*/SKILL.md; do
-    name="$(basename "$(dirname "${f}")")"
-    grep -qF -- "${name}" "${README}" || { printf 'README does not mention skill %s\n' "${name}" >&2; bad=1; }
-  done
+# Every c-bpm item under my/ (commands, skills, hooks, mods), one name per line.
+my_items() {
+  local f
+  for f in "${REPO_ROOT}"/my/commands/c-bpm-cm-*.md; do basename "${f}" .md; done
+  for f in "${REPO_ROOT}"/my/skills/c-bpm-sk-*/SKILL.md; do basename "$(dirname "${f}")"; done
+  for f in "${REPO_ROOT}"/my/hooks/c-bpm-hk-*.sh; do basename "${f}" .sh; done
+  for f in "${REPO_ROOT}"/my/mods/c-bpm-md-*/; do basename "${f}"; done
+}
+
+# The table right below heading $2 in file $1: header row through the last
+# row before the first non-table line. A blank line ends it, as in Markdown.
+table_under() {
+  awk -v h="$2" '$0 == h { s = 1; next } s && /^\|/ { t = 1; print; next } t { exit }' "$1"
+}
+
+@test "every item under my/ has its own row in README section 3 Items" {
+  local bad=0 name rows
+  rows="$(table_under "${README}" '## 3. Items')"
+  [ -n "${rows}" ] || { echo 'no table under ## 3. Items' >&2; return 1; }
+  while read -r name; do
+    grep -qF -- "| \`${name}\` |" <<<"${rows}" || { printf 'README Items table has no row for %s\n' "${name}" >&2; bad=1; }
+  done < <(my_items)
+  return "${bad}"
+}
+
+@test "every item under my/ has a row in the CLAUDE.md Items table, which has no gap" {
+  local bad=0 name rows claude="${REPO_ROOT}/CLAUDE.md"
+  rows="$(table_under "${claude}" '## Items')"
+  [ -n "${rows}" ] || { echo 'no table under ## Items' >&2; return 1; }
+  while read -r name; do
+    grep -qF -- "\`${name}\`" <<<"${rows}" || { printf 'CLAUDE.md Items table has no row for %s (or a blank line splits the table)\n' "${name}" >&2; bad=1; }
+  done < <(my_items)
   return "${bad}"
 }
 

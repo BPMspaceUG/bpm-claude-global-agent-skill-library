@@ -3,7 +3,9 @@ import type { EngineInterface, Register } from 'claude-code'
 
 // The last action line of an answer (skill c-bpm-sk-next-step). The Stop hook
 // c-bpm-hk-ask-matt-after-clear caches the same line per tmux pane, so the pane
-// shows it again right after /clear.
+// shows it again right after /clear. LINE_RE and the pane cache path are a
+// contract with that hook; tests/bash/c-bpm-hk-ask-matt-after-clear.bats runs
+// both parsers over tests/fixtures/next-step-lines.tsv.
 const PANE = 'last-recommendation'
 const TITLE = 'Last recommendation'
 const LINE_RE = /\*\*(Robert, du bist dran|Claude ist dran[^*]*):\*\*.*$/gm
@@ -59,7 +61,7 @@ export const register: Register = on => {
     const m = text.match(/^\*\*([^*]+):\*\*\s*(.*)$/)
     const who = m?.[1] ?? ''
     const rest = (m?.[2] ?? text).replace(/\*\*/g, '')
-    const [step, why] = rest.split(/\s(?=ask-matt empfiehlt)/)
+    const [step, why] = rest.split(/\s(?=ask-matt )/)
     return (
       <Box flexDirection="column">
         {who && <Text bold color={who.startsWith('Robert') ? 'yellow' : 'green'}>{who}</Text>}

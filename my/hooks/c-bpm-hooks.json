@@ -9,6 +9,7 @@
   ],
   "Stop": [
     {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh stop", "timeout": 10}]},
-    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.sh save", "timeout": 10}]}
+    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.sh save", "timeout": 10}]},
+    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-ask-matt-read-guard.sh", "timeout": 10}]}
   ]
 }

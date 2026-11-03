@@ -71,8 +71,9 @@ c-bpm-cm-library-pull    # refresh the installed copies in ~/.claude/
 
 ### The hooks
 
-`c-bpm-cm-library-pull` installs three hooks, `c-bpm-hk-agent-cleanup-guard`,
-`c-bpm-hk-skills-refresh` and `c-bpm-hk-ask-matt-after-clear`, and
+`c-bpm-cm-library-pull` installs four hooks, `c-bpm-hk-agent-cleanup-guard`,
+`c-bpm-hk-skills-refresh`, `c-bpm-hk-ask-matt-after-clear` and
+`c-bpm-hk-ask-matt-read-guard`, and
 registers them in `~/.claude/settings.json` (plus `~/.config/claude/settings.json`
 when that file exists). Re-running the pull is idempotent and also replaces the
 older stand-alone `agent-cleanup-guard.sh` registration.
@@ -81,6 +82,7 @@ older stand-alone `agent-cleanup-guard.sh` registration.
 |-------|--------------|
 | `TeammateIdle` | The teammate that just finished its turn is stopped by Claude Code (`continue: false`). |
 | `Stop` | The user sees a line listing every teammate, subagent and shell still in flight. Open teammates and shells get one request to `TaskStop` them; never twice in a row. |
+| `Stop` | An answer whose next-step line says "ask-matt empfiehlt" goes back to Claude once when ask-matt was not read in the session (a tool call on `ask-matt/SKILL.md`, a Skill call, or `/ask-matt`). |
 | `SessionStart` (startup, /clear) | Claude is told to run `ListAgents` and stop leftover teammates before answering. |
 | `SessionStart` (/clear) | The user sees at once the last next-step line ("Robert, du bist dran: …") of the conversation just cleared. A `Stop` hook caches that line after every answer in `~/.cache/c-bpm-next-step/` (per tmux pane and per directory); without a cache the cleared transcript is scanned. No model run. In tmux the first `/command` of a "Robert, du bist dran:" line (skipping `/clear`, `/compact`, `/resume`, `/exit`) is typed into the prompt without Enter. The line is also written to `session-<id>`, which the host status line (`/usr/local/bin/claude-statusline.sh`, `refreshInterval: 2`, see bpm-contabo03 #49) shows below the prompt until the first answer ends. Log `~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log`. |
 | `SessionStart` (startup, resume) | The installed Pocock skills are unlocked at once, without network. At most once per 24 h a detached worker updates the plugin, unlocks again and runs `c-bpm-cm-library-pull`; the result applies from the next session. Log: `~/.claude/hooks/c-bpm-hk-skills-refresh.log`. |
@@ -147,6 +149,11 @@ done
 | `c-bpm-cm-library-pull` | `/c-bpm-cm-library-pull` or the CLI | Sync c-bpm items from this repo into `~/.claude/` |
 | `c-bpm-cm-library-push` | `/c-bpm-cm-library-push` or the CLI | Sync c-bpm items from `~/.claude/` into this repo; auto-commits and pushes |
 | `c-bpm-cm-library-compare` | `/c-bpm-cm-library-compare` or the CLI | Show which c-bpm items differ between `~/.claude/` and the repo; optionally repair |
+| `c-bpm-hk-agent-cleanup-guard` | hook, automatic | Stops finished teammates, lists what still runs at every turn end, demands an agent sweep after start and `/clear` (see "The hooks") |
+| `c-bpm-hk-ask-matt-after-clear` | hook, automatic | Replays the last next-step line after `/clear`, prefills its `/command` in tmux, shows it in the status line until the first answer |
+| `c-bpm-hk-ask-matt-read-guard` | hook, automatic | Sends an answer back once when it cites ask-matt that was not read in the session |
+| `c-bpm-hk-skills-refresh` | hook, automatic | Unlocks the Pocock skills at start; daily plugin update and library pull |
+| `c-bpm-md-last-recommendation` | mod, `/last-recommendation` | Pane "Last recommendation" beside the chat (see "The mod") |
 
 How the two overnight flows relate: `c-bpm-cm-spec-oneshot` produces a spec and
 a build prompt that rebuilds a whole project from an empty directory; the run is
@@ -179,6 +186,8 @@ last sync is flagged and skipped rather than silently overwritten.
 ```bash
 ./tests/run_tests.sh     # requires bats on PATH; equivalent to: bats tests/bash/
 bats tests/bash/readme-guards.bats   # a single suite
+./tests/typecheck-mods.sh            # tsc --noEmit over every mod under my/mods/
+git config core.hooksPath .githooks  # once per clone: pre-push runs both
 ```
 
 The suite is offline and deterministic. It covers the installer and sync
@@ -187,7 +196,10 @@ scripts (`install.bats`, `sync-dedup.bats`, `sync-only-flags.bats`,
 `c-bpm-hosts-inventory.bats`), drift guards over this README
 (`readme-guards.bats`), content guards over the custom items
 (`c-bpm-items.bats`) and the agent cleanup hook with its installation
-(`c-bpm-hk-agent-cleanup-guard.bats`), the skills refresh hook (`c-bpm-hk-skills-refresh.bats`) and the ask-matt-after-clear hook (`c-bpm-hk-ask-matt-after-clear.bats`).
+(`c-bpm-hk-agent-cleanup-guard.bats`), the skills refresh hook (`c-bpm-hk-skills-refresh.bats`) the ask-matt-after-clear hook and the mod's line parser against real next-step lines in `tests/fixtures/next-step-lines.tsv` (`c-bpm-hk-ask-matt-after-clear.bats`) the ask-matt read guard (`c-bpm-hk-ask-matt-read-guard.bats`), and the pre-push hook and live-test helper (`guardrails.bats`).
+
+Live checks in a real Claude session in tmux use `tests/live/tmux-claude.sh`
+(start, send keys, wait for a pattern, capture, kill) instead of fixed sleeps.
 
 ## 5. Maintenance
 

@@ -126,9 +126,11 @@ fi
 CMD=""
 case "$LINE" in
   '**Robert, du bist dran:**'*)
-    # The first `/command` that is not the session step itself: "danach
+    # The first `/command` of the action part (the reason after " ask-matt "
+    # may name other skills) that is not the session step itself: "danach
     # `/clear` und `/x`" means `/x`, since /clear has just happened.
-    CMD="$(printf '%s' "$LINE" | grep -o '`/[^`]*`' | tr -d '`' \
+    # tests/fixtures/next-step-lines.tsv holds real lines and their prefill.
+    CMD="$(printf '%s' "${LINE%% ask-matt *}" | grep -o '`/[^`]*`' | tr -d '`' \
       | grep -vE '^/(clear|compact|resume|exit)( |$)' | head -1)" ;;
 esac
 if [ -n "$CMD" ] && [ -n "${TMUX_PANE:-}" ] && command -v tmux >/dev/null 2>&1; then

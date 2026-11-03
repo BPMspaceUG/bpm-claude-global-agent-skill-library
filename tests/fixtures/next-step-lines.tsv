@@ -1,0 +1,33 @@
+# Real next-step lines from Claude Code transcripts (skill c-bpm-sk-next-step).
+# Column 1: the /command the after-clear hook must prefill (empty: none). Column 2: the line.
+# Both parsers of the line read this corpus: my/hooks/c-bpm-hk-ask-matt-after-clear.sh
+# and my/mods/c-bpm-md-last-recommendation/hooks/register.tsx.
+/mattpocock-skills:implement #126	**Robert, du bist dran:** `/clear` und dann `/mattpocock-skills:implement #126` eintippen. ask-matt empfiehlt das, weil nichts mehr offen ist und jedes Bau-Ticket in einem frischen Kontext gebaut wird.
+/mattpocock-skills:implement #125	**Robert, du bist dran:** `/clear` eintippen, danach `/mattpocock-skills:implement #125`. ask-matt empfiehlt das, weil die Tickets fertig sind und jedes Ticket in einem frischen Kontext gebaut werden soll.
+	**Robert, du bist dran:** diese Session mit `/exit` schließen. ask-matt rät an diesem Phasenende zu `/handoff`, wenn die Arbeit an eine andere Session übergeht. Der Kommentar an #374 übernimmt diese Übergabe.
+/mattpocock-skills:wayfinder #4	**Robert, du bist dran:** `/clear` und dann `/mattpocock-skills:wayfinder #4` eintippen. ask-matt empfiehlt das, weil Wayfinder pro Sitzung nur ein Ticket entscheidet und das nächste mit leerem Kontext beginnen soll.
+/mattpocock-skills:to-tickets	**Robert, du bist dran:** `/mattpocock-skills:to-tickets` eintippen. ask-matt empfiehlt das, weil nach `/to-spec` als Nächstes die Tickets kommen und das im selben Kontext passieren soll, in dem die Spec entstanden ist.
+/mattpocock-skills:implement #70	**Robert, du bist dran:** `/mattpocock-skills:implement #70` eintippen. ask-matt empfiehlt das, weil #70 ein fertig beschriebenes Issue ist, das in eine Sitzung passt, und `/implement` es testgetrieben mit Review umsetzt.
+/mattpocock-skills:grill-with-docs	**Robert, du bist dran:** `/mattpocock-skills:grill-with-docs` eintippen. ask-matt empfiehlt das, weil …
+/mattpocock-skills:wayfinder #4	**Robert, du bist dran:** `/mattpocock-skills:wayfinder #4` im Verzeichnis `~/ico-examination_regulations` eintippen …“
+/mattpocock-skills:to-tickets	**Robert, du bist dran:** `/mattpocock-skills:to-tickets` eintippen. ask-matt empfiehlt das, weil nach der Spec #52 als Nächstes die Tickets kommen und daraus dann die fertigen Dokumente entstehen.
+	**Robert, du bist dran:** `/exit` eintippen.
+	**Robert, du bist dran:** `/clear` eintippen. ask-matt empfiehlt das, weil der Lauf vollständig abgeschlossen ist und nichts aus dieser Sitzung für die nächste Aufgabe gebraucht wird.
+	**Robert, du bist dran:** In jeder Session, in der Agenten laufen, einmal `/clear` eintippen. ask-matt empfiehlt das, weil laufende Sessions den geänderten Skill erst nach `/clear` laden und bis dahin mit dem alten 15-Minuten-Takt prüfen.
+	**Robert, du bist dran:** Beantworte Q1 bis Q3, ein „ja“ übernimmt alle drei Empfehlungen. ask-matt sieht `/grill-with-docs` als erste Phase vor, bevor ein Issue entsteht.
+	**Robert, du bist dran:** Schließ jetzt die Sessions, die du nicht mehr brauchst, auch diese hier, denn es ist nichts mehr offen. ask-matt hat mit `/retro` den Flow abgeschlossen.
+	**Robert, du bist dran:** Q1–Q8 beantworten („alle ja“ genügt). ask-matt empfiehlt das, weil die Entscheidungen beim Grillen fallen müssen, bevor `/to-spec` sie in eine Spec gießt.
+	**Robert, du bist dran:** Beantworte Q1 und Q2, mit „ja“ übernimmst du beide Empfehlungen. ask-matt lässt `/grill-with-docs` laufen, bis keine Frage mehr offen ist, und erst dann setze ich das um.
+	**Robert, du bist dran:** Schreib mir die Aufgabe für diese Sitzung. ask-matt empfiehlt bei einer neuen Idee in einem Repo `/mattpocock-skills:grill-with-docs` als Einstieg, aber ohne Auftrag gibt es noch keinen Schritt.
+	**Robert, du bist dran:** Beantworte Q1 mit „ja“ oder schreib dein eigenes Vorhaben samt Repo. ask-matt empfiehlt `/grill-with-docs` als Einstieg in den Main Flow, und ohne Thema und Repo kann ich die Fragen nicht stellen.
+	**Robert, du bist dran:** in der Session SYM_2 (tmux `C03BPM-MATT-SYM_2`) „los“ eingeben. ask-matt empfiehlt das, weil der heute gebaute Code noch kein `/mattpocock-skills:code-review` hatte und SYM_2 es dann sofort startet.
+	**Robert, du bist dran:** Sag mir, woran wir arbeiten. ask-matt empfiehlt bei einer neuen Idee in einem Repo `/mattpocock-skills:grill-with-docs` als Einstieg, weil es den Plan schärft und Glossar und ADRs gleich mitschreibt.
+	**Robert, du bist dran:** Schließ die Sessions, die du nicht mehr brauchst, und sag danach „los“ für die vier Retro-Punkte. ask-matt sieht `/retro` als Abschluss vor, und erst mit der Umsetzung wird die nächste Session besser.
+	**Robert, du bist dran:** in SYM_2 die Option „4. Type something“ wählen, `3dde5fe` eingeben und Enter drücken. ask-matt empfiehlt das, weil `/mattpocock-skills:code-review` dann alles prüft, was seit dem letzten Review dazugekommen ist.
+	**Robert, du bist dran:** Sag „los“, dann setze ich die Punkte 1 bis 4 um und lege sie als Issue in `bpm-contabo03` bzw. der Skill-Library ab. ask-matt sieht `/retro` als Abschluss des Flows vor, und erst die Umsetzung macht die nächste Session besser.
+	**Robert, du bist dran:** Sag, ob der Schnitt so passt oder was du zusammenlegen oder aufteilen willst. Danach lege ich die Issues mit nativen Blockier-Links an. ask-matt empfiehlt das, weil `/to-tickets` erst veröffentlicht, wenn du die Aufteilung freigegeben hast.
+	**Robert, du bist dran:** …
+	**Robert, du bist dran:** <Aktion>. ask-matt empfiehlt das, weil …
+	**Claude ist dran, du musst nichts tun:** Sobald Codex fertig ist, trägt Claude die Ergebnisse ein und startet `/to-spec`. Nächster Check um 18:43 (Job 7746b45a).
+	**Claude ist dran, du musst nichts tun:** Sobald Codex fertig ist, trägt Claude die Entscheidungen ein und startet `/to-spec`. Nächster Check um 18:53 (Job 7746b45a).
+	**Claude ist dran, du musst nichts tun:** Ich warte auf conv-5.

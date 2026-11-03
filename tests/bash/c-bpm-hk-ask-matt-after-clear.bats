@@ -130,3 +130,51 @@ clear_input() {
   sleep 1
   [ ! -e "$HOME/tmux.calls" ]
 }
+
+# Corpus: real next-step lines (tests/fixtures/next-step-lines.tsv). The hook
+# and the mod parse the same line; both must agree with the corpus.
+CORPUS="${REPO_ROOT}/tests/fixtures/next-step-lines.tsv"
+MOD="${REPO_ROOT}/my/mods/c-bpm-md-last-recommendation/hooks/register.tsx"
+
+@test "corpus: the hook caches every real line and prefills the expected /command" {
+  local bad=0 row want line got n=0
+  # A tab is IFS whitespace, so `read want line` would swallow an empty column 1.
+  while IFS= read -r row; do
+    case "$row" in '#'* | '') continue ;; esac
+    want="${row%%$'\t'*}" line="${row#*$'\t'}"
+    n=$((n + 1))
+    rm -rf "$HOME/.cache" "$HOME/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log"
+    stop_input "$(printf 'Answer.\n\n%s' "$line")" | "$HOOK" save
+    got="$(cat "$HOME/.cache/c-bpm-next-step/pane-7" 2>/dev/null)"
+    [ "$got" = "$line" ] || { printf 'cache mismatch: %s\n' "$line" >&2; bad=1; }
+    clear_input clear | "$HOOK" clear >/dev/null
+    got="$(sed -n 's/.* prefill pane=%7 cmd=//p' "$HOME/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log")"
+    [ "$got" = "$want" ] || { printf 'prefill: want [%s] got [%s]: %s\n' "$want" "$got" "$line" >&2; bad=1; }
+  done <"$CORPUS"
+  [ "$n" -ge 20 ]
+  return "$bad"
+}
+
+@test "corpus: the mod's LINE_RE finds the same line as the hook" {
+  command -v node >/dev/null || skip "node missing"
+  run node -e '
+    const fs = require("fs")
+    const src = fs.readFileSync(process.argv[1], "utf8")
+    const re = eval(src.match(/const LINE_RE = (\/.*\/[a-z]*)$/m)[1])
+    let bad = 0
+    for (const row of fs.readFileSync(process.argv[2], "utf8").split("\n")) {
+      if (!row || row.startsWith("#")) continue
+      const line = row.split("\t")[1]
+      const all = ("Answer.\n\n**Robert, du bist dran:** old.\n\n" + line + "\n").match(re)
+      const got = all?.[all.length - 1]?.trim() ?? ""
+      if (got !== line) { console.log("mismatch: " + line); bad = 1 }
+    }
+    process.exit(bad)' "$MOD" "$CORPUS"
+  [ "$status" -eq 0 ] || { echo "$output" >&2; return 1; }
+}
+
+@test "contract: hook and mod read the same pane cache path" {
+  grep -qF '$CACHE/pane-' "$HOOK"
+  grep -qF 'CACHE="${HOME}/.cache/c-bpm-next-step"' "$HOOK"
+  grep -qF '${home}/.cache/c-bpm-next-step/pane-${pane.replace(/[^A-Za-z0-9]/g, '"''"')}' "$MOD"
+}

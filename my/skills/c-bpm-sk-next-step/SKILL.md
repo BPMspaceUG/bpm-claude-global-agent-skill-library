@@ -17,7 +17,8 @@ Before writing the line, read
 and place the situation on its map: main flow (grill → spec → tickets →
 implement → retro), on-ramp (triage, diagnosing-bugs, wayfinder), or phase
 boundary (continue, clear, handoff, compact). Read a skill's SKILL.md before
-recommending it.
+recommending it. The Stop hook `c-bpm-hk-ask-matt-read-guard` sends back an
+answer that says "ask-matt empfiehlt" before that read.
 
 ## Operations work skips the main flow
 
@@ -59,6 +60,12 @@ Rules:
 - Waiting is a full next step: the watchdog loop works, Robert does nothing.
   Do not start anything just because an answer is ending.
 - Never end open ("melde dich") or with status and no direction.
+
+The line is parsed by machines: the hook `c-bpm-hk-ask-matt-after-clear`
+(cache, prefill of the first `/command` before " ask-matt ") and the mod
+`c-bpm-md-last-recommendation` (pane). Change the two prefixes or the
+" ask-matt " split only together with both and with the corpus
+`tests/fixtures/next-step-lines.tsv` in the skill library.
 
 ## Running agents get a real watchdog loop
 

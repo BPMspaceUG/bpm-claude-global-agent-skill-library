@@ -22,10 +22,10 @@ All custom items use the `c-{org}-{type}-{name}` prefix convention
 | `c-bpm-sk-gogo` | skill | Unattended overnight run: implements every ready, unblocked ticket of the current repo with an agent team and Codex reviews (`TEAMMATE.md` is the teammate contract). |
 | `c-bpm-sk-next-step` | skill | Every answer ends with exactly one action line naming who acts: "Robert, du bist dran: …" (step chosen via ask-matt) or "Claude ist dran, du musst nichts tun: …"; running agents get a `CronCreate` watchdog loop that checks at least every 5 minutes. |
 | `c-bpm-cm-pocock-update` | command | Manual, immediate run of `c-bpm-hk-skills-refresh.sh` (`update`, `check`, `unlock`): update the Pocock plugin and strip `disable-model-invocation: true` from every installed SKILL.md so Claude can call the skills itself. |
-| `c-bpm-cm-library-pull` / `-push` / `-compare` | command + CLI | Sync `my/` items between this repo and `~/.claude/`. |
+| `c-bpm-cm-library-pull` / `c-bpm-cm-library-push` / `c-bpm-cm-library-compare` | command + CLI | Sync `my/` items between this repo and `~/.claude/`. |
 | `c-bpm-hk-agent-cleanup-guard` | hook | Stops a teammate as soon as it finishes its turn (`TeammateIdle` → `continue: false`), shows the user what is still running at every turn end (`Stop`, from `background_tasks`), asks once for `TaskStop` on open teammates and shells, and demands an agent sweep at `SessionStart`. |
-
-| `c-bpm-hk-ask-matt-after-clear` | hook | At `Stop` caches the last "Robert, du bist dran: …" / "Claude ist dran, …" line of the answer (per tmux pane and per directory, `~/.cache/c-bpm-next-step/`); at `SessionStart` (`clear`) shows Robert that line at once (also handed to the new session) and, in tmux, types its `/command` into the prompt without Enter; writes `session-<id>` for the host status line, which shows the hint below the prompt until the first answer ends. Fallback: scan the cleared transcript. No model run. |
+| `c-bpm-hk-ask-matt-after-clear` | hook | At `Stop` caches the last "Robert, du bist dran: …" / "Claude ist dran, …" line of the answer (per tmux pane and per directory, `~/.cache/c-bpm-next-step/`); at `SessionStart` (`clear`) shows Robert that line at once (also handed to the new session) and, in tmux, types its `/command` into the prompt without Enter; writes `session-<id>` for the host status line, which shows the hint below the prompt until the first answer ends. Fallback: scan the cleared transcript. No model run. Real lines and their prefill: `tests/fixtures/next-step-lines.tsv`, read by the tests of this hook and of the mod. |
+| `c-bpm-hk-ask-matt-read-guard` | hook | At `Stop` sends the answer back once when its next-step line says "ask-matt empfiehlt" but ask-matt was not read in the session (tool call on `ask-matt/SKILL.md`, Skill call, or `/ask-matt`). |
 | `c-bpm-md-last-recommendation` | mod | Pane on the right of the chat, "Last recommendation": the last next-step line, kept across `/clear` (reads the after-clear hook's pane cache). Opens itself from 144 columns, `/last-recommendation` at any width. Loaded in every session via `CLAUDE_CODE_PLUGIN_DIRS` in `~/.claude/settings.json` (`env`), pointing at `my/mods/c-bpm-md-last-recommendation` in this checkout; edits reload live. |
 | `c-bpm-hk-skills-refresh` | hook + script | At `SessionStart` (startup, resume) unlocks the installed Pocock skills locally, then at most once per 24 h starts a detached worker: plugin update, unlock, `c-bpm-cm-library-pull`. Changes apply from the next session. `/c-bpm-cm-pocock-update` calls the same script. |
 
@@ -93,6 +93,8 @@ After editing any root script: `sha256sum lib.sh sync install c-bpm-cm-library-p
 
 ```bash
 ./tests/run_tests.sh      # bats tests/bash/
+./tests/typecheck-mods.sh # tsc --noEmit over my/mods/*
+git config core.hooksPath .githooks   # once per clone: pre-push runs both
 ```
 
 The suite is offline and deterministic: installer and sync behaviour, host
