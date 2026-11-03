@@ -108,3 +108,11 @@ clear_input() {
   sleep 1
   [ ! -e "$HOME/tmux.calls" ]
 }
+
+@test "clear writes the status-line hint for the new session; the first answer removes it" {
+  stop_input "$ROBERT" | "$HOOK" save
+  clear_input clear | "$HOOK" clear >/dev/null
+  grep -qF "$ROBERT" "$HOME/.cache/c-bpm-next-step/session-new"
+  jq -nc '{session_id:"new", last_assistant_message:"x"}' | "$HOOK" save
+  [ ! -e "$HOME/.cache/c-bpm-next-step/session-new" ]
+}

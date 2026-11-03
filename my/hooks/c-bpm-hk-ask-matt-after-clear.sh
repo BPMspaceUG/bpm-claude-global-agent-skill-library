@@ -14,7 +14,9 @@
 #          fallback: scan the cleared transcript) and show the line to Robert
 #          (systemMessage) and to the new session (additionalContext). If the
 #          line is "Robert, du bist dran:" with a `/command`, also type that
-#          command into the tmux pane's prompt (no Enter): prefilled.
+#          command into the tmux pane's prompt (no Enter): prefilled. It also
+#          writes session-<id>, which the host status line shows below the
+#          prompt until the first answer of the new session ends.
 #
 # Cache: ~/.cache/c-bpm-next-step/. Log: ~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log.
 # Always exits 0.
@@ -72,6 +74,8 @@ write_cache() {
 
 case "$MODE" in
   save)
+    # The first answer after /clear ends the status-line hint of this session.
+    [ -n "$SID" ] && rm -f "$CACHE/session-$SID"
     LINE="$(printf '%s' "$INPUT" | jq -r '.last_assistant_message // empty' | last_line)"
     [ -n "$LINE" ] || LINE="$(transcript_text "$TP" | last_line)"
     if [ -n "$LINE" ]; then
@@ -104,6 +108,15 @@ log "from=${FROM:-none} line=${LINE:0:200}"
 if [ -z "$LINE" ]; then
   jq -n '{systemMessage: "Nach /clear: kein gespeicherter Hinweis gefunden. Frag nach dem nächsten Schritt."}'
   exit 0
+fi
+
+# Status-line hint: Claude Code draws the status line below the prompt. The
+# host status line (/usr/local/bin/claude-statusline.sh) prints
+# $CACHE/session-<session_id> as a second line until the first answer ends
+# (save mode removes it). Stale files go after two days.
+if [ -n "$SID" ] && mkdir -p "$CACHE"; then
+  printf '%s\n' "$LINE" >"$CACHE/session-$SID"
+  find "$CACHE" -maxdepth 1 -name 'session-*' -mtime +2 -delete 2>/dev/null
 fi
 
 # Prefill: Claude Code shows systemMessage above the /clear, far from the
