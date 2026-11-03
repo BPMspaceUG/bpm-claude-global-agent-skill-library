@@ -82,12 +82,31 @@ older stand-alone `agent-cleanup-guard.sh` registration.
 | `TeammateIdle` | The teammate that just finished its turn is stopped by Claude Code (`continue: false`). |
 | `Stop` | The user sees a line listing every teammate, subagent and shell still in flight. Open teammates and shells get one request to `TaskStop` them; never twice in a row. |
 | `SessionStart` (startup, /clear) | Claude is told to run `ListAgents` and stop leftover teammates before answering. |
-| `SessionStart` (/clear) | The user sees at once the last next-step line ("Robert, du bist dran: …") of the conversation just cleared. A `Stop` hook caches that line after every answer in `~/.cache/c-bpm-next-step/` (per tmux pane and per directory); without a cache the cleared transcript is scanned. No model run. Log `~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log`. |
+| `SessionStart` (/clear) | The user sees at once the last next-step line ("Robert, du bist dran: …") of the conversation just cleared. A `Stop` hook caches that line after every answer in `~/.cache/c-bpm-next-step/` (per tmux pane and per directory); without a cache the cleared transcript is scanned. No model run. In tmux the first `/command` of a "Robert, du bist dran:" line (skipping `/clear`, `/compact`, `/resume`, `/exit`) is typed into the prompt without Enter. The line is also written to `session-<id>`, which the host status line (`/usr/local/bin/claude-statusline.sh`, `refreshInterval: 2`, see bpm-contabo03 #49) shows below the prompt until the first answer ends. Log `~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log`. |
 | `SessionStart` (startup, resume) | The installed Pocock skills are unlocked at once, without network. At most once per 24 h a detached worker updates the plugin, unlocks again and runs `c-bpm-cm-library-pull`; the result applies from the next session. Log: `~/.claude/hooks/c-bpm-hk-skills-refresh.log`. |
 
 Restart Claude Code after the first pull so the registration is loaded. The
 cleanup hook writes every payload it sees, without the assistant's text, to
 `~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.log`. Both logs are capped at 256 KiB.
+
+### The mod
+
+`my/mods/c-bpm-md-last-recommendation` is a Claude Code mod (hooks module,
+early-access API): a pane on the right of the chat, "Last recommendation",
+showing the last next-step line of an answer and keeping it across `/clear`
+(it reads the per-pane cache of `c-bpm-hk-ask-matt-after-clear`). It opens by
+itself from 144 terminal columns; `/last-recommendation` opens it at any width.
+The mobile app docks no pane, so the hook's status-line hint and prefill stay.
+
+It is not installed by `c-bpm-cm-library-pull`. It is loaded in every session
+from this checkout through the `env` block of `~/.claude/settings.json`:
+
+```json
+"CLAUDE_CODE_PLUGIN_DIRS": "/home/matt/bpm-claude-global-agent-skill-library/my/mods/c-bpm-md-last-recommendation"
+```
+
+Edits reload live in running sessions; a new setting needs a session restart.
+Check with `claude plugin validate my/mods/c-bpm-md-last-recommendation`.
 
 ### Removing the former enforcement hooks
 
