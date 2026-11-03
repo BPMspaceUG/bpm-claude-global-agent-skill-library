@@ -82,7 +82,7 @@ older stand-alone `agent-cleanup-guard.sh` registration.
 | `TeammateIdle` | The teammate that just finished its turn is stopped by Claude Code (`continue: false`). |
 | `Stop` | The user sees a line listing every teammate, subagent and shell still in flight. Open teammates and shells get one request to `TaskStop` them; never twice in a row. |
 | `SessionStart` (startup, /clear) | Claude is told to run `ListAgents` and stop leftover teammates before answering. |
-| `SessionStart` (/clear) | A headless `claude -p` run gets the ask-matt router, the tail of the cleared conversation and the repo state, and the user sees one line "Robert, du bist dran: …" naming the command to type next (about 30 s; log `~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log`). |
+| `SessionStart` (/clear) | The user sees at once the last next-step line ("Robert, du bist dran: …") of the conversation just cleared. A `Stop` hook caches that line after every answer in `~/.cache/c-bpm-next-step/` (per tmux pane and per directory); without a cache the cleared transcript is scanned. No model run. Log `~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log`. |
 | `SessionStart` (startup, resume) | The installed Pocock skills are unlocked at once, without network. At most once per 24 h a detached worker updates the plugin, unlocks again and runs `c-bpm-cm-library-pull`; the result applies from the next session. Log: `~/.claude/hooks/c-bpm-hk-skills-refresh.log`. |
 
 Restart Claude Code after the first pull so the registration is loaded. The

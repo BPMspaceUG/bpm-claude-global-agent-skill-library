@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 #
-# c-bpm-hk-ask-matt-after-clear.bats — the SessionStart(clear) hook asks a
-# headless claude run (stubbed here) for Robert's next step and shows it.
+# c-bpm-hk-ask-matt-after-clear.bats — Stop caches the last next-step line of
+# an answer; SessionStart(clear) replays it at once, without a model run.
 
 set -u
 
@@ -9,58 +9,70 @@ REPO_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
 HOOK="${REPO_ROOT}/my/hooks/c-bpm-hk-ask-matt-after-clear.sh"
 FRAGMENT="${REPO_ROOT}/my/hooks/c-bpm-hooks.json"
 
+ROBERT='**Robert, du bist dran:** `/mattpocock-skills:triage` eintippen. ask-matt empfiehlt das, weil Test.'
+
 setup() {
   TEST_HOME="$(mktemp -d)"
   export HOME="${TEST_HOME}"
-  mkdir -p "${HOME}/.claude/hooks" "${HOME}/ask" "${HOME}/proj" "${HOME}/bin"
-  printf 'ASK-MATT ROUTER TEXT\n' >"${HOME}/ask/SKILL.md"
-  export C_BPM_ASK_MATT_DIR="${HOME}/ask"
-  printf '%s\n' '{"type":"user","message":{"content":"PREVIOUS-CONVERSATION-MARKER"}}' >"${HOME}/proj/old.jsonl"
+  mkdir -p "${HOME}/.claude/hooks" "${HOME}/proj"
   : >"${HOME}/proj/new.jsonl"
-  cat >"${HOME}/bin/claude" <<'STUB'
-#!/usr/bin/env bash
-cat >"$HOME/prompt.txt"
-echo "**Robert, du bist dran:** \`/mattpocock-skills:triage\` eintippen. ask-matt empfiehlt das, weil Test."
-STUB
-  chmod +x "${HOME}/bin/claude"
-  export C_BPM_ASK_MATT_CLAUDE="${HOME}/bin/claude"
-  unset C_BPM_ASK_MATT_CHILD
+  export TMUX_PANE='%7'
 }
 
 teardown() { rm -rf "${TEST_HOME}"; }
 
-input() { printf '{"source":"%s","session_id":"new","transcript_path":"%s/proj/new.jsonl","cwd":"%s"}' "$1" "$HOME" "$HOME"; }
+stop_input() {
+  jq -nc --arg m "$1" --arg h "$HOME" '{session_id:"old", cwd:$h, transcript_path:($h+"/proj/old.jsonl"), last_assistant_message:$m}'
+}
+clear_input() {
+  printf '{"source":"%s","session_id":"new","transcript_path":"%s/proj/new.jsonl","cwd":"%s"}' "$1" "$HOME" "$HOME"
+}
 
-@test "clear: shows ask-matt's line to Robert and to the new session" {
-  run bash -c "$(declare -f input); input clear | '$HOOK'"
+@test "save + clear: the last action line of the answer is replayed" {
+  msg="$(printf 'Some answer.\n\n**Robert, du bist dran:** alt.\n\nMore.\n\n%s' "$ROBERT")"
+  stop_input "$msg" | "$HOOK" save
+  run bash -c "$(declare -f clear_input); clear_input clear | '$HOOK' clear"
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.systemMessage | startswith("ask-matt nach /clear: **Robert, du bist dran:**")'
+  echo "$output" | jq -e --arg r "$ROBERT" '.systemMessage == ("Letzter Hinweis vor /clear: " + $r)'
   echo "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("mattpocock-skills:triage")'
 }
 
-@test "clear: the prompt carries the router and the cleared conversation" {
-  bash -c "$(declare -f input); input clear | '$HOOK'" >/dev/null
-  grep -q 'ASK-MATT ROUTER TEXT' "$HOME/prompt.txt"
-  grep -q 'PREVIOUS-CONVERSATION-MARKER' "$HOME/prompt.txt"
+@test "save: the Claude-acts form is cached too" {
+  stop_input '**Claude ist dran, du musst nichts tun:** Watchdog prüft.' | "$HOOK" save
+  grep -q 'Claude ist dran' "$HOME/.cache/c-bpm-next-step/pane-7"
+}
+
+@test "save: an answer without action line keeps the previous cache" {
+  stop_input "$ROBERT" | "$HOOK" save
+  stop_input 'no line here' | "$HOOK" save
+  grep -qF "$ROBERT" "$HOME/.cache/c-bpm-next-step/pane-7"
+}
+
+@test "clear outside tmux: falls back to the directory cache" {
+  stop_input "$ROBERT" | "$HOOK" save
+  unset TMUX_PANE
+  run bash -c "$(declare -f clear_input); clear_input clear | '$HOOK' clear"
+  echo "$output" | jq -e '.systemMessage | contains("mattpocock-skills:triage")'
+}
+
+@test "clear without cache: scans the cleared transcript" {
+  jq -nc --arg t "$ROBERT" '{type:"assistant", message:{content:[{type:"text", text:$t}]}}' >"$HOME/proj/old.jsonl"
+  run bash -c "$(declare -f clear_input); clear_input clear | '$HOOK' clear"
+  echo "$output" | jq -e '.systemMessage | contains("mattpocock-skills:triage")'
+}
+
+@test "clear with nothing found: exit 0 and a notice" {
+  run bash -c "$(declare -f clear_input); clear_input clear | '$HOOK' clear"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.systemMessage | contains("kein gespeicherter Hinweis")'
 }
 
 @test "startup and resume: no output" {
-  run bash -c "$(declare -f input); input startup | '$HOOK'"
+  run bash -c "$(declare -f clear_input); clear_input startup | '$HOOK' clear"
   [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
-@test "child run never recurses" {
-  run bash -c "$(declare -f input); input clear | C_BPM_ASK_MATT_CHILD=1 '$HOOK'"
-  [ "$status" -eq 0 ]; [ -z "$output" ]
-}
-
-@test "failing headless run: exit 0 and an error message" {
-  printf '#!/usr/bin/env bash\nexit 3\n' >"$HOME/bin/claude"
-  run bash -c "$(declare -f input); input clear | '$HOOK'"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.systemMessage | contains("fehlgeschlagen")'
-}
-
-@test "fragment wires the hook to SessionStart clear" {
-  jq -e '.SessionStart[] | select(.matcher == "clear") | .hooks[] | select(.command | contains("c-bpm-hk-ask-matt-after-clear.sh"))' "$FRAGMENT"
+@test "fragment wires clear to SessionStart and save to Stop" {
+  jq -e '.SessionStart[] | select(.matcher == "clear") | .hooks[] | select(.command | endswith("c-bpm-hk-ask-matt-after-clear.sh clear"))' "$FRAGMENT"
+  jq -e '.Stop[] | .hooks[] | select(.command | endswith("c-bpm-hk-ask-matt-after-clear.sh save"))' "$FRAGMENT"
 }

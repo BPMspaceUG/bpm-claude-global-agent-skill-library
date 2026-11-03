@@ -2,12 +2,13 @@
   "SessionStart": [
     {"matcher": "startup|clear", "hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh start", "timeout": 10}]},
     {"matcher": "startup|resume", "hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-skills-refresh.sh hook", "timeout": 10}]},
-    {"matcher": "clear", "hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.sh", "timeout": 180, "statusMessage": "ask-matt: was ist dein nächster Schritt?"}]}
+    {"matcher": "clear", "hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.sh clear", "timeout": 10}]}
   ],
   "TeammateIdle": [
     {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh idle", "timeout": 10, "statusMessage": "Teammate finished - stopping it"}]}
   ],
   "Stop": [
-    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh stop", "timeout": 10}]}
+    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-agent-cleanup-guard.sh stop", "timeout": 10}]},
+    {"hooks": [{"type": "command", "command": "~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.sh save", "timeout": 10}]}
   ]
 }
