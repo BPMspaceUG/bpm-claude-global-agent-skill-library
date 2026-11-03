@@ -116,3 +116,17 @@ clear_input() {
   jq -nc '{session_id:"new", last_assistant_message:"x"}' | "$HOOK" save
   [ ! -e "$HOME/.cache/c-bpm-next-step/session-new" ]
 }
+
+@test "clear in tmux: /clear in the line is skipped, the command after it is prefilled" {
+  stop_input '**Robert, du bist dran:** Sag „nur Test“. Danach `/clear` und `/mattpocock-skills:implement #126`. ask-matt empfiehlt das, weil Test.' | "$HOOK" save
+  clear_input clear | "$HOOK" clear >/dev/null
+  wait_calls
+  [ "$(cat "$HOME/tmux.calls")" = "send-keys|-t|%7|-l|/mattpocock-skills:implement #126|" ]
+}
+
+@test "clear: a line whose only command is /clear prefills nothing" {
+  stop_input '**Robert, du bist dran:** `/clear` eintippen. ask-matt empfiehlt das, weil Test.' | "$HOOK" save
+  clear_input clear | "$HOOK" clear >/dev/null
+  sleep 1
+  [ ! -e "$HOME/tmux.calls" ]
+}

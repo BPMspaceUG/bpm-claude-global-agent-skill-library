@@ -126,7 +126,10 @@ fi
 CMD=""
 case "$LINE" in
   '**Robert, du bist dran:**'*)
-    CMD="$(printf '%s' "$LINE" | sed -n 's/^[^`]*`\(\/[^`]*\)`.*/\1/p')" ;;
+    # The first `/command` that is not the session step itself: "danach
+    # `/clear` und `/x`" means `/x`, since /clear has just happened.
+    CMD="$(printf '%s' "$LINE" | grep -o '`/[^`]*`' | tr -d '`' \
+      | grep -vE '^/(clear|compact|resume|exit)( |$)' | head -1)" ;;
 esac
 if [ -n "$CMD" ] && [ -n "${TMUX_PANE:-}" ] && command -v tmux >/dev/null 2>&1; then
   DELAY="${C_BPM_PREFILL_DELAY:-1.5}"
