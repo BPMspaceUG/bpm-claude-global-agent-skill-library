@@ -12,7 +12,9 @@
 #          write it to the cache (one file per tmux pane, one per directory).
 #   clear  SessionStart(clear) -> read the cache (pane first, then directory;
 #          fallback: scan the cleared transcript) and show the line to Robert
-#          (systemMessage) and to the new session (additionalContext).
+#          (systemMessage) and to the new session (additionalContext). If the
+#          line is "Robert, du bist dran:" with a `/command`, also type that
+#          command into the tmux pane's prompt (no Enter): prefilled.
 #
 # Cache: ~/.cache/c-bpm-next-step/. Log: ~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log.
 # Always exits 0.
@@ -102,6 +104,22 @@ log "from=${FROM:-none} line=${LINE:0:200}"
 if [ -z "$LINE" ]; then
   jq -n '{systemMessage: "Nach /clear: kein gespeicherter Hinweis gefunden. Frag nach dem nächsten Schritt."}'
   exit 0
+fi
+
+# Prefill: Claude Code shows systemMessage above the /clear, far from the
+# prompt. If the line tells Robert to type a slash command, type it into his
+# prompt (no Enter), so it waits right below. Only inside tmux; detached, so
+# the hook returns at once and the prompt is ready when the keys arrive.
+CMD=""
+case "$LINE" in
+  '**Robert, du bist dran:**'*)
+    CMD="$(printf '%s' "$LINE" | sed -n 's/^[^`]*`\(\/[^`]*\)`.*/\1/p')" ;;
+esac
+if [ -n "$CMD" ] && [ -n "${TMUX_PANE:-}" ] && command -v tmux >/dev/null 2>&1; then
+  DELAY="${C_BPM_PREFILL_DELAY:-1.5}"
+  setsid bash -c 'sleep "$1"; tmux send-keys -t "$2" -l "$3"' _ "$DELAY" "$TMUX_PANE" "$CMD" \
+    </dev/null >/dev/null 2>&1 &
+  log "prefill pane=$TMUX_PANE cmd=$CMD"
 fi
 
 jq -n --arg a "$LINE" '{
