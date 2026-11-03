@@ -19,7 +19,7 @@ several organisations' libraries can coexist in one `~/.claude/`.
 | `my/skills/` | custom skills | directory per skill with `SKILL.md` |
 | `my/commands/` | slash commands | one flat `.md` per command |
 | `my/agents/` | teammate role definitions (currently none) | one flat `.md` per agent |
-| `my/hooks/` | the agent cleanup hook and its settings fragment | `c-bpm-hk-*.sh` + `c-bpm-hooks.json` |
+| `my/hooks/` | the hooks and their settings fragment | `c-bpm-hk-*.sh` + `c-bpm-hooks.json` |
 | `my/hosts/` | per-host inventory written by the sync scripts | `.txt` |
 
 ## 2. Installation
@@ -71,9 +71,9 @@ c-bpm-cm-library-pull    # refresh the installed copies in ~/.claude/
 
 ### The hooks
 
-`c-bpm-cm-library-pull` installs two hooks, `c-bpm-hk-agent-cleanup-guard` and
-`c-bpm-hk-skills-refresh`, and
-registers it in `~/.claude/settings.json` (plus `~/.config/claude/settings.json`
+`c-bpm-cm-library-pull` installs three hooks, `c-bpm-hk-agent-cleanup-guard`,
+`c-bpm-hk-skills-refresh` and `c-bpm-hk-ask-matt-after-clear`, and
+registers them in `~/.claude/settings.json` (plus `~/.config/claude/settings.json`
 when that file exists). Re-running the pull is idempotent and also replaces the
 older stand-alone `agent-cleanup-guard.sh` registration.
 
@@ -82,6 +82,7 @@ older stand-alone `agent-cleanup-guard.sh` registration.
 | `TeammateIdle` | The teammate that just finished its turn is stopped by Claude Code (`continue: false`). |
 | `Stop` | The user sees a line listing every teammate, subagent and shell still in flight. Open teammates and shells get one request to `TaskStop` them; never twice in a row. |
 | `SessionStart` (startup, /clear) | Claude is told to run `ListAgents` and stop leftover teammates before answering. |
+| `SessionStart` (/clear) | A headless `claude -p` run gets the ask-matt router, the tail of the cleared conversation and the repo state, and the user sees one line "Robert, du bist dran: …" naming the command to type next (about 30 s; log `~/.claude/hooks/c-bpm-hk-ask-matt-after-clear.log`). |
 | `SessionStart` (startup, resume) | The installed Pocock skills are unlocked at once, without network. At most once per 24 h a detached worker updates the plugin, unlocks again and runs `c-bpm-cm-library-pull`; the result applies from the next session. Log: `~/.claude/hooks/c-bpm-hk-skills-refresh.log`. |
 
 Restart Claude Code after the first pull so the registration is loaded. The
@@ -167,7 +168,7 @@ scripts (`install.bats`, `sync-dedup.bats`, `sync-only-flags.bats`,
 `c-bpm-hosts-inventory.bats`), drift guards over this README
 (`readme-guards.bats`), content guards over the custom items
 (`c-bpm-items.bats`) and the agent cleanup hook with its installation
-(`c-bpm-hk-agent-cleanup-guard.bats`) and the skills refresh hook (`c-bpm-hk-skills-refresh.bats`).
+(`c-bpm-hk-agent-cleanup-guard.bats`), the skills refresh hook (`c-bpm-hk-skills-refresh.bats`) and the ask-matt-after-clear hook (`c-bpm-hk-ask-matt-after-clear.bats`).
 
 ## 5. Maintenance
 

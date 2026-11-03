@@ -25,9 +25,10 @@ All custom items use the `c-{org}-{type}-{name}` prefix convention
 | `c-bpm-cm-library-pull` / `-push` / `-compare` | command + CLI | Sync `my/` items between this repo and `~/.claude/`. |
 | `c-bpm-hk-agent-cleanup-guard` | hook | Stops a teammate as soon as it finishes its turn (`TeammateIdle` → `continue: false`), shows the user what is still running at every turn end (`Stop`, from `background_tasks`), asks once for `TaskStop` on open teammates and shells, and demands an agent sweep at `SessionStart`. |
 
+| `c-bpm-hk-ask-matt-after-clear` | hook | At `SessionStart` (`clear`) runs a headless `claude -p` with the ask-matt router, the tail of the cleared conversation and the repo state, and shows Robert one line "Robert, du bist dran: …" (also handed to the new session). About 30 s. |
 | `c-bpm-hk-skills-refresh` | hook + script | At `SessionStart` (startup, resume) unlocks the installed Pocock skills locally, then at most once per 24 h starts a detached worker: plugin update, unlock, `c-bpm-cm-library-pull`. Changes apply from the next session. `/c-bpm-cm-pocock-update` calls the same script. |
 
-`c-bpm-cm-library-pull` installs both hooks: it copies
+`c-bpm-cm-library-pull` installs the hooks: it copies
 `my/hooks/c-bpm-hk-*.sh` to `~/.claude/hooks/` and merges
 `my/hooks/c-bpm-hooks.json` into `~/.claude/settings.json` (and into
 `~/.config/claude/settings.json` when that file exists), replacing any earlier
