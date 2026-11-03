@@ -26,6 +26,7 @@ All custom items use the `c-{org}-{type}-{name}` prefix convention
 | `c-bpm-hk-agent-cleanup-guard` | hook | Stops a teammate as soon as it finishes its turn (`TeammateIdle` → `continue: false`), shows the user what is still running at every turn end (`Stop`, from `background_tasks`), asks once for `TaskStop` on open teammates and shells, and demands an agent sweep at `SessionStart`. |
 
 | `c-bpm-hk-ask-matt-after-clear` | hook | At `Stop` caches the last "Robert, du bist dran: …" / "Claude ist dran, …" line of the answer (per tmux pane and per directory, `~/.cache/c-bpm-next-step/`); at `SessionStart` (`clear`) shows Robert that line at once (also handed to the new session) and, in tmux, types its `/command` into the prompt without Enter; writes `session-<id>` for the host status line, which shows the hint below the prompt until the first answer ends. Fallback: scan the cleared transcript. No model run. |
+| `letzte-empfehlung` | mod | Pane on the right of the chat, "Letzte Empfehlung": the last next-step line, kept across `/clear` (reads the after-clear hook's pane cache). Opens itself from 144 columns, `/empfehlung` at any width. Loaded in every session via `CLAUDE_CODE_PLUGIN_DIRS` in `~/.claude/settings.json` (`env`), pointing at `my/mods/letzte-empfehlung` in this checkout; edits reload live. |
 | `c-bpm-hk-skills-refresh` | hook + script | At `SessionStart` (startup, resume) unlocks the installed Pocock skills locally, then at most once per 24 h starts a detached worker: plugin update, unlock, `c-bpm-cm-library-pull`. Changes apply from the next session. `/c-bpm-cm-pocock-update` calls the same script. |
 
 `c-bpm-cm-library-pull` installs the hooks: it copies
@@ -47,6 +48,7 @@ bpm-claude-global-agent-skill-library/
 │   ├── commands/            # c-bpm-cm-<name>.md (flat)
 │   ├── agents/              # c-bpm-ag-<name>.md (currently empty)
 │   ├── hooks/               # c-bpm-hk-<name>.sh + c-bpm-hooks.json (settings fragment)
+│   ├── mods/                # Claude Code mods (hooks modules), loaded from here
 │   └── hosts/<host>/        # per-host inventory, written by the sync scripts
 ├── c-bpm-cm-library-pull    # repo -> ~/.claude/
 ├── c-bpm-cm-library-push    # ~/.claude/ -> repo (commits and pushes)
